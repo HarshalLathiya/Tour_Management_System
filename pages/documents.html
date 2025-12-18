@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents - Tour Support System</title>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mobile.css">
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.html">
+                <i class="fas fa-bus text-primary me-2"></i>
+                <strong>Tour Support</strong>
+            </a>
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Navigation Links -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="students.html">
+                            <i class="fas fa-users me-1"></i>Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="attendance.html">
+                            <i class="fas fa-clipboard-check me-1"></i>Attendance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="itinerary.html">
+                            <i class="fas fa-route me-1"></i>Itinerary
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="safety.html">
+                            <i class="fas fa-shield-alt me-1"></i>Safety
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="documents.html">
+                            <i class="fas fa-file-alt me-1"></i>Documents
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- User Info -->
+                <div class="navbar-nav align-items-center">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span class="user-role-display"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text last-login-time"></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" onclick="printAllDocuments()">
+                                    <i class="fas fa-print me-2"></i>Print All
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item logout-btn text-danger" href="#">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 mb-1">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Rules & Documents
+                        </h1>
+                        <p class="text-muted mb-0">
+                            Tour rules, code of conduct, and official documents
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" onclick="downloadAllDocuments()">
+                            <i class="fas fa-download me-1"></i>Download All
+                        </button>
+                        <button class="btn btn-primary" onclick="printAllDocuments()">
+                            <i class="fas fa-print me-1"></i>Print All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Categories -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-outline-primary active" onclick="filterDocuments('all')">
+                                <i class="fas fa-layer-group me-2"></i>All Documents
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="filterDocuments('rules')">
+                                <i class="fas fa-gavel me-2"></i>Rules
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="filterDocuments('safety')">
+                                <i class="fas fa-shield-alt me-2"></i>Safety
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="filterDocuments('protocols')">
+                                <i class="fas fa-clipboard-list me-2"></i>Protocols
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="filterDocuments('important')">
+                                <i class="fas fa-exclamation-circle me-2"></i>Important
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document List -->
+        <div class="row">
+            <!-- Left Column - Document List -->
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-list me-2"></i>
+                        Document List
+                        <span class="badge bg-primary" id="documentCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="documentList">
+                            <!-- Filled by JavaScript -->
+                        </div>
+
+                        <!-- No Documents Message -->
+                        <div id="noDocumentsMessage" class="text-center py-5 d-none">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h5>No Documents Available</h5>
+                            <p class="text-muted">No documents have been added yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Reference -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Reference
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <a href="#emergencyProtocol" class="list-group-item list-group-item-action">
+                                <i class="fas fa-ambulance text-danger me-2"></i>
+                                Emergency Protocol
+                            </a>
+                            <a href="#tourRules" class="list-group-item list-group-item-action">
+                                <i class="fas fa-gavel text-warning me-2"></i>
+                                Tour Rules
+                            </a>
+                            <a href="#codeOfConduct" class="list-group-item list-group-item-action">
+                                <i class="fas fa-user-graduate text-primary me-2"></i>
+                                Code of Conduct
+                            </a>
+                            <a href="#healthGuidelines" class="list-group-item list-group-item-action">
+                                <i class="fas fa-heartbeat text-success me-2"></i>
+                                Health Guidelines
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Document Viewer -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-file me-2"></i>
+                                <span id="currentDocumentTitle">Select a Document</span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="printCurrentDocument()"
+                                    id="printBtn" disabled>
+                                    <i class="fas fa-print me-1"></i>Print
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="downloadCurrentDocument()"
+                                    id="downloadBtn" disabled>
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="documentViewer">
+                            <div class="text-center py-5">
+                                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                                <h4>No Document Selected</h4>
+                                <p class="text-muted">Select a document from the list to view its contents</p>
+                            </div>
+                        </div>
+
+                        <!-- Document Content -->
+                        <div id="documentContent" class="d-none">
+                            <!-- Filled by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Acknowledgment -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Student Acknowledgment
+                    </div>
+                    <div class="card-body">
+                        <p>I have read and understood all tour rules, safety guidelines, and emergency protocols.</p>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="acknowledgeRules">
+                            <label class="form-check-label" for="acknowledgeRules">
+                                I acknowledge and agree to follow all tour rules
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="acknowledgeSafety">
+                            <label class="form-check-label" for="acknowledgeSafety">
+                                I understand and will follow safety guidelines
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="acknowledgeEmergency">
+                            <label class="form-check-label" for="acknowledgeEmergency">
+                                I am aware of emergency protocols and contacts
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="submitAcknowledgment()">
+                                <i class="fas fa-check me-2"></i>Submit Acknowledgment
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetAcknowledgment()">
+                                <i class="fas fa-redo me-2"></i>Reset Form
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light py-3 mt-4 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        <i class="fas fa-university me-1"></i>
+                        Kamani Science & Prataprai Arts College, Amreli
+                    </small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        <i class="fas fa-file-contract me-1"></i>
+                        Official Tour Documents
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Files -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/data-manager.js"></script>
+    <script src="js/main.js"></script>
+
+    <!-- Documents Page JavaScript -->
+    <script>
+        let allDocuments = [];
+        let currentDocument = null;
+        let currentFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadDocuments();
+            loadAcknowledgmentStatus();
+        });
+
+        function loadDocuments() {
+            const documentsData = DataManager.getData('documents');
+            allDocuments = documentsData || getDefaultDocuments();
+
+            updateDocumentList();
+            updateDocumentCount();
+
+            // If no document is selected, show first important one
+            if (allDocuments.length > 0 && !currentDocument) {
+                const importantDoc = allDocuments.find(doc => doc.important) || allDocuments[0];
+                viewDocument(importantDoc.id);
+            }
+        }
+
+        function getDefaultDocuments() {
+            return [
+                {
+                    id: 1,
+                    title: 'College Tour Rules and Regulations',
+                    content: `COLLEGE TOUR RULES AND REGULATIONS
+
+1. GENERAL CONDUCT
+   - All students must maintain discipline and decorum throughout the tour.
+   - Respect faculty, staff, fellow students, and local residents at all times.
+   - College uniform must be worn during all official visits and activities.
+
+2. ATTENDANCE & PUNCTUALITY
+   - Attendance is mandatory for all scheduled activities.
+   - Students must report 15 minutes before departure time.
+   - Absence from any activity requires prior written permission from faculty.
+
+3. SAFETY & SECURITY
+   - Always travel in groups of at least 3 students.
+   - Do not wander off alone at any time.
+   - Follow all safety instructions from faculty and student leaders.
+   - Report any suspicious activity immediately.
+
+4. ACCOMMODATION & PROPERTY
+   - Maintain cleanliness in all accommodation areas.
+   - Respect hotel/lodging property and facilities.
+   - Any damage to property will be charged to the responsible student.
+
+5. HEALTH & HYGIENE
+   - Maintain personal hygiene at all times.
+   - Report any health issues immediately to faculty.
+   - Carry necessary medications as prescribed.
+
+6. COMMUNICATION
+   - Keep mobile phones charged and accessible.
+   - Inform faculty before making any personal calls during activities.
+   - Emergency numbers must be saved in all phones.
+
+7. PROHIBITED ACTIVITIES
+   - Alcohol consumption is strictly prohibited.
+   - Smoking and tobacco use are not allowed.
+   - No unauthorized photography in restricted areas.
+   - Do not share tour location details on social media.
+
+8. ACADEMIC RESPONSIBILITIES
+   - Actively participate in all educational activities.
+   - Maintain notes and documentation as required.
+   - Complete all assigned tasks and reports.
+
+9. EMERGENCY PROCEDURES
+   - Follow emergency protocol in case of any incident.
+   - Immediately contact faculty incharge in emergencies.
+   - Do not panic or spread rumors.
+
+10. DISCIPLINARY ACTION
+    - Violation of any rule may result in:
+      a) Written warning
+      b) Immediate return to college at student's expense
+      c) Disciplinary action by college authorities
+      d) Legal action if applicable
+
+ACKNOWLEDGMENT
+I have read and understood all the above rules and regulations. I agree to abide by them throughout the tour duration.`,
+                    category: 'rules',
+                    important: true,
+                    created: '2024-02-20',
+                    version: '1.0'
+                },
+                {
+                    id: 2,
+                    title: 'Emergency Protocol',
+                    content: `EMERGENCY PROTOCOL FOR EDUCATIONAL TOUR
+
+I. IMMEDIATE ACTION REQUIRED
+
+A. MEDICAL EMERGENCY
+   1. STAY CALM - Do not panic
+   2. ASSESS - Check consciousness, breathing, bleeding
+   3. CALL - Dial 108 for ambulance immediately
+   4. INFORM - Contact faculty incharge (+91-98765XXXXX)
+   5. FIRST AID - Provide basic first aid if trained
+   6. SECURE AREA - Keep other students at safe distance
+   7. DOCUMENT - Note time, location, and details
+
+B. ACCIDENT/INJURY
+   1. Ensure scene is safe before approaching
+   2. Do not move injured person unless in danger
+   3. Call 108 for medical assistance
+   4. Apply first aid for bleeding, fractures, etc.
+   5. Keep injured person warm and comfortable
+   6. Collect witness information if applicable
+
+C. LOST STUDENT
+   1. Immediately inform faculty and student leaders
+   2. Search nearby areas in groups
+   3. Contact local authorities if not found within 30 minutes
+   4. Do not spread panic among other students
+   5. Maintain communication with search teams
+
+II. EMERGENCY CONTACTS (MUST BE SAVED IN ALL PHONES)
+
+PRIMARY CONTACTS:
+- Ambulance: 108
+- Police: 100
+- Fire: 101
+- Women Helpline: 1091
+
+COLLEGE CONTACTS:
+- Tour Incharge: Dr. Ramesh Patel (+91-98765XXXXX)
+- Co-Incharge: Prof. Sunita Sharma (+91-98765XXXXY)
+- College Office: 02792-XXXXXX
+
+III. COMMUNICATION PROTOCOL
+
+1. Faculty incharge is the sole spokesperson
+2. Do not share information with media or on social media
+3. Contact parents/guardians only after faculty approval
+4. Maintain accurate incident log with:
+   - Time and location
+   - Persons involved
+   - Actions taken
+   - Witness details
+
+IV. EVACUATION PROCEDURE
+
+1. Faculty will announce evacuation if required
+2. Follow designated assembly points
+3. Take attendance immediately
+4. Bring emergency kit and documents
+5. Do not return for personal belongings
+6. Wait for further instructions
+
+V. POST-EMERGENCY PROCEDURE
+
+1. Debrief with all students
+2. Complete incident report within 24 hours
+3. Arrange counseling if needed
+4. Review and update safety procedures
+5. Inform college administration
+
+REMEMBER: Stay calm, follow instructions, and prioritize safety above all else.`,
+                    category: 'safety',
+                    important: true,
+                    created: '2024-02-20',
+                    version: '1.0'
+                },
+                {
+                    id: 3,
+                    title: 'Student Code of Conduct',
+                    content: `STUDENT CODE OF CONDUCT
+Educational Tour - BCA 6th Semester
+
+PREAMBLE
+As representatives of Kamani Science and Prataprai Arts College, Amreli, students are expected to maintain the highest standards of behavior, academic integrity, and social responsibility throughout the educational tour.
+
+ARTICLE I: ACADEMIC INTEGRITY
+1.1 Actively participate in all educational activities
+1.2 Complete assigned tasks and documentation
+1.3 Respect educational institutions and their staff
+1.4 Maintain academic honesty in all work
+1.5 Share learning experiences with fellow students
+
+ARTICLE II: SOCIAL CONDUCT
+2.1 Treat everyone with respect and dignity
+2.2 Use appropriate language at all times
+2.3 Respect local customs, traditions, and culture
+2.4 Dress appropriately for all occasions
+2.5 Maintain gender equality and inclusivity
+
+ARTICLE III: RESPONSIBILITIES
+3.1 Be punctual for all activities
+3.2 Take responsibility for personal belongings
+3.3 Conserve resources (water, electricity, food)
+3.4 Keep accommodation areas clean and organized
+3.5 Follow instructions from faculty and leaders
+
+ARTICLE IV: COMMUNICATION
+4.1 Maintain open communication with faculty
+4.2 Report concerns promptly and appropriately
+4.3 Use technology responsibly
+4.4 Respect privacy of fellow students
+4.5 Participate in group discussions and debriefings
+
+ARTICLE V: SAFETY CONDUCT
+5.1 Follow all safety guidelines and protocols
+5.2 Never compromise personal or group safety
+5.3 Report safety concerns immediately
+5.4 Stay with designated groups at all times
+5.5 Use safety equipment as instructed
+
+ARTICLE VI: ENVIRONMENTAL RESPONSIBILITY
+6.1 Minimize waste generation
+6.2 Use reusable items when possible
+6.3 Dispose of waste properly
+6.4 Respect local flora and fauna
+6.5 Conserve water and energy
+
+ARTICLE VII: DIGITAL CONDUCT
+7.1 Use mobile phones responsibly
+7.2 Respect privacy when taking photos
+7.3 Do not share location details on social media
+7.4 Maintain digital security
+7.5 Use college-provided communication channels
+
+ARTICLE VIII: CONSEQUENCES OF VIOLATION
+Violation of this code may result in:
+- Verbal warning
+- Written reprimand
+- Restriction of privileges
+- Early return from tour at student's expense
+- Disciplinary action by college
+
+ACKNOWLEDGMENT
+I pledge to uphold this Code of Conduct and represent my college with honor and integrity throughout the educational tour.
+
+Date: _______________
+Signature: _______________
+Roll No: _______________`,
+                    category: 'protocols',
+                    important: false,
+                    created: '2024-02-20',
+                    version: '1.0'
+                },
+                {
+                    id: 4,
+                    title: 'Health and Hygiene Guidelines',
+                    content: `HEALTH AND HYGIENE GUIDELINES
+Educational Tour 2024
+
+I. PERSONAL HYGIENE
+1. Daily bathing is mandatory
+2. Wash hands frequently with soap:
+   - Before eating
+   - After using restroom
+   - After touching public surfaces
+3. Use hand sanitizer when soap is unavailable
+4. Maintain oral hygiene (brush twice daily)
+5. Keep nails trimmed and clean
+
+II. FOOD AND WATER SAFETY
+1. Drink only bottled or purified water
+2. Avoid street food and uncooked items
+3. Eat at clean, reputable establishments
+4. Wash fruits before consumption
+5. Check food expiry dates
+6. Report any food-related issues immediately
+
+III. HEALTH MONITORING
+1. Monitor daily health status
+2. Report any symptoms to faculty:
+   - Fever
+   - Cough/cold
+   - Diarrhea
+   - Skin rashes
+   - Any unusual symptoms
+3. Carry personal medications
+4. Keep emergency medications accessible
+
+IV. ENVIRONMENTAL HEALTH
+1. Use sunscreen (SPF 30+) when outdoors
+2. Wear hats/caps in direct sunlight
+3. Stay hydrated (drink 2-3 liters daily)
+4. Use mosquito repellent in evening
+5. Avoid crowded, poorly ventilated areas
+
+V. REST AND RECOVERY
+1. Get adequate sleep (7-8 hours nightly)
+2. Take short breaks during activities
+3. Report fatigue or exhaustion
+4. Do not over-exert physically
+5. Listen to your body's signals
+
+VI. MENTAL WELL-BEING
+1. Stay connected with group
+2. Share concerns with faculty/leaders
+3. Practice stress-relief techniques
+4. Maintain positive attitude
+5. Support fellow students
+
+VII. FIRST AID RESPONSIBILITIES
+1. Know location of first aid kit
+2. Learn basic first aid procedures
+3. Report injuries immediately
+4. Assist others when safe to do so
+5. Follow faculty instructions
+
+VIII. EMERGENCY HEALTH SITUATIONS
+1. Call 108 for medical emergency
+2. Inform faculty immediately
+3. Provide first aid if trained
+4. Keep patient calm and comfortable
+5. Document incident details
+
+PREVENTIVE MEASURES
+- Carry personal hygiene kit
+- Avoid sharing personal items
+- Use disposable tissues
+- Maintain social distance if unwell
+- Follow COVID-19 protocols if applicable
+
+Remember: Prevention is better than cure. Your health is your responsibility.`,
+                    category: 'safety',
+                    important: false,
+                    created: '2024-02-20',
+                    version: '1.0'
+                }
+            ];
+        }
+
+        function updateDocumentList() {
+            const listContainer = document.getElementById('documentList');
+            const noDocuments = document.getElementById('noDocumentsMessage');
+
+            const filteredDocs = filterDocumentsByCategory(currentFilter);
+
+            if (filteredDocs.length === 0) {
+                listContainer.innerHTML = '';
+                noDocuments.classList.remove('d-none');
+                return;
+            }
+
+            noDocuments.classList.add('d-none');
+
+            let listHTML = '';
+
+            filteredDocs.forEach(doc => {
+                const isActive = currentDocument && currentDocument.id === doc.id;
+
+                listHTML += `
+                    <a href="#" class="list-group-item list-group-item-action ${isActive ? 'active' : ''}" 
+                       onclick="viewDocument(${doc.id})">
+                        <div class="d-flex w-100 justify-content-between">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="fas fa-${getDocumentIcon(doc.category)} me-2"></i>
+                                    ${doc.title}
+                                    ${doc.important ? '<span class="badge bg-danger ms-2">Important</span>' : ''}
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-tag me-1"></i>${doc.category.toUpperCase()}
+                                </small>
+                            </div>
+                            <small>${doc.version || '1.0'}</small>
+                        </div>
+                    </a>
+                `;
+            });
+
+            listContainer.innerHTML = listHTML;
+        }
+
+        function filterDocumentsByCategory(category) {
+            if (category === 'all') {
+                return allDocuments;
+            }
+            return allDocuments.filter(doc => doc.category === category);
+        }
+
+        function filterDocuments(category) {
+            currentFilter = category;
+
+            // Update active button
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            updateDocumentList();
+            updateDocumentCount();
+
+            // If current document doesn't match filter, show first matching one
+            if (currentDocument && !filterDocumentsByCategory(category).includes(currentDocument)) {
+                const firstDoc = filterDocumentsByCategory(category)[0];
+                if (firstDoc) {
+                    viewDocument(firstDoc.id);
+                } else {
+                    clearDocumentViewer();
+                }
+            }
+        }
+
+        function updateDocumentCount() {
+            const count = filterDocumentsByCategory(currentFilter).length;
+            document.getElementById('documentCount').textContent = count;
+        }
+
+        function viewDocument(documentId) {
+            currentDocument = allDocuments.find(doc => doc.id === documentId);
+            if (!currentDocument) return;
+
+            // Update UI
+            document.getElementById('currentDocumentTitle').textContent = currentDocument.title;
+            document.getElementById('printBtn').disabled = false;
+            document.getElementById('downloadBtn').disabled = false;
+
+            // Show document content
+            showDocumentContent();
+
+            // Update active item in list
+            updateDocumentList();
+
+            // Scroll to top of document viewer
+            document.getElementById('documentViewer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showDocumentContent() {
+            const viewer = document.getElementById('documentViewer');
+            const content = document.getElementById('documentContent');
+
+            viewer.classList.add('d-none');
+            content.classList.remove('d-none');
+
+            // Format content with line breaks
+            const formattedContent = currentDocument.content.replace(/\n/g, '<br>');
+
+            content.innerHTML = `
+                <div class="document-header mb-4">
+                    <h3>${currentDocument.title}</h3>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-${getCategoryColor(currentDocument.category)} me-2">
+                                ${currentDocument.category.toUpperCase()}
+                            </span>
+                            ${currentDocument.important ? '<span class="badge bg-danger">Important</span>' : ''}
+                        </div>
+                        <div class="text-muted">
+                            <small>
+                                <i class="fas fa-calendar me-1"></i>
+                                ${currentDocument.created || 'Not specified'}
+                                <span class="ms-3">
+                                    <i class="fas fa-code-branch me-1"></i>
+                                    Version ${currentDocument.version || '1.0'}
+                                </span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="document-body">
+                    ${formattedContent}
+                </div>
+                
+                <div class="document-footer mt-4 pt-4 border-top">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-university me-1"></i>
+                                Kamani Science & Prataprai Arts College, Amreli
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">
+                                Document ID: ${currentDocument.id} | 
+                                Generated: ${new Date().toLocaleDateString()}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearDocumentViewer() {
+            const viewer = document.getElementById('documentViewer');
+            const content = document.getElementById('documentContent');
+
+            viewer.classList.remove('d-none');
+            content.classList.add('d-none');
+
+            document.getElementById('currentDocumentTitle').textContent = 'Select a Document';
+            document.getElementById('printBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = true;
+        }
+
+        function getDocumentIcon(category) {
+            const icons = {
+                'rules': 'gavel',
+                'safety': 'shield-alt',
+                'protocols': 'clipboard-list',
+                'important': 'exclamation-circle'
+            };
+            return icons[category] || 'file';
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                'rules': 'warning',
+                'safety': 'danger',
+                'protocols': 'primary',
+                'important': 'info'
+            };
+            return colors[category] || 'secondary';
+        }
+
+        function printCurrentDocument() {
+            if (!currentDocument) return;
+
+            const printWindow = window.open('', '_blank');
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${currentDocument.title}</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 20px;
+                            line-height: 1.6;
+                        }
+                        .header { 
+                            text-align: center; 
+                            margin-bottom: 30px;
+                            border-bottom: 2px solid #000;
+                            padding-bottom: 20px;
+                        }
+                        .college-name {
+                            font-size: 18px;
+                            font-weight: bold;
+                        }
+                        .document-title {
+                            font-size: 24px;
+                            margin: 20px 0;
+                            color: #2c3e50;
+                        }
+                        .document-meta {
+                            margin: 20px 0;
+                            color: #666;
+                        }
+                        .document-content {
+                            white-space: pre-line;
+                        }
+                        .footer {
+                            margin-top: 50px;
+                            padding-top: 20px;
+                            border-top: 1px solid #ddd;
+                            font-size: 12px;
+                            color: #666;
+                        }
+                        @media print {
+                            body { margin: 0.5cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="college-name">
+                            Kamani Science & Prataprai Arts College, Amreli
+                        </div>
+                        <div>BCA 6th Semester Educational Tour 2024</div>
+                        <h1 class="document-title">${currentDocument.title}</h1>
+                        <div class="document-meta">
+                            Category: ${currentDocument.category.toUpperCase()} | 
+                            Version: ${currentDocument.version || '1.0'} | 
+                            Date: ${currentDocument.created || 'Not specified'}
+                        </div>
+                    </div>
+                    
+                    <div class="document-content">
+                        ${currentDocument.content}
+                    </div>
+                    
+                    <div class="footer">
+                        <div>Document ID: ${currentDocument.id}</div>
+                        <div>Printed: ${new Date().toLocaleString()}</div>
+                        <div>For official use only - Kamani Science & Prataprai Arts College</div>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        }
+    </script>
+</body>
+
+</html>
+`);
+}
+
+function downloadCurrentDocument() {
+if (!currentDocument) return;
+
+const content = `${currentDocument.title}\n\n${currentDocument.content}\n\nGenerated: ${new
+Date().toLocaleString()}\nKamani Science & Prataprai Arts College, Amreli`;
+const blob = new Blob([content], { type: 'text/plain' });
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a');
+
+const filename = currentDocument.title.toLowerCase().replace(/[^a-z0-9]/g, '_') + '.txt';
+
+link.href = url;
+link.download = filename;
+link.click();
+
+TourSupportSystem.showToast('Document downloaded', 'success');
+}
+
+function printAllDocuments() {
+const printWindow = window.open('', '_blank');
+let documentsHTML = '';
+
+allDocuments.forEach(doc => {
+documentsHTML += `
+<div style="page-break-before: always; margin-top: 50px;">
+    <h2>${doc.title}</h2>
+    <div style="color: #666; margin: 10px 0;">
+        Category: ${doc.category.toUpperCase()} |
+        Version: ${doc.version || '1.0'} |
+        Date: ${doc.created || 'Not specified'}
+    </div>
+    <div style="white-space: pre-line; line-height: 1.6; margin: 20px 0;">
+        ${doc.content}
+    </div>
+    <hr style="margin: 30px 0;">
+</div>
+`;
+});
+
+printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Tour Documents - Complete Set</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .master-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #000;
+        }
+
+        .college-name {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .tour-name {
+            font-size: 20px;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        @media print {
+            body {
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="master-header">
+        <div class="college-name">
+            Kamani Science & Prataprai Arts College, Amreli
+        </div>
+        <div class="tour-name">Educational Tour 2024 - Complete Document Set</div>
+        <div>BCA 6th Semester | Printed: ${new Date().toLocaleDateString()}</div>
+    </div>
+
+    ${documentsHTML}
+
+    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        }
+    </script>
+</body>
+
+</html>
+`);
+}
+
+function downloadAllDocuments() {
+let combinedContent = 'TOUR DOCUMENTS - COMPLETE SET\n';
+combinedContent += 'Kamani Science & Prataprai Arts College, Amreli\n';
+combinedContent += 'Educational Tour 2024 - BCA 6th Semester\n';
+combinedContent += 'Generated: ' + new Date().toLocaleString() + '\n';
+combinedContent += '='.repeat(50) + '\n\n';
+
+allDocuments.forEach((doc, index) => {
+combinedContent += `DOCUMENT ${index + 1}: ${doc.title}\n`;
+combinedContent += `Category: ${doc.category.toUpperCase()} | Version: ${doc.version || '1.0'}\n`;
+combinedContent += '='.repeat(50) + '\n';
+combinedContent += doc.content + '\n\n';
+combinedContent += '='.repeat(50) + '\n\n';
+});
+
+const blob = new Blob([combinedContent], { type: 'text/plain' });
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a');
+
+link.href = url;
+link.download = 'tour_documents_complete_set.txt';
+link.click();
+
+TourSupportSystem.showToast('All documents downloaded', 'success');
+}
+
+function loadAcknowledgmentStatus() {
+const savedStatus = JSON.parse(localStorage.getItem('acknowledgmentStatus') || '{}');
+
+if (savedStatus.date === new Date().toISOString().split('T')[0]) {
+document.getElementById('acknowledgeRules').checked = savedStatus.rules || false;
+document.getElementById('acknowledgeSafety').checked = savedStatus.safety || false;
+document.getElementById('acknowledgeEmergency').checked = savedStatus.emergency || false;
+}
+}
+
+function submitAcknowledgment() {
+const rules = document.getElementById('acknowledgeRules').checked;
+const safety = document.getElementById('acknowledgeSafety').checked;
+const emergency = document.getElementById('acknowledgeEmergency').checked;
+
+if (!rules || !safety || !emergency) {
+TourSupportSystem.showToast('Please acknowledge all statements', 'warning');
+return;
+}
+
+const status = {
+date: new Date().toISOString().split('T')[0],
+rules: rules,
+safety: safety,
+emergency: emergency,
+submittedAt: new Date().toISOString(),
+submittedBy: AuthSystem.getRoleName() || 'Unknown'
+};
+
+localStorage.setItem('acknowledgmentStatus', JSON.stringify(status));
+
+// Save to data manager as well
+const acknowledgments = DataManager.getData('acknowledgments') || [];
+acknowledgments.push(status);
+DataManager.updateData('acknowledgments', acknowledgments);
+
+TourSupportSystem.showToast('Acknowledgment submitted successfully', 'success');
+
+// Create printable receipt
+createAcknowledgmentReceipt(status);
+}
+
+function resetAcknowledgment() {
+if (confirm('Reset acknowledgment form?')) {
+document.getElementById('acknowledgeRules').checked = false;
+document.getElementById('acknowledgeSafety').checked = false;
+document.getElementById('acknowledgeEmergency').checked = false;
+localStorage.removeItem('acknowledgmentStatus');
+}
+}
+
+function createAcknowledgmentReceipt(status) {
+const printWindow = window.open('', '_blank');
+
+printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Acknowledgment Receipt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        .receipt {
+            border: 2px solid #000;
+            padding: 30px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .college-name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .content {
+            margin: 20px 0;
+        }
+
+        .signature {
+            margin-top: 50px;
+            border-top: 1px solid #000;
+            padding-top: 20px;
+        }
+
+        @media print {
+            body {
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="receipt">
+        <div class="header">
+            <div class="college-name">
+                Kamani Science & Prataprai Arts College, Amreli
+            </div>
+            <div>Educational Tour 2024 - BCA 6th Semester</div>
+            <h2>ACKNOWLEDGMENT RECEIPT</h2>
+        </div>
+
+        <div class="content">
+            <p>I hereby acknowledge that I have read, understood, and agree to:</p>
+
+            <p><strong>✓ TOUR RULES & REGULATIONS</strong></p>
+            <p>I agree to follow all college tour rules and regulations.</p>
+
+            <p><strong>✓ SAFETY GUIDELINES</strong></p>
+            <p>I understand and will follow all safety guidelines.</p>
+
+            <p><strong>✓ EMERGENCY PROTOCOLS</strong></p>
+            <p>I am aware of emergency protocols and contacts.</p>
+
+            <p style="margin-top: 30px;">
+                <strong>Submission Details:</strong><br>
+                Date: ${new Date(status.submittedAt).toLocaleDateString()}<br>
+                Time: ${new Date(status.submittedAt).toLocaleTimeString()}<br>
+                Submitted By: ${status.submittedBy}
+            </p>
+        </div>
+
+        <div class="signature">
+            <p>_________________________</p>
+            <p><strong>Student Signature</strong></p>
+            <p>Date: ${new Date().toLocaleDateString()}</p>
+        </div>
+
+        <div style="margin-top: 30px; font-size: 12px; color: #666;">
+            <p><strong>Note:</strong> This acknowledgment is valid for the entire tour duration.
+                Violation of acknowledged rules may result in disciplinary action.</p>
+        </div>
+    </div>
+
+    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        }
+    </script>
+</body>
+
+</html>
+`);
+}
+
+// Add some CSS for document viewer
+const style = document.createElement('style');
+style.textContent = `
+.document-header {
+background: #f8f9fa;
+padding: 20px;
+border-radius: 8px;
+margin-bottom: 20px;
+}
+.document-body {
+line-height: 1.8;
+font-size: 1.05rem;
+}
+.list-group-item.active {
+background-color: #007bff;
+border-color: #007bff;
+}
+.document-body h1,
+.document-body h2,
+.document-body h3 {
+margin-top: 1.5em;
+margin-bottom: 0.5em;
+color: #2c3e50;
+}
+.document-body ol,
+.document-body ul {
+padding-left: 2em;
+}
+.document-body li {
+margin-bottom: 0.5em;
+}
+`;
+document.head.appendChild(style);
+</script>
+</body>
+
+</html>

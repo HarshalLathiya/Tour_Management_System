@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health & Safety - Tour Support System</title>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mobile.css">
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.html">
+                <i class="fas fa-bus text-primary me-2"></i>
+                <strong>Tour Support</strong>
+            </a>
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Navigation Links -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="students.html">
+                            <i class="fas fa-users me-1"></i>Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="attendance.html">
+                            <i class="fas fa-clipboard-check me-1"></i>Attendance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="itinerary.html">
+                            <i class="fas fa-route me-1"></i>Itinerary
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="safety.html">
+                            <i class="fas fa-shield-alt me-1"></i>Safety
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="documents.html">
+                            <i class="fas fa-file-alt me-1"></i>Documents
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- User Info -->
+                <div class="navbar-nav align-items-center">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span class="user-role-display"></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text last-login-time"></span></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="#" onclick="printSafetyInfo()">
+                                    <i class="fas fa-print me-2"></i>Print Safety Info
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item logout-btn text-danger" href="#">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Emergency Alert Banner -->
+    <div class="alert alert-danger alert-dismissible fade show m-0 rounded-0 text-center" role="alert"
+        id="emergencyAlert">
+        <div class="container">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>EMERGENCY:</strong> In case of emergency, call faculty immediately or dial
+            <a href="tel:108" class="alert-link">108</a> for ambulance,
+            <a href="tel:100" class="alert-link">100</a> for police
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h2 mb-1">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Health & Safety
+                        </h1>
+                        <p class="text-muted mb-0">
+                            Emergency contacts, first aid, and safety guidelines
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" onclick="showEmergencyPanel()">
+                            <i class="fas fa-ambulance me-1"></i>Emergency Panel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Access Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card h-100 border-danger text-center">
+                    <div class="card-body">
+                        <i class="fas fa-ambulance fa-3x text-danger mb-3"></i>
+                        <h5>Emergency Contacts</h5>
+                        <p class="small text-muted">Immediate contact numbers</p>
+                        <button class="btn btn-outline-danger btn-sm" onclick="scrollToSection('emergencyContacts')">
+                            View All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card h-100 border-warning text-center">
+                    <div class="card-body">
+                        <i class="fas fa-first-aid fa-3x text-warning mb-3"></i>
+                        <h5>First Aid</h5>
+                        <p class="small text-muted">Basic medical instructions</p>
+                        <button class="btn btn-outline-warning btn-sm" onclick="scrollToSection('firstAid')">
+                            View Guide
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card h-100 border-info text-center">
+                    <div class="card-body">
+                        <i class="fas fa-exclamation-triangle fa-3x text-info mb-3"></i>
+                        <h5>Health Alerts</h5>
+                        <p class="small text-muted">Student health information</p>
+                        <button class="btn btn-outline-info btn-sm" onclick="scrollToSection('healthAlerts')">
+                            View Alerts
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <div class="card h-100 border-success text-center">
+                    <div class="card-body">
+                        <i class="fas fa-book fa-3x text-success mb-3"></i>
+                        <h5>Safety Guidelines</h5>
+                        <p class="small text-muted">Tour safety protocols</p>
+                        <button class="btn btn-outline-success btn-sm" onclick="scrollToSection('safetyGuidelines')">
+                            View Guidelines
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contacts Section -->
+        <div class="card mb-4 border-danger" id="emergencyContacts">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-phone-alt me-2"></i>
+                Emergency Contacts
+                <button class="btn btn-sm btn-light float-end" onclick="printEmergencyContacts()">
+                    <i class="fas fa-print me-1"></i>Print
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row" id="emergencyContactsList">
+                    <!-- Filled by JavaScript -->
+                </div>
+
+                <!-- Emergency Call Buttons -->
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-danger w-100 btn-lg" onclick="callEmergency('108')">
+                            <i class="fas fa-ambulance me-2"></i>Ambulance (108)
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-warning w-100 btn-lg" onclick="callEmergency('100')">
+                            <i class="fas fa-shield-alt me-2"></i>Police (100)
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-primary w-100 btn-lg" onclick="showFacultyContacts()">
+                            <i class="fas fa-user-tie me-2"></i>Faculty Contacts
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Alerts Section -->
+        <div class="card mb-4 border-warning" id="healthAlerts">
+            <div class="card-header bg-warning text-white">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Student Health Alerts
+                <span class="badge bg-light text-dark" id="healthAlertsCount">0</span>
+            </div>
+            <div class="card-body">
+                <div class="row" id="healthAlertsContainer">
+                    <!-- Filled by JavaScript -->
+                </div>
+
+                <!-- Health Instructions -->
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> This information is for emergency reference only.
+                    No medical history or diagnostic information is stored.
+                    Always consult medical professionals in case of health emergencies.
+                </div>
+            </div>
+        </div>
+
+        <!-- First Aid Section -->
+        <div class="card mb-4" id="firstAid">
+            <div class="card-header">
+                <i class="fas fa-first-aid me-2"></i>
+                First Aid Instructions
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="first-aid-card">
+                            <h5><i class="fas fa-cut text-danger me-2"></i>Cuts & Wounds</h5>
+                            <ol class="small">
+                                <li>Wash hands thoroughly</li>
+                                <li>Clean wound with clean water</li>
+                                <li>Apply antiseptic cream</li>
+                                <li>Cover with sterile bandage</li>
+                                <li>Seek medical help if deep</li>
+                            </ol>
+                        </div>
+
+                        <div class="first-aid-card mt-3">
+                            <h5><i class="fas fa-thermometer-half text-warning me-2"></i>Fever</h5>
+                            <ol class="small">
+                                <li>Measure temperature</li>
+                                <li>Provide paracetamol if available</li>
+                                <li>Keep hydrated with water</li>
+                                <li>Use cold compress on forehead</li>
+                                <li>Consult doctor if persists</li>
+                            </ol>
+                        </div>
+
+                        <div class="first-aid-card mt-3">
+                            <h5><i class="fas fa-lungs text-info me-2"></i>Breathing Difficulty</h5>
+                            <ol class="small">
+                                <li>Keep person calm and sitting</li>
+                                <li>Loosen tight clothing</li>
+                                <li>Provide inhaler if available</li>
+                                <li>Call emergency if severe</li>
+                                <li>Do not leave person alone</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="first-aid-card">
+                            <h5><i class="fas fa-sun text-warning me-2"></i>Heat Stroke</h5>
+                            <ol class="small">
+                                <li>Move to cool, shaded area</li>
+                                <li>Remove excess clothing</li>
+                                <li>Apply cool, wet cloths</li>
+                                <li>Provide sips of water</li>
+                                <li>Seek immediate medical help</li>
+                            </ol>
+                        </div>
+
+                        <div class="first-aid-card mt-3">
+                            <h5><i class="fas fa-allergies text-danger me-2"></i>Allergic Reaction</h5>
+                            <ol class="small">
+                                <li>Identify and remove allergen</li>
+                                <li>Administer antihistamines</li>
+                                <li>Monitor breathing closely</li>
+                                <li>Call emergency if severe</li>
+                                <li>Keep epinephrine ready if prescribed</li>
+                            </ol>
+                        </div>
+
+                        <div class="first-aid-card mt-3">
+                            <h5><i class="fas fa-bone text-secondary me-2"></i>Sprains & Fractures</h5>
+                            <ol class="small">
+                                <li>Rest the injured area</li>
+                                <li>Apply ice pack (20 minutes on, 20 off)</li>
+                                <li>Compress with elastic bandage</li>
+                                <li>Elevate above heart level</li>
+                                <li>Seek medical attention</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- First Aid Kit Checklist -->
+                <div class="mt-4">
+                    <h5><i class="fas fa-briefcase-medical me-2"></i>First Aid Kit Checklist</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkBandages">
+                                <label class="form-check-label" for="checkBandages">
+                                    Bandages & Gauze
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkAntiseptic">
+                                <label class="form-check-label" for="checkAntiseptic">
+                                    Antiseptic Solution
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkPainkillers">
+                                <label class="form-check-label" for="checkPainkillers">
+                                    Painkillers (Paracetamol)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkThermometer">
+                                <label class="form-check-label" for="checkThermometer">
+                                    Digital Thermometer
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkScissors">
+                                <label class="form-check-label" for="checkScissors">
+                                    Scissors & Tweezers
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkGloves">
+                                <label class="form-check-label" for="checkGloves">
+                                    Disposable Gloves
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Safety Guidelines Section -->
+        <div class="card mb-4" id="safetyGuidelines">
+            <div class="card-header">
+                <i class="fas fa-book me-2"></i>
+                Safety Guidelines & Protocols
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="safetyAccordion">
+                    <!-- Filled by JavaScript -->
+                </div>
+
+                <!-- Emergency Protocol -->
+                <div class="alert alert-danger mt-4">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Emergency Protocol</h5>
+                    <p class="mb-1"><strong>Step 1:</strong> Stay calm and assess the situation</p>
+                    <p class="mb-1"><strong>Step 2:</strong> Call faculty incharge immediately</p>
+                    <p class="mb-1"><strong>Step 3:</strong> Dial 108 for ambulance or 100 for police</p>
+                    <p class="mb-1"><strong>Step 4:</strong> Provide first aid if trained and safe to do so</p>
+                    <p class="mb-1"><strong>Step 5:</strong> Keep other students safe and organized</p>
+                    <p class="mb-0"><strong>Step 6:</strong> Document incident details for reporting</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faculty Contacts Section -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-user-tie me-2"></i>
+                Faculty & Leadership Contacts
+            </div>
+            <div class="card-body">
+                <div class="row" id="facultyContacts">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light py-3 mt-4 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        <i class="fas fa-university me-1"></i>
+                        Kamani Science & Prataprai Arts College, Amreli
+                    </small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Safety First • Health is Priority
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Emergency Panel Modal -->
+    <div class="modal fade" id="emergencyPanelModal" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content bg-danger text-white">
+                <div class="modal-header border-0">
+                    <h2 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        EMERGENCY PANEL
+                    </h2>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="row mb-5">
+                        <div class="col-md-6 mb-3">
+                            <button class="btn btn-light btn-lg w-100 py-4" onclick="callEmergency('108')">
+                                <i class="fas fa-ambulance fa-3x mb-3"></i>
+                                <h3>AMBULANCE</h3>
+                                <h1>108</h1>
+                                <small>Medical Emergency</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button class="btn btn-light btn-lg w-100 py-4" onclick="callEmergency('100')">
+                                <i class="fas fa-shield-alt fa-3x mb-3"></i>
+                                <h3>POLICE</h3>
+                                <h1>100</h1>
+                                <small>Police Emergency</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-12">
+                            <div class="card bg-dark text-white">
+                                <div class="card-body">
+                                    <h4><i class="fas fa-user-tie me-2"></i>IMMEDIATE ACTION REQUIRED</h4>
+                                    <ol class="text-start">
+                                        <li class="mb-2">STAY CALM - Do not panic</li>
+                                        <li class="mb-2">ASSESS - Check for immediate dangers</li>
+                                        <li class="mb-2">CALL - Dial emergency number above</li>
+                                        <li class="mb-2">INFORM - Contact faculty immediately</li>
+                                        <li class="mb-2">SECURE - Keep other students safe</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="emergencyFacultyContacts">
+                        <!-- Filled by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">
+                        Close Emergency Panel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Contacts Modal -->
+    <div class="modal fade" id="facultyContactsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-tie me-2"></i>Faculty Contacts
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="facultyContactsList">
+                    <!-- Filled by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="printFacultyContacts()">
+                        <i class="fas fa-print me-2"></i>Print Contacts
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/data-manager.js"></script>
+    <script src="js/main.js"></script>
+
+    <!-- Safety Page JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            loadSafetyData();
+            loadHealthAlerts();
+            loadFacultyContacts();
+            setupEventListeners();
+        });
+
+        function loadSafetyData() {
+            const safetyData = DataManager.getData('safety');
+            if (!safetyData) return;
+
+            // Load emergency contacts
+            loadEmergencyContacts(safetyData.emergencyContacts);
+
+            // Load safety guidelines
+            loadSafetyGuidelines(safetyData.guidelines);
+
+            // Load first aid instructions if not in sample data
+            if (!safetyData.firstAid || safetyData.firstAid.length === 0) {
+                loadDefaultFirstAid();
+            }
+        }
+
+        function loadEmergencyContacts(contacts) {
+            const container = document.getElementById('emergencyContactsList');
+
+            if (!contacts || contacts.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No emergency contacts configured
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let contactsHTML = '';
+
+            contacts.forEach(contact => {
+                const isCritical = contact.type.toLowerCase().includes('ambulance') ||
+                    contact.type.toLowerCase().includes('police') ||
+                    contact.type.toLowerCase().includes('fire');
+
+                contactsHTML += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 ${isCritical ? 'border-danger' : 'border-primary'}">
+                            <div class="card-header ${isCritical ? 'bg-danger text-white' : 'bg-primary text-white'}">
+                                <i class="fas fa-${getContactIcon(contact.type)} me-2"></i>
+                                ${contact.type}
+                            </div>
+                            <div class="card-body">
+                                <h4 class="card-title">${contact.number}</h4>
+                                <p class="card-text">${contact.location}</p>
+                                ${contact.notes ? `<small class="text-muted">${contact.notes}</small>` : ''}
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <button class="btn btn-${isCritical ? 'danger' : 'primary'} w-100" 
+                                        onclick="callEmergency('${contact.number}')">
+                                    <i class="fas fa-phone me-2"></i>Call Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = contactsHTML;
+        }
+
+        function getContactIcon(type) {
+            const icons = {
+                'Ambulance': 'ambulance',
+                'Police': 'shield-alt',
+                'Fire': 'fire-extinguisher',
+                'Women Helpline': 'female',
+                'Tour Incharge': 'user-tie',
+                'Co-Incharge': 'user-tie',
+                'College Office': 'university',
+                'Faculty': 'chalkboard-teacher'
+            };
+
+            return icons[type] || 'phone';
+        }
+
+        function loadHealthAlerts() {
+            const students = DataManager.getData('students') || [];
+            const healthAlerts = students.filter(s => s.healthAlert);
+
+            const container = document.getElementById('healthAlertsContainer');
+            const countElement = document.getElementById('healthAlertsCount');
+
+            countElement.textContent = healthAlerts.length;
+
+            if (healthAlerts.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            No health alerts - all students have good health status
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let alertsHTML = '';
+
+            healthAlerts.forEach(student => {
+                alertsHTML += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-warning h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>${student.fullName}</strong>
+                                        <small class="ms-2">${student.rollNumber}</small>
+                                    </div>
+                                    <span class="badge bg-dark">Div ${student.division}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-notes-medical me-2"></i>Health Condition:</strong>
+                                    <p class="mb-1">${student.healthNotes || 'Health alert - requires attention'}</p>
+                                </div>
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-capsules me-2"></i>Medication:</strong>
+                                    <p class="mb-1">${student.medication || 'Consult faculty for details'}</p>
+                                </div>
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-phone me-2"></i>Emergency Contact:</strong>
+                                    <p class="mb-0">
+                                        <a href="tel:${student.emergencyContact}" class="text-decoration-none">
+                                            <i class="fas fa-phone text-success me-1"></i>
+                                            ${student.emergencyContact}
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-light">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Notify faculty immediately in case of emergency
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = alertsHTML;
+        }
+
+        function loadDefaultFirstAid() {
+            // This function would load default first aid instructions
+            // The HTML already contains basic instructions
+        }
+
+        function loadSafetyGuidelines(guidelines) {
+            const accordion = document.getElementById('safetyAccordion');
+
+            if (!guidelines || guidelines.length === 0) {
+                guidelines = [
+                    'Always travel in groups of at least 3 students',
+                    'Carry college ID card at all times',
+                    'Report any unusual incident immediately to faculty',
+                    'Stay hydrated and protect from sun exposure',
+                    'Follow traffic rules when crossing roads',
+                    'Keep emergency numbers saved in phone',
+                    'Inform faculty before leaving group for any reason',
+                    'Respect local customs and regulations',
+                    'Keep valuables secure and minimal',
+                    'Follow COVID-19 safety protocols if applicable'
+                ];
+            }
+
+            let accordionHTML = '';
+
+            guidelines.forEach((guideline, index) => {
+                accordionHTML += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" 
+                                    type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#guideline-${index}">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                ${guideline}
+                            </button>
+                        </h2>
+                        <div id="guideline-${index}" 
+                             class="accordion-collapse collapse ${index === 0 ? 'show' : ''}">
+                            <div class="accordion-body">
+                                <p>This guideline ensures student safety during tour activities. 
+                                Violation may result in disciplinary action.</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Follow all guidelines for safe and successful tour
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            accordion.innerHTML = accordionHTML;
+        }
+
+        function loadFacultyContacts() {
+            const tourInfo = DataManager.getData('tourInfo');
+            if (!tourInfo) return;
+
+            const facultyContainer = document.getElementById('facultyContacts');
+            const emergencyFacultyContainer = document.getElementById('emergencyFacultyContacts');
+
+            let facultyHTML = '';
+            let emergencyFacultyHTML = '';
+
+            // Faculty contacts
+            if (tourInfo.faculty && tourInfo.faculty.length > 0) {
+                tourInfo.faculty.forEach(faculty => {
+                    facultyHTML += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <i class="fas fa-user-tie me-2"></i>
+                                    ${faculty.role}
+                                </div>
+                                <div class="card-body">
+                                    <h5>${faculty.name}</h5>
+                                    <p class="mb-1">
+                                        <i class="fas fa-phone text-success me-2"></i>
+                                        ${faculty.contact}
+                                    </p>
+                                    ${faculty.email ? `
+                                        <p class="mb-1">
+                                            <i class="fas fa-envelope text-primary me-2"></i>
+                                            ${faculty.email}
+                                        </p>
+                                    ` : ''}
+                                    ${faculty.responsibilities ? `
+                                        <p class="mb-0">
+                                            <i class="fas fa-tasks text-info me-2"></i>
+                                            ${faculty.responsibilities}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-sm btn-primary w-100" 
+                                            onclick="callEmergency('${faculty.contact}')">
+                                        <i class="fas fa-phone me-1"></i>Call Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    emergencyFacultyHTML += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-dark text-white">
+                                <div class="card-body text-center">
+                                    <h4>${faculty.name}</h4>
+                                    <h5>${faculty.role}</h5>
+                                    <h1 class="my-3">${faculty.contact}</h1>
+                                    <button class="btn btn-light btn-lg w-100" 
+                                            onclick="callEmergency('${faculty.contact}')">
+                                        <i class="fas fa-phone me-2"></i>CALL NOW
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Student leaders
+            if (tourInfo.studentLeaders && tourInfo.studentLeaders.length > 0) {
+                tourInfo.studentLeaders.forEach(leader => {
+                    facultyHTML += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-info text-white">
+                                    <i class="fas fa-user-graduate me-2"></i>
+                                    Student Leader
+                                </div>
+                                <div class="card-body">
+                                    <h5>${leader.name}</h5>
+                                    <p class="mb-1">
+                                        <i class="fas fa-id-card text-secondary me-2"></i>
+                                        ${leader.rollNumber} | Div ${leader.division}
+                                    </p>
+                                    <p class="mb-1">
+                                        <i class="fas fa-phone text-success me-2"></i>
+                                        ${leader.contact}
+                                    </p>
+                                    ${leader.responsibilities ? `
+                                        <p class="mb-0">
+                                            <i class="fas fa-tasks text-warning me-2"></i>
+                                            ${leader.responsibilities}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                                <div class="card-footer">
+                                    <button class="btn btn-sm btn-info w-100" 
+                                            onclick="callEmergency('${leader.contact}')">
+                                        <i class="fas fa-phone me-1"></i>Call Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            facultyContainer.innerHTML = facultyHTML;
+            emergencyFacultyContainer.innerHTML = emergencyFacultyHTML;
+        }
+
+        function callEmergency(number) {
+            // Clean the number (remove any non-digit characters except +)
+            const cleanNumber = number.replace(/[^\d+]/g, '');
+
+            if (cleanNumber && confirm(`Call ${number}?`)) {
+                window.open(`tel:${cleanNumber}`, '_blank');
+            }
+        }
+
+        function showEmergencyPanel() {
+            const modal = new bootstrap.Modal(document.getElementById('emergencyPanelModal'));
+            modal.show();
+        }
+
+        function showFacultyContacts() {
+            const modal = new bootstrap.Modal(document.getElementById('facultyContactsModal'));
+
+            const tourInfo = DataManager.getData('tourInfo');
+            let contactsHTML = '';
+
+            if (tourInfo && tourInfo.faculty) {
+                tourInfo.faculty.forEach(faculty => {
+                    contactsHTML += `
+                        <div class="faculty-contact-item mb-3 p-3 border rounded">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5>${faculty.name}</h5>
+                                    <p class="mb-1"><strong>Role:</strong> ${faculty.role}</p>
+                                    <p class="mb-1"><strong>Contact:</strong> ${faculty.contact}</p>
+                                    ${faculty.email ? `<p class="mb-1"><strong>Email:</strong> ${faculty.email}</p>` : ''}
+                                    ${faculty.responsibilities ? `<p class="mb-0"><strong>Responsibilities:</strong> ${faculty.responsibilities}</p>` : ''}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-primary btn-lg mt-2" 
+                                            onclick="callEmergency('${faculty.contact}')">
+                                        <i class="fas fa-phone me-2"></i>Call
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('facultyContactsList').innerHTML = contactsHTML ||
+                '<p class="text-center text-muted">No faculty contacts available</p>';
+
+            modal.show();
+        }
+
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function printEmergencyContacts() {
+            const safetyData = DataManager.getData('safety');
+            const tourInfo = DataManager.getData('tourInfo');
+
+            if (!safetyData || !safetyData.emergencyContacts) return;
+
+            const printWindow = window.open('', '_blank');
+            let contactsHTML = '';
+
+            safetyData.emergencyContacts.forEach(contact => {
+                contactsHTML += `
+                    <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; page-break-inside: avoid;">
+                        <h3>${contact.type}</h3>
+                        <h1 style="color: red; margin: 10px 0;">${contact.number}</h1>
+                        <p><strong>Location:</strong> ${contact.location}</p>
+                        ${contact.notes ? `<p><strong>Notes:</strong> ${contact.notes}</p>` : ''}
+                    </div>
+                `;
+            });
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Emergency Contacts</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .emergency-header { 
+                            background: red; 
+                            color: white; 
+                            padding: 20px; 
+                            text-align: center;
+                            margin: -20px -20px 20px -20px;
+                        }
+                        @media print {
+                            body { margin: 0.5cm; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="emergency-header">
+                        <h1>EMERGENCY CONTACTS</h1>
+                        <h3>${tourInfo?.name || 'Educational Tour'}</h3>
+                        <p>Kamani Science & Prataprai Arts College, Amreli</p>
+                    </div>
+                    
+                    ${contactsHTML}
+                    
+                    <div style="margin-top: 30px; padding: 20px; border: 2px solid red;">
+                        <h2 style="color: red;">EMERGENCY PROTOCOL</h2>
+                        <ol>
+                            <li>Stay calm and assess the situation</li>
+                            <li>Call faculty incharge immediately</li>
+                            <li>Dial emergency numbers above</li>
+                            <li>Provide first aid if trained</li>
+                            <li>Keep other students safe</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="no-print" style="text-align: center; margin-top: 30px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px;">
+                            Print This Page
+                        </button>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        }
+    </script>
+</body>
+
+</html>
+`);
+}
+
+function printFacultyContacts() {
+const tourInfo = DataManager.getData('tourInfo');
+if (!tourInfo || !tourInfo.faculty) return;
+
+bootstrap.Modal.getInstance(document.getElementById('facultyContactsModal')).hide();
+
+const printWindow = window.open('', '_blank');
+let facultyHTML = '';
+
+tourInfo.faculty.forEach(faculty => {
+facultyHTML += `
+<div style="border: 1px solid #007bff; margin: 10px 0; padding: 15px; page-break-inside: avoid;">
+    <h3>${faculty.name}</h3>
+    <h2 style="color: #007bff;">${faculty.contact}</h2>
+    <p><strong>Role:</strong> ${faculty.role}</p>
+    ${faculty.email ? `<p><strong>Email:</strong> ${faculty.email}</p>` : ''}
+    ${faculty.responsibilities ? `<p><strong>Responsibilities:</strong> ${faculty.responsibilities}</p>` : ''}
+</div>
+`;
+});
+
+printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Faculty Contacts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin: -20px -20px 20px -20px;
+        }
+
+        @media print {
+            body {
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>FACULTY CONTACTS</h1>
+        <h3>${tourInfo?.name || 'Educational Tour'}</h3>
+        <p>Kamani Science & Prataprai Arts College, Amreli</p>
+    </div>
+
+    ${facultyHTML}
+
+    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        }
+    </script>
+</body>
+
+</html>
+`);
+}
+
+function printSafetyInfo() {
+const printWindow = window.open('', '_blank');
+const tourInfo = DataManager.getData('tourInfo');
+
+printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Safety Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .section {
+            margin: 30px 0;
+            page-break-inside: avoid;
+        }
+
+        .emergency {
+            border: 3px solid red;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        @media print {
+            body {
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>HEALTH & SAFETY INFORMATION</h1>
+        <h2>${tourInfo?.name || 'Educational Tour'}</h2>
+        <h3>Kamani Science & Prataprai Arts College, Amreli</h3>
+        <p>Printed: ${new Date().toLocaleDateString()}</p>
+    </div>
+
+    <div class="emergency">
+        <h2 style="color: red;">🚨 EMERGENCY CONTACTS</h2>
+        <p><strong>Ambulance:</strong> 108</p>
+        <p><strong>Police:</strong> 100</p>
+        <p><strong>Fire:</strong> 101</p>
+        <p><strong>Women Helpline:</strong> 1091</p>
+    </div>
+
+    <div class="section">
+        <h2>First Aid Instructions</h2>
+        <h3>Cuts & Wounds</h3>
+        <ol>
+            <li>Wash hands thoroughly</li>
+            <li>Clean wound with clean water</li>
+            <li>Apply antiseptic cream</li>
+            <li>Cover with sterile bandage</li>
+            <li>Seek medical help if deep</li>
+        </ol>
+
+        <h3>Fever</h3>
+        <ol>
+            <li>Measure temperature</li>
+            <li>Provide paracetamol if available</li>
+            <li>Keep hydrated with water</li>
+            <li>Use cold compress on forehead</li>
+            <li>Consult doctor if persists</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Emergency Protocol</h2>
+        <ol>
+            <li>Stay calm and assess the situation</li>
+            <li>Call faculty incharge immediately</li>
+            <li>Dial 108 for ambulance or 100 for police</li>
+            <li>Provide first aid if trained and safe to do so</li>
+            <li>Keep other students safe and organized</li>
+            <li>Document incident details for reporting</li>
+        </ol>
+    </div>
+
+    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        }
+    </script>
+</body>
+
+</html>
+`);
+}
+
+function setupEventListeners() {
+// Save first aid kit checklist
+document.querySelectorAll('#firstAid input[type="checkbox"]').forEach(checkbox => {
+checkbox.addEventListener('change', function() {
+const checklist = {};
+document.querySelectorAll('#firstAid input[type="checkbox"]').forEach(cb => {
+checklist[cb.id] = cb.checked;
+});
+localStorage.setItem('firstAidChecklist', JSON.stringify(checklist));
+});
+});
+
+// Load saved checklist
+const savedChecklist = JSON.parse(localStorage.getItem('firstAidChecklist') || '{}');
+Object.keys(savedChecklist).forEach(id => {
+const checkbox = document.getElementById(id);
+if (checkbox) {
+checkbox.checked = savedChecklist[id];
+}
+});
+}
+
+// Add some CSS for first aid cards
+const style = document.createElement('style');
+style.textContent = `
+.first-aid-card {
+border: 1px solid #dee2e6;
+border-radius: 8px;
+padding: 15px;
+background: #f8f9fa;
+}
+.first-aid-card h5 {
+color: #2c3e50;
+border-bottom: 2px solid #dee2e6;
+padding-bottom: 8px;
+}
+.first-aid-card ol {
+padding-left: 20px;
+}
+.first-aid-card li {
+margin-bottom: 5px;
+}
+#emergencyAlert {
+position: sticky;
+top: 0;
+z-index: 1000;
+}
+`;
+document.head.appendChild(style);
+</script>
+</body>
+
+</html>
