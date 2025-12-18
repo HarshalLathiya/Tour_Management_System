@@ -1,404 +1,306 @@
 /**
- * Tour Support System - Authentication Module
- * Handles PIN-based authentication and role management
- * Version: 1.0
+ * Tour Support System – Authentication Module
+ * Static, PIN-based, role-controlled access
+ * Offline-first | No backend dependency
+ * Version: 1.3 (stabilized)
  */
 
 const AuthSystem = (function () {
-    // Configuration
+
+    /* ==========================
+       CONFIGURATION (CENTRALIZED)
+    ========================== */
     const CONFIG = {
-        VERSION: '1.2',
-        PINS: {
-            FACULTY: '112233',   // Full access
-            LEADER: '123456',    // Edit attendance + view
-            VIEWER: '000000',    // Read-only access
-            EMERGENCY: '911'     // Safety info only
-        },
+        VERSION: '1.3',
+        SESSION_KEY: 'tourSystem_session',
+        ACTIVITY_KEY: 'tourSystem_lastActivity',
+        LOG_KEY: 'tourSystem_accessLogs',
         SESSION_DURATION: 8 * 60 * 60 * 1000, // 8 hours
-        STORAGE_KEY: 'tourSystem_v1.2',
-        SESSION_KEY: 'tourSystem_session'
+        INACTIVITY_LIMIT: 30 * 60 * 1000,     // 30 minutes
+        PINS: {
+            FACULTY: '112233',
+            LEADER: '123456',
+            VIEWER: '000000'
+        }
     };
 
-    // User roles and permissions
+    /* ==========================
+       ROLE DEFINITIONS
+    ========================== */
     const ROLES = {
         FACULTY: {
+            key: 'FACULTY',
             name: 'Faculty',
             icon: 'fas fa-user-tie',
             permissions: {
                 viewDashboard: true,
                 editAttendance: true,
                 viewStudents: true,
-                editStudents: false,
                 viewItinerary: true,
                 editItinerary: true,
                 viewSafety: true,
-                exportData: true,
-                accessQR: true,
-                emergencyAccess: true
+                exportData: true
             }
         },
         LEADER: {
+            key: 'LEADER',
             name: 'Student Leader',
             icon: 'fas fa-user-graduate',
             permissions: {
                 viewDashboard: true,
                 editAttendance: true,
                 viewStudents: true,
-                editStudents: false,
                 viewItinerary: true,
                 editItinerary: false,
                 viewSafety: true,
-                exportData: false,
-                accessQR: true,
-                emergencyAccess: false
+                exportData: false
             }
         },
         VIEWER: {
+            key: 'VIEWER',
             name: 'View Only',
             icon: 'fas fa-eye',
             permissions: {
                 viewDashboard: true,
                 editAttendance: false,
                 viewStudents: true,
-                editStudents: false,
                 viewItinerary: true,
                 editItinerary: false,
                 viewSafety: true,
-                exportData: false,
-                accessQR: false,
-                emergencyAccess: false
+                exportData: false
             }
         },
         EMERGENCY: {
+            key: 'EMERGENCY',
             name: 'Emergency Access',
             icon: 'fas fa-ambulance',
             permissions: {
                 viewDashboard: false,
                 editAttendance: false,
                 viewStudents: false,
-                editStudents: false,
                 viewItinerary: true,
-                editItinerary: false,
                 viewSafety: true,
-                exportData: false,
-                accessQR: false,
-                emergencyAccess: true
+                exportData: false
             }
         }
     };
 
-    // Current user state
+    /* ==========================
+       INTERNAL STATE
+    ========================== */
     let currentUser = null;
     let sessionTimer = null;
 
-    // Initialize authentication system
+    /* ==========================
+       INITIALIZATION
+    ========================== */
     function init() {
-        // Load saved session if exists
-        loadSession();
-
-        // Set up event listeners
-        setupEventListeners();
-
-        // Check for auto-logout
-        checkAutoLogout();
+        restoreSession();
+        bindUIEvents();
+        trackActivity();
+        enforceInactivityLogout();
     }
 
-    // Set up event listeners for authentication
-    function setupEventListeners() {
-        // Login button
-        const loginBtn = document.getElementById('loginBtn');
-        if (loginBtn) {
-            loginBtn.addEventListener('click', handleLogin);
-        }
+    /* ==========================
+       EVENT BINDINGS
+    ========================== */
+    function bindUIEvents() {
 
-        // Emergency access button
-        const emergencyBtn = document.getElementById('emergencyAccessBtn');
-        if (emergencyBtn) {
-            emergencyBtn.addEventListener('click', handleEmergencyAccess);
-        }
+        document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+        document.getElementById('emergencyAccessBtn')?.addEventListener('click', emergencyLogin);
+        document.getElementById('togglePin')?.addEventListener('click', togglePinVisibility);
 
-        // PIN visibility toggle
-        const togglePinBtn = document.getElementById('togglePin');
-        if (togglePinBtn) {
-            togglePinBtn.addEventListener('click', togglePinVisibility);
-        }
-
-        // Enter key on PIN field
-        const pinField = document.getElementById('pin');
-        if (pinField) {
-            pinField.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    handleLogin();
-                }
-            });
-        }
-
-        // Logout buttons
-        document.addEventListener('click', function (e) {
-            if (e.target.matches('.logout-btn') || e.target.closest('.logout-btn')) {
-                logout();
-            }
+        document.getElementById('pin')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
         });
 
-        // Session timeout warning
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.logout-btn')) logout();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) updateLastActivity();
+        });
     }
 
-    // Handle login process
+    /* ==========================
+       LOGIN HANDLING
+    ========================== */
     function handleLogin() {
-        const selectedRole = document.querySelector('input[name="role"]:checked')?.value;
-        const pin = document.getElementById('pin')?.value?.trim();
+        const roleKey = document.querySelector('input[name="role"]:checked')?.value;
+        const pin = document.getElementById('pin')?.value.trim();
 
-        if (!selectedRole || !pin) {
-            showAlert('Please select a role and enter PIN', 'warning');
+        if (!roleKey || !pin) {
+            showAlert('Role selection and PIN are required.', 'warning');
             return;
         }
 
-        // Verify PIN
-        const role = verifyPIN(selectedRole, pin);
-
-        if (role) {
-            login(role);
-        } else {
-            showAlert('Invalid PIN for selected role', 'danger');
-            // Clear PIN field after failed attempt
+        const role = verifyPIN(roleKey, pin);
+        if (!role) {
+            showAlert('Invalid PIN for selected role.', 'danger');
             document.getElementById('pin').value = '';
-            document.getElementById('pin').focus();
+            return;
         }
+
+        establishSession(role);
+        redirectAfterLogin(role);
     }
 
-    // Handle emergency access
-    function handleEmergencyAccess() {
-        login(ROLES.EMERGENCY);
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('emergencyModal'));
-        if (modal) modal.hide();
+    function emergencyLogin() {
+        establishSession(ROLES.EMERGENCY);
+        redirectAfterLogin(ROLES.EMERGENCY);
     }
 
-    // Verify PIN against role
-    function verifyPIN(selectedRole, pin) {
-        switch (selectedRole) {
-            case 'faculty':
-                return pin === CONFIG.PINS.FACULTY ? ROLES.FACULTY : null;
-            case 'leader':
-                return pin === CONFIG.PINS.LEADER ? ROLES.LEADER : null;
-            case 'viewer':
-                return pin === CONFIG.PINS.VIEWER ? ROLES.VIEWER : null;
-            default:
-                return null;
-        }
+    function verifyPIN(roleKey, pin) {
+        if (roleKey === 'faculty' && pin === CONFIG.PINS.FACULTY) return ROLES.FACULTY;
+        if (roleKey === 'leader' && pin === CONFIG.PINS.LEADER) return ROLES.LEADER;
+        if (roleKey === 'viewer' && pin === CONFIG.PINS.VIEWER) return ROLES.VIEWER;
+        return null;
     }
 
-    // Login user with specified role
-    function login(role) {
+    /* ==========================
+       SESSION MANAGEMENT
+    ========================== */
+    function establishSession(role) {
         currentUser = {
-            role: role.name,
-            permissions: role.permissions,
+            roleKey: role.key,
+            roleName: role.name,
             icon: role.icon,
-            loginTime: new Date().getTime(),
+            permissions: role.permissions,
+            timestamp: Date.now(),
             sessionId: generateSessionId()
         };
 
-        // Save session
-        saveSession();
-
-        // Start session timer
+        localStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify(currentUser));
+        updateLastActivity();
         startSessionTimer();
-
-        // Log access (for audit trail)
         logAccess();
-
-        // Show success message
-        showAlert(`Welcome ${role.name}!`, 'success');
-
-        // Redirect based on role
-        setTimeout(() => {
-            if (role === ROLES.EMERGENCY) {
-                window.location.href = 'safety.html';
-            } else {
-                window.location.href = 'dashboard.html';
-            }
-        }, 1000);
     }
 
-    // Logout user
-    function logout() {
-        // Clear session
-        clearSession();
+    function restoreSession() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(CONFIG.SESSION_KEY));
+            if (!stored) return;
 
-        // Clear current user
-        currentUser = null;
-
-        // Clear timer
-        if (sessionTimer) {
-            clearTimeout(sessionTimer);
-            sessionTimer = null;
-        }
-
-        // Redirect to login
-        window.location.href = 'index.html';
-    }
-
-    // Save session to localStorage
-    function saveSession() {
-        const session = {
-            user: currentUser,
-            timestamp: new Date().getTime(),
-            version: CONFIG.VERSION
-        };
-
-        localStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify(session));
-    }
-
-    // Load session from localStorage
-    function loadSession() {
-        const sessionData = localStorage.getItem(CONFIG.SESSION_KEY);
-
-        if (sessionData) {
-            try {
-                const session = JSON.parse(sessionData);
-
-                // Check if session is expired
-                const now = new Date().getTime();
-                if (now - session.timestamp < CONFIG.SESSION_DURATION) {
-                    currentUser = session.user;
-                    startSessionTimer();
-                } else {
-                    clearSession();
-                }
-            } catch (e) {
-                console.error('Error loading session:', e);
+            if (Date.now() - stored.timestamp > CONFIG.SESSION_DURATION) {
                 clearSession();
+                return;
             }
+
+            currentUser = stored;
+            startSessionTimer();
+
+        } catch {
+            clearSession();
         }
     }
 
-    // Clear session
     function clearSession() {
         localStorage.removeItem(CONFIG.SESSION_KEY);
+        currentUser = null;
     }
 
-    // Start session timer
-    function startSessionTimer() {
-        if (sessionTimer) {
-            clearTimeout(sessionTimer);
-        }
+    function logout() {
+        clearSession();
+        clearTimeout(sessionTimer);
+        window.location.replace('index.html');
+    }
 
+    function startSessionTimer() {
+        clearTimeout(sessionTimer);
         sessionTimer = setTimeout(() => {
             showAlert('Session expired. Please login again.', 'warning');
             logout();
         }, CONFIG.SESSION_DURATION);
     }
 
-    // Check for auto-logout
-    function checkAutoLogout() {
-        const lastActivity = localStorage.getItem('lastActivity');
-        const now = new Date().getTime();
-
-        // Auto logout after 30 minutes of inactivity
-        if (lastActivity && (now - lastActivity > 30 * 60 * 1000)) {
-            logout();
-        }
+    /* ==========================
+       ACTIVITY & SECURITY
+    ========================== */
+    function updateLastActivity() {
+        localStorage.setItem(CONFIG.ACTIVITY_KEY, Date.now());
     }
 
-    // Handle visibility change (tab switch)
-    function handleVisibilityChange() {
-        if (!document.hidden) {
-            // Update last activity time
-            localStorage.setItem('lastActivity', new Date().getTime());
-        }
+    function trackActivity() {
+        ['click', 'keydown', 'mousemove', 'touchstart'].forEach(evt =>
+            document.addEventListener(evt, updateLastActivity, { passive: true })
+        );
     }
 
-    // Generate unique session ID
+    function enforceInactivityLogout() {
+        setInterval(() => {
+            const last = parseInt(localStorage.getItem(CONFIG.ACTIVITY_KEY), 10);
+            if (last && Date.now() - last > CONFIG.INACTIVITY_LIMIT) {
+                logout();
+            }
+        }, 60 * 1000);
+    }
+
+    /* ==========================
+       UTILITIES
+    ========================== */
+    function redirectAfterLogin(role) {
+        setTimeout(() => {
+            window.location.replace(
+                role.key === 'EMERGENCY' ? 'safety.html' : 'dashboard.html'
+            );
+        }, 800);
+    }
+
     function generateSessionId() {
-        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     }
 
-    // Log access for audit trail
     function logAccess() {
-        const logs = JSON.parse(localStorage.getItem('accessLogs') || '[]');
-
+        const logs = JSON.parse(localStorage.getItem(CONFIG.LOG_KEY) || '[]');
         logs.push({
-            sessionId: currentUser.sessionId,
-            role: currentUser.role,
-            loginTime: new Date().toISOString(),
+            role: currentUser.roleName,
+            time: new Date().toISOString(),
             userAgent: navigator.userAgent
         });
-
-        // Keep only last 100 logs
-        if (logs.length > 100) {
-            logs.shift();
-        }
-
-        localStorage.setItem('accessLogs', JSON.stringify(logs));
+        if (logs.length > 50) logs.shift();
+        localStorage.setItem(CONFIG.LOG_KEY, JSON.stringify(logs));
     }
 
-    // Toggle PIN visibility
     function togglePinVisibility() {
-        const pinField = document.getElementById('pin');
-        const toggleBtn = document.getElementById('togglePin');
+        const pin = document.getElementById('pin');
+        const btn = document.getElementById('togglePin');
+        if (!pin || !btn) return;
 
-        if (pinField.type === 'password') {
-            pinField.type = 'text';
-            toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
-        } else {
-            pinField.type = 'password';
-            toggleBtn.innerHTML = '<i class="fas fa-eye"></i>';
-        }
+        pin.type = pin.type === 'password' ? 'text' : 'password';
+        btn.innerHTML = pin.type === 'password'
+            ? '<i class="fas fa-eye"></i>'
+            : '<i class="fas fa-eye-slash"></i>';
     }
 
-    // Show alert message
     function showAlert(message, type = 'info') {
-        // Remove existing alerts
-        const existingAlert = document.querySelector('.auth-alert');
-        if (existingAlert) {
-            existingAlert.remove();
-        }
+        document.querySelector('.auth-alert')?.remove();
 
-        // Create alert element
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show auth-alert mt-3`;
-        alertDiv.innerHTML = `
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show auth-alert mt-3`;
+        alert.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
 
-        // Insert after card
-        const card = document.querySelector('.card');
-        if (card) {
-            card.parentNode.insertBefore(alertDiv, card.nextSibling);
-        }
+        document.querySelector('.card')?.after(alert);
     }
 
-    // Public API
+    /* ==========================
+       PUBLIC API
+    ========================== */
     return {
-        init: init,
-        login: login,
-        logout: logout,
+        init,
+        logout,
+        isLoggedIn: () => !!currentUser,
         getCurrentUser: () => currentUser,
-        hasPermission: (permission) => {
-            if (!currentUser) return false;
-            return currentUser.permissions[permission] === true;
-        },
-        isLoggedIn: () => currentUser !== null,
-        getRoleName: () => currentUser ? currentUser.role : null,
-        getRoleIcon: () => currentUser ? currentUser.icon : null,
-        extendSession: () => {
-            if (currentUser) {
-                currentUser.loginTime = new Date().getTime();
-                saveSession();
-                startSessionTimer();
-            }
-        }
+        hasPermission: (perm) => !!currentUser?.permissions?.[perm],
+        getRoleName: () => currentUser?.roleName || null
     };
+
 })();
 
-// Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', function () {
-    AuthSystem.init();
-});
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = AuthSystem;
-}
+/* ==========================
+   BOOTSTRAP
+========================== */
+document.addEventListener('DOMContentLoaded', AuthSystem.init);

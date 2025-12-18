@@ -100,25 +100,7 @@
     }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #1a1a1a;
-        --card-bg: #2d2d2d;
-        --text-primary: #ffffff;
-        --text-secondary: #cccccc;
-        --border-color: #404040;
-    }
-    
-    .table {
-        background-color: var(--card-bg);
-        color: var(--text-primary);
-    }
-    
-    .table thead th {
-        background-color: #3d3d3d;
-    }
-}
+
 
 /* Very small screens (old phones) */
 @media (max-width: 360px) {
@@ -133,7 +115,6 @@
     }
     
     /* Hide less important elements */
-    .text-muted,
     .form-text {
         display: none;
     }

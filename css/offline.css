@@ -1,4 +1,7 @@
-/* Tour Support System - Main Stylesheet */
+/* Base styles including Bootstrap and Font Awesome */
+@import url('base.css');
+
+/* Tour Support System - Offline Page Stylesheet */
 
 :root {
     /* Primary Colors */
@@ -8,21 +11,21 @@
     --danger-color: #e74c3c;
     --warning-color: #f39c12;
     --success-color: #27ae60;
-    
+
     /* UI Colors */
     --bg-color: #ffffff;
     --card-bg: #ffffff;
     --border-color: #dee2e6;
     --text-primary: #2c3e50;
     --text-secondary: #495057;
-    
+
     /* Spacing */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
-    
+
     /* Shadows */
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
     --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
@@ -41,30 +44,6 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     line-height: 1.6;
-}
-
-/* Authentication Page */
-.auth-page {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    min-height: 100vh;
-    color: #2c3e50;
-}
-
-.auth-page .text-primary,
-.auth-page .text-muted {
-    color: #2c3e50 !important;
-}
-
-
-.auth-page .college-logo {
-    background: white;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow-lg);
 }
 
 /* Card Styles */
@@ -172,65 +151,6 @@ body {
     color: var(--primary-color) !important;
 }
 
-/* Mobile Optimizations */
-@media (max-width: 768px) {
-    .table-responsive {
-        margin: 0 -1rem;
-        padding: 0 1rem;
-    }
-    
-    .btn {
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .card-body {
-        padding: var(--spacing-md);
-    }
-}
-
-/* Print Styles */
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    
-    .card {
-        box-shadow: none !important;
-        border: 1px solid var(--border-color);
-    }
-}
-
-/* QR Scanner Overlay */
-.qr-scanner-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 1050;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.qr-scanner-container {
-    width: 90%;
-    max-width: 500px;
-    background: white;
-    border-radius: 12px;
-    padding: var(--spacing-lg);
-}
-
-/* Loading Spinner */
-.spinner-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-}
-
 /* Data Visualization */
 .stat-card {
     background: white;
@@ -264,6 +184,36 @@ body {
     margin-bottom: 0.5rem;
 }
 
+/* Loading Spinner */
+.spinner-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+/* QR Scanner Overlay */
+.qr-scanner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-scanner-container {
+    width: 90%;
+    max-width: 500px;
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+}
+
 /* Accessibility */
 .visually-hidden {
     position: absolute;
@@ -284,8 +234,37 @@ body {
         --secondary-color: #0000ff;
         --bg-color: #ffffff;
     }
-    
+
     .btn {
         border: 2px solid currentColor;
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .table-responsive {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-body {
+        padding: var(--spacing-md);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid var(--border-color);
     }
 }

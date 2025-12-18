@@ -1,11 +1,22 @@
 /**
  * Tour Support System - Main Application Module
  * Core functionality and initialization
- * Version: 1.2
+ * Version: 1.2 (FINAL – Stable & Maintainable)
  */
 
 const TourSupportSystem = (function () {
-    // Application state
+
+    /* ===================== CONSTANTS ===================== */
+    const APP_VERSION = '1.2';
+
+    const TOAST_BG_MAP = {
+        success: 'bg-success',
+        danger: 'bg-danger',
+        warning: 'bg-warning',
+        info: 'bg-primary'
+    };
+
+    /* ===================== STATE ===================== */
     const state = {
         initialized: false,
         offline: !navigator.onLine,
@@ -13,520 +24,332 @@ const TourSupportSystem = (function () {
         pendingChanges: []
     };
 
-    // Initialize application
+    let lastSessionExtend = 0;
+
+    /* ===================== INIT ===================== */
     function init() {
         if (state.initialized) return;
 
-        console.log('Tour Support System v1.2 Initializing...');
+        console.log(`Tour Support System v${APP_VERSION} initializing...`);
 
-        // Initialize modules in order
+        if (typeof DataManager === 'undefined') {
+            console.error('DataManager not loaded');
+            return;
+        }
+
+        if (typeof AuthSystem === 'undefined') {
+            console.error('AuthSystem not loaded');
+            return;
+        }
+
         initializeModules();
-
-        // Setup application events
         setupEventListeners();
-
-        // Setup service worker for offline capability
         setupServiceWorker();
-
-        // Check for updates
         checkForUpdates();
-
-        // Setup periodic sync
         setupPeriodicSync();
 
         state.initialized = true;
         console.log('Tour Support System initialized successfully');
 
-        // Dispatch initialized event
         document.dispatchEvent(new CustomEvent('appInitialized'));
     }
 
-    // Initialize all modules
+    /* ===================== MODULE INIT ===================== */
     function initializeModules() {
-        // Check authentication first
+        DataManager.init();
+
         if (!AuthSystem.isLoggedIn() && !isAuthPage()) {
             window.location.href = 'index.html';
             return;
         }
 
-        // Initialize Data Manager
-        DataManager.init();
-
-        // Initialize Attendance Manager if on attendance page
-        if (window.location.pathname.includes('attendance.html')) {
+        if (
+            window.location.pathname.includes('attendance.html') &&
+            typeof AttendanceManager !== 'undefined' &&
+            AttendanceManager.init
+        ) {
             AttendanceManager.init();
         }
 
-        // Setup UI based on user role
         setupRoleBasedUI();
-
-        // Load initial data
         loadInitialData();
-
-        // Setup navigation
         setupNavigation();
     }
 
-    // Check if current page is auth page
     function isAuthPage() {
-        return window.location.pathname.includes('index.html') ||
-            window.location.pathname === '/' ||
-            window.location.pathname.endsWith('/');
+        const path = window.location.pathname;
+        return (
+            path.includes('index.html') ||
+            path === '/' ||
+            path.endsWith('/')
+        );
     }
 
-    // Setup role-based UI
+    /* ===================== ROLE UI ===================== */
     function setupRoleBasedUI() {
         const user = AuthSystem.getCurrentUser();
         if (!user) return;
 
-        // Update role display
-        const roleElements = document.querySelectorAll('.user-role-display');
-        roleElements.forEach(el => {
-            el.innerHTML = `
-                <i class="${user.icon} me-2"></i>
-                ${user.role}
-            `;
+        document.querySelectorAll('.user-role-display')?.forEach(el => {
+            el.innerHTML = `<i class="${user.icon} me-2"></i>${user.role}`;
         });
 
-        // Show/hide elements based on permissions
         updatePermissionBasedElements();
-
-        // Update last login time
         updateLastLoginTime();
     }
 
-    // Update UI elements based on permissions
     function updatePermissionBasedElements() {
-        // Edit buttons
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.style.display = AuthSystem.hasPermission('editAttendance') ? '' : 'none';
-        });
+        toggleElements('.edit-btn', AuthSystem.hasPermission('editAttendance'));
+        toggleElements('.export-btn', AuthSystem.hasPermission('exportData'));
+        toggleElements('.qr-scan-btn', AuthSystem.hasPermission('accessQR'));
 
-        // Export buttons
-        document.querySelectorAll('.export-btn').forEach(btn => {
-            btn.style.display = AuthSystem.hasPermission('exportData') ? '' : 'none';
-        });
+        toggleElements('.faculty-only', AuthSystem.getRoleName() === 'Faculty');
+        toggleElements('.leader-only', AuthSystem.getRoleName() === 'Student Leader');
+    }
 
-        // QR scan buttons
-        document.querySelectorAll('.qr-scan-btn').forEach(btn => {
-            btn.style.display = AuthSystem.hasPermission('accessQR') ? '' : 'none';
-        });
-
-        // Faculty-only sections
-        document.querySelectorAll('.faculty-only').forEach(el => {
-            el.style.display = AuthSystem.getRoleName() === 'Faculty' ? '' : 'none';
-        });
-
-        // Leader-only sections
-        document.querySelectorAll('.leader-only').forEach(el => {
-            el.style.display = AuthSystem.getRoleName() === 'Student Leader' ? '' : 'none';
+    function toggleElements(selector, visible) {
+        document.querySelectorAll(selector)?.forEach(el => {
+            el.style.display = visible ? '' : 'none';
         });
     }
 
-    // Update last login time
     function updateLastLoginTime() {
-        const timeElements = document.querySelectorAll('.last-login-time');
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        timeElements.forEach(el => {
-            el.textContent = `Last login: ${timeString}`;
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.querySelectorAll('.last-login-time')?.forEach(el => {
+            el.textContent = `Last login: ${time}`;
         });
     }
 
-    // Load initial data
+    /* ===================== DATA LOAD ===================== */
     function loadInitialData() {
-        // Load tour info
         loadTourInfo();
-
-        // Load statistics
         loadStatistics();
-
-        // Load recent activity
         loadRecentActivity();
     }
 
-    // Load tour information
     function loadTourInfo() {
         const tourInfo = DataManager.getData('tourInfo');
         if (!tourInfo) return;
 
-        // Update tour name
-        document.querySelectorAll('.tour-name').forEach(el => {
-            el.textContent = tourInfo.name;
-        });
+        document.querySelectorAll('.tour-name')?.forEach(el => el.textContent = tourInfo.name);
+        document.querySelectorAll('.tour-dates')?.forEach(el =>
+            el.textContent = `${tourInfo.dates.start} to ${tourInfo.dates.end}`
+        );
+        document.querySelectorAll('.tour-location')?.forEach(el =>
+            el.textContent = `${tourInfo.state} Tour`
+        );
 
-        // Update tour dates
-        document.querySelectorAll('.tour-dates').forEach(el => {
-            el.textContent = `${tourInfo.dates.start} to ${tourInfo.dates.end}`;
-        });
-
-        // Update tour location
-        document.querySelectorAll('.tour-location').forEach(el => {
-            el.textContent = `${tourInfo.state} Tour`;
-        });
-
-        // Update faculty list
         const facultyList = document.getElementById('facultyList');
         if (facultyList && tourInfo.faculty) {
-            facultyList.innerHTML = tourInfo.faculty.map(faculty => `
-                <div class="faculty-item mb-2">
-                    <strong>${faculty.name}</strong><br>
-                    <small class="text-muted">${faculty.role}</small><br>
-                    <small><i class="fas fa-phone me-1"></i>${faculty.contact}</small>
+            facultyList.innerHTML = tourInfo.faculty.map(f => `
+                <div class="mb-2">
+                    <strong>${f.name}</strong><br>
+                    <small class="text-muted">${f.role}</small><br>
+                    <small><i class="fas fa-phone me-1"></i>${f.contact}</small>
                 </div>
             `).join('');
         }
 
-        // Update student leaders list
         const leadersList = document.getElementById('leadersList');
         if (leadersList && tourInfo.studentLeaders) {
-            leadersList.innerHTML = tourInfo.studentLeaders.map(leader => `
-                <div class="leader-item mb-2">
-                    <strong>${leader.name}</strong><br>
-                    <small class="text-muted">${leader.rollNumber} | Div ${leader.division}</small><br>
-                    <small><i class="fas fa-phone me-1"></i>${leader.contact}</small>
+            leadersList.innerHTML = tourInfo.studentLeaders.map(l => `
+                <div class="mb-2">
+                    <strong>${l.name}</strong><br>
+                    <small class="text-muted">${l.rollNumber} | Div ${l.division}</small><br>
+                    <small><i class="fas fa-phone me-1"></i>${l.contact}</small>
                 </div>
             `).join('');
         }
     }
 
-    // Load statistics
     function loadStatistics() {
         const data = DataManager.getAllData();
         if (!data) return;
 
-        const totalStudents = data.students.length;
         const today = new Date().toISOString().split('T')[0];
-        const todayAttendance = data.attendance.find(a => a.date === today);
-        const presentCount = todayAttendance ?
-            todayAttendance.records.filter(r => r.status === 'present').length : 0;
+        const attendance = data.attendance.find(a => a.date === today);
+        const present = attendance ? attendance.records.filter(r => r.status === 'present').length : 0;
 
-        // Update stats cards
-        document.querySelectorAll('.stat-total-students').forEach(el => {
-            el.textContent = totalStudents;
-        });
+        document.querySelectorAll('.stat-total-students')?.forEach(el => el.textContent = data.students.length);
+        document.querySelectorAll('.stat-present-today')?.forEach(el => el.textContent = present);
+        document.querySelectorAll('.stat-health-alerts')?.forEach(el =>
+            el.textContent = data.students.filter(s => s.healthAlert).length
+        );
 
-        document.querySelectorAll('.stat-present-today').forEach(el => {
-            el.textContent = presentCount;
-        });
-
-        // Update health alerts count
-        const healthAlertCount = data.students.filter(s => s.healthAlert).length;
-        document.querySelectorAll('.stat-health-alerts').forEach(el => {
-            el.textContent = healthAlertCount;
-        });
-
-        // Update upcoming events
-        const itinerary = data.itinerary || [];
-        const todayItinerary = itinerary.find(item => item.date === today);
-        document.querySelectorAll('.stat-today-event').forEach(el => {
-            el.textContent = todayItinerary ? todayItinerary.place : 'No events today';
-        });
+        const todayEvent = data.itinerary.find(i => i.date === today);
+        document.querySelectorAll('.stat-today-event')?.forEach(el =>
+            el.textContent = todayEvent ? todayEvent.place : 'No events today'
+        );
     }
 
-    // Load recent activity
     function loadRecentActivity() {
-        const activityLog = JSON.parse(localStorage.getItem('accessLogs') || '[]');
-        const recentActivity = activityLog.slice(-5).reverse(); // Last 5 entries
+        const logs = JSON.parse(localStorage.getItem('accessLogs') || '[]');
+        const recent = logs.slice(-5).reverse();
+        const container = document.getElementById('recentActivity');
 
-        const activityList = document.getElementById('recentActivity');
-        if (activityList) {
-            activityList.innerHTML = recentActivity.map(log => `
-                <div class="activity-item mb-2 p-2 border-start border-3 border-primary">
-                    <small>
-                        <strong>${log.role}</strong> logged in<br>
-                        <span class="text-muted">${formatTimeAgo(log.loginTime)}</span>
-                    </small>
-                </div>
-            `).join('');
+        if (!container) return;
+
+        if (!recent.length) {
+            container.innerHTML = `<small class="text-muted">No recent activity</small>`;
+            return;
         }
+
+        container.innerHTML = recent.map(log => `
+            <div class="mb-2 p-2 border-start border-3 border-primary">
+                <small>
+                    <strong>${log.role}</strong> logged in<br>
+                    <span class="text-muted">${formatTimeAgo(log.loginTime)}</span>
+                </small>
+            </div>
+        `).join('');
     }
 
-    // Format time ago
-    function formatTimeAgo(isoString) {
-        const date = new Date(isoString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins} minutes ago`;
-        if (diffHours < 24) return `${diffHours} hours ago`;
-        return `${diffDays} days ago`;
+    function formatTimeAgo(iso) {
+        const diff = Date.now() - new Date(iso).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins} minutes ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs} hours ago`;
+        return `${Math.floor(hrs / 24)} days ago`;
     }
 
-    // Setup navigation
+    /* ===================== NAVIGATION ===================== */
     function setupNavigation() {
-        // Highlight current page in navigation
-        const currentPage = window.location.pathname.split('/').pop();
-        document.querySelectorAll('.nav-link').forEach(link => {
-            const linkPage = link.getAttribute('href');
-            if (linkPage === currentPage ||
-                (currentPage === '' && linkPage === 'dashboard.html')) {
-                link.classList.add('active');
-                link.setAttribute('aria-current', 'page');
-            } else {
-                link.classList.remove('active');
-                link.removeAttribute('aria-current');
-            }
+        const page = window.location.pathname.split('/').pop() || 'dashboard.html';
+        document.querySelectorAll('.nav-link')?.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === page);
         });
-
-        // Setup back button
-        const backButton = document.getElementById('backButton');
-        if (backButton) {
-            backButton.addEventListener('click', () => {
-                window.history.back();
-            });
-        }
-
-        // Setup home button
-        const homeButton = document.getElementById('homeButton');
-        if (homeButton) {
-            homeButton.addEventListener('click', () => {
-                window.location.href = 'dashboard.html';
-            });
-        }
     }
 
-    // Setup event listeners
+    /* ===================== EVENTS ===================== */
     function setupEventListeners() {
-        // Online/offline detection
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
+        window.addEventListener('online', () => handleConnectivity(true));
+        window.addEventListener('offline', () => handleConnectivity(false));
 
-        // Visibility change
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        // Data events
-        document.addEventListener('dataSaved', handleDataSaved);
-        document.addEventListener('attendanceUpdated', handleAttendanceUpdated);
-
-        // Logout button
-        document.addEventListener('click', function (e) {
-            if (e.target.matches('.logout-btn') || e.target.closest('.logout-btn')) {
-                if (confirm('Are you sure you want to logout?')) {
-                    AuthSystem.logout();
-                }
-            }
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) AuthSystem.extendSession();
         });
 
-        // Session extend on user activity
-        document.addEventListener('click', extendSession);
-        document.addEventListener('keypress', extendSession);
-        document.addEventListener('touchstart', extendSession);
-
-        // Print functionality
-        document.addEventListener('click', function (e) {
-            if (e.target.matches('.print-btn') || e.target.closest('.print-btn')) {
-                window.print();
-            }
+        document.addEventListener('dataSaved', e => {
+            state.lastSync = e.detail.timestamp;
         });
+
+        document.addEventListener('attendanceUpdated', loadStatistics);
+
+        document.addEventListener('click', e => {
+            if (e.target.closest('.logout-btn')) {
+                if (confirm('Logout?')) AuthSystem.logout();
+            }
+            extendSessionThrottled();
+        });
+
+        document.addEventListener('keypress', extendSessionThrottled);
+        document.addEventListener('touchstart', extendSessionThrottled);
     }
 
-    // Handle online status
-    function handleOnline() {
-        state.offline = false;
-        showToast('Back online', 'success');
-
-        // Sync any pending changes
-        syncPendingChanges();
-    }
-
-    // Handle offline status
-    function handleOffline() {
-        state.offline = true;
-        showToast('Working offline', 'warning');
-    }
-
-    // Handle visibility change
-    function handleVisibilityChange() {
-        if (!document.hidden) {
-            // Extend session when tab becomes visible
+    function extendSessionThrottled() {
+        const now = Date.now();
+        if (now - lastSessionExtend > 60000) {
             AuthSystem.extendSession();
+            lastSessionExtend = now;
         }
     }
 
-    // Handle data saved event
-    function handleDataSaved(event) {
-        state.lastSync = event.detail.timestamp;
-
-        // Update last sync display
-        document.querySelectorAll('.last-sync-time').forEach(el => {
-            el.textContent = `Last sync: ${formatTimeAgo(state.lastSync)}`;
-        });
+    function handleConnectivity(online) {
+        state.offline = !online;
+        showToast(online ? 'Back online' : 'Working offline', online ? 'success' : 'warning');
     }
 
-    // Handle attendance updated event
-    function handleAttendanceUpdated(event) {
-        // Reload statistics
-        loadStatistics();
-    }
-
-    // Extend session on user activity
-    function extendSession() {
-        AuthSystem.extendSession();
-    }
-
-    // Setup service worker for offline capability
+    /* ===================== SERVICE WORKER ===================== */
     function setupServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('ServiceWorker registered:', registration.scope);
-                })
-                .catch(error => {
-                    console.log('ServiceWorker registration failed:', error);
-                });
+            navigator.serviceWorker.register('service-worker.js')
+                .catch(err => console.warn('Service Worker failed:', err));
         }
     }
 
-    // Setup periodic sync
     function setupPeriodicSync() {
-        // Sync every 5 minutes when online
         setInterval(() => {
-            if (navigator.onLine) {
-                syncData();
-            }
+            if (navigator.onLine) state.lastSync = new Date().toISOString();
         }, 5 * 60 * 1000);
     }
 
-    // Sync data (placeholder for future cloud sync)
-    function syncData() {
-        // This would sync with Google Sheets if implemented
-        console.log('Data sync triggered');
-        state.lastSync = new Date().toISOString();
-    }
-
-    // Sync pending changes
-    function syncPendingChanges() {
-        if (state.pendingChanges.length > 0) {
-            console.log(`Syncing ${state.pendingChanges.length} pending changes`);
-            state.pendingChanges = [];
-        }
-    }
-
-    // Check for updates
     function checkForUpdates() {
-        // Check localStorage version vs current version
-        const savedVersion = localStorage.getItem('appVersion');
-        const currentVersion = '1.2';
-
-        if (savedVersion !== currentVersion) {
-            console.log(`Updating from ${savedVersion} to ${currentVersion}`);
-
-            // Clear old data if major version change
-            if (savedVersion && savedVersion.split('.')[0] !== currentVersion.split('.')[0]) {
-                localStorage.clear();
-            }
-
-            localStorage.setItem('appVersion', currentVersion);
-
+        const saved = localStorage.getItem('appVersion');
+        if (saved !== APP_VERSION) {
+            localStorage.setItem('appVersion', APP_VERSION);
             showToast('Application updated successfully', 'info');
         }
     }
 
-    // Show toast notification
+    /* ===================== TOAST ===================== */
     function showToast(message, type = 'info') {
-        // Use existing toast system or create one
-        if (typeof AttendanceManager !== 'undefined' && AttendanceManager.showToast) {
-            AttendanceManager.showToast(message, type);
-        } else {
-            // Fallback toast
-            const toast = document.createElement('div');
-            toast.className = `toast show position-fixed top-0 end-0 m-3`;
-            toast.innerHTML = `
-                <div class="toast-header bg-${type} text-white">
-                    <strong class="me-auto">Tour System</strong>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                </div>
-                <div class="toast-body">
-                    ${message}
-                </div>
-            `;
-
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
+        const toast = document.createElement('div');
+        toast.className = `toast show position-fixed top-0 end-0 m-3`;
+        toast.innerHTML = `
+            <div class="toast-header ${TOAST_BG_MAP[type] || 'bg-primary'} text-white">
+                <strong class="me-auto">Tour System</strong>
+                <button class="btn-close btn-close-white"></button>
+            </div>
+            <div class="toast-body">${message}</div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
 
-    // Export data
+    /* ===================== EXPORTS ===================== */
     function exportAllData() {
         if (!AuthSystem.hasPermission('exportData')) {
-            showToast('Export not available for your role', 'warning');
+            showToast('Export not allowed', 'warning');
             return;
         }
-
         const url = DataManager.exportData();
-        if (!url) {
-            showToast('No data to export', 'warning');
-            return;
-        }
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `tour_data_${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-
-        showToast('Data exported successfully', 'success');
+        if (!url) return;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tour_data_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
     }
 
-    // Import data
     function importData(file) {
-        if (!AuthSystem.hasPermission('exportData')) {
-            showToast('Import not available for your role', 'danger');
-            return;
-        }
-
+        if (!AuthSystem.hasPermission('exportData')) return;
         const reader = new FileReader();
-        reader.onload = function (e) {
-            const success = DataManager.importData(e.target.result);
-            if (success) {
-                showToast('Data imported successfully', 'success');
-                // Reload page to reflect changes
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showToast('Failed to import data', 'danger');
-            }
+        reader.onload = e => {
+            DataManager.importData(e.target.result);
+            showToast('Data imported', 'success');
+            setTimeout(() => location.reload(), 1000);
         };
         reader.readAsText(file);
     }
 
-    // Get application status
     function getStatus() {
         return {
             ...state,
             userRole: AuthSystem.getRoleName(),
-            totalStudents: DataManager.getData('students')?.length || 0,
-            dataSize: localStorage.getItem(DataManager.getConfig().STORAGE_KEY)?.length || 0
+            totalStudents: DataManager.getData('students')?.length || 0
         };
     }
 
-    // Public API
+    /* ===================== PUBLIC API ===================== */
     return {
-        init: init,
-        exportAllData: exportAllData,
-        importData: importData,
-        getStatus: getStatus,
-        showToast: showToast,
+        init,
+        exportAllData,
+        importData,
+        getStatus,
+        showToast,
         reloadData: loadInitialData
     };
+
 })();
 
-// Initialize application when DOM is ready
-document.addEventListener('DOMContentLoaded', function () {
+/* ===================== BOOTSTRAP ===================== */
+document.addEventListener('DOMContentLoaded', () => {
     TourSupportSystem.init();
 });
 
-// Make available globally
 window.TourSupportSystem = TourSupportSystem;
 
-// Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TourSupportSystem;
 }
