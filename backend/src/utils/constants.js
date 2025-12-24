@@ -1,0 +1,19 @@
+export const USER_ROLES = {
+    ADMIN: 'ADMIN',
+    ORGANIZER: 'ORGANIZER',
+    COORDINATOR: 'COORDINATOR',
+    PARTICIPANT: 'PARTICIPANT'
+};
+
+export const TOUR_STATUS = {
+    PLANNING: 'PLANNING',
+    APPROVED: 'APPROVED',
+    ACTIVE: 'ACTIVE',
+    COMPLETED: 'COMPLETED'
+};
+
+export const INCIDENT_SEVERITY = {
+    LOW: 'LOW',
+    MEDIUM: 'MEDIUM',
+    HIGH: 'HIGH'
+};
