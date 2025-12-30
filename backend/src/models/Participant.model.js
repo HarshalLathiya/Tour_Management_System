@@ -1,16 +1,65 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const participantSchema = new mongoose.Schema({
-    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour', required: true },
-    name: String,
-    age: Number,
-    gender: String,
-    phone: String,
-    emergencyContact: String,
-    documents: [{ type: String, fileUrl: String }],
-    medicalNotes: String,
-    status: String
-}, { timestamps: true });
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    tour: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tour',
+        required: true
+    },
+    registrationDate: {
+        type: Date,
+        default: Date.now
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'confirmed', 'waitlisted', 'cancelled', 'completed'],
+        default: 'pending'
+    },
+    emergencyContact: {
+        name: String,
+        phone: String,
+        relationship: String
+    },
+    medicalInfo: {
+        conditions: [String],
+        allergies: [String],
+        medications: [String],
+        dietaryRestrictions: [String]
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'partial', 'paid', 'refunded'],
+        default: 'pending'
+    },
+    amountPaid: {
+        type: Number,
+        default: 0
+    },
+    totalAmount: {
+        type: Number,
+        required: true
+    },
+    notes: {
+        type: String
+    },
+    accommodations: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Accommodation'
+    },
+    transport: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Transport'
+    }
+}, {
+    timestamps: true
+});
 
-export default mongoose.model('Participant', participantSchema);
+// Ensure one user can't register twice for same tour
+participantSchema.index({ user: 1, tour: 1 }, { unique: true });
+
+module.exports = mongoose.model('Participant', participantSchema);

@@ -1,17 +1,79 @@
-import mongoose from 'mongoose';
-import { USER_ROLES } from '../utils/constants.js';
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-    name: String,
-    email: { type: String, required: true },
-    passwordHash: { type: String, required: true },
-    role: { type: String, enum: Object.values(USER_ROLES), required: true },
-    phone: String,
-    isActive: { type: Boolean, default: true },
-    lastLoginAt: Date
-}, { timestamps: true });
+    firstName: {
+        type: String,
+        required: [true, 'First name is required'],
+        trim: true
+    },
+    lastName: {
+        type: String,
+        required: [true, 'Last name is required'],
+        trim: true
+    },
+    email: {
+        type: String,
+        required: [true, 'Email is required'],
+        unique: true,
+        lowercase: true,
+        trim: true,
+        match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email']
+    },
+    password: {
+        type: String,
+        required: [true, 'Password is required'],
+        minlength: 6,
+        select: false
+    },
+    phone: {
+        type: String,
+        trim: true
+    },
+    role: {
+        type: String,
+        enum: ['admin', 'organizer', 'participant'],
+        default: 'participant'
+    },
+    organization: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    lastLogin: {
+        type: Date
+    },
+    profileImage: {
+        type: String
+    }
+}, {
+    timestamps: true
+});
 
-userSchema.index({ email: 1, organizationId: 1 }, { unique: true });
+// Hash password before saving
+userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
 
-export default mongoose.model('User', userSchema);
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Method to compare password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to get full name
+userSchema.methods.getFullName = function () {
+    return `${this.firstName} ${this.lastName}`;
+};
+
+module.exports = mongoose.model('User', userSchema);
