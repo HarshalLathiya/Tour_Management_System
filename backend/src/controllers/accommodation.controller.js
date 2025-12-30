@@ -1,7 +1,6 @@
 const Accommodation = require('../models/Accommodation.model');
 const { responseUtil } = require('../utils/response.util');
 
-// Create a new accommodation
 const createAccommodation = async (req, res) => {
     try {
         const accommodation = new Accommodation(req.body);
@@ -12,20 +11,18 @@ const createAccommodation = async (req, res) => {
     }
 };
 
-// Get all accommodations
 const getAccommodations = async (req, res) => {
     try {
-        const accommodations = await Accommodation.find().populate('organizationId tourId');
+        const accommodations = await Accommodation.find().populate('tour', 'name');
         responseUtil.success(res, 'Accommodations retrieved successfully', accommodations);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get accommodation by ID
 const getAccommodationById = async (req, res) => {
     try {
-        const accommodation = await Accommodation.findById(req.params.id).populate('organizationId tourId');
+        const accommodation = await Accommodation.findById(req.params.id).populate('tour', 'name');
         if (!accommodation) {
             return responseUtil.error(res, 'Accommodation not found', 404);
         }
@@ -35,10 +32,13 @@ const getAccommodationById = async (req, res) => {
     }
 };
 
-// Update accommodation
 const updateAccommodation = async (req, res) => {
     try {
-        const accommodation = await Accommodation.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const accommodation = await Accommodation.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true, runValidators: true }
+        );
         if (!accommodation) {
             return responseUtil.error(res, 'Accommodation not found', 404);
         }
@@ -48,7 +48,6 @@ const updateAccommodation = async (req, res) => {
     }
 };
 
-// Delete accommodation
 const deleteAccommodation = async (req, res) => {
     try {
         const accommodation = await Accommodation.findByIdAndDelete(req.params.id);
@@ -61,10 +60,9 @@ const deleteAccommodation = async (req, res) => {
     }
 };
 
-// Get accommodations by tour
 const getAccommodationsByTour = async (req, res) => {
     try {
-        const accommodations = await Accommodation.find({ tourId: req.params.tourId });
+        const accommodations = await Accommodation.find({ tour: req.params.tourId });
         responseUtil.success(res, 'Accommodations retrieved successfully', accommodations);
     } catch (error) {
         responseUtil.error(res, error.message, 500);

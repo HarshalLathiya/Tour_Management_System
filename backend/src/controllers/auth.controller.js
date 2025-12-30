@@ -3,70 +3,69 @@ const { responseUtil } = require('../utils/response.util');
 const { generateToken } = require('../utils/jwt.util');
 const { comparePassword, hashPassword } = require('../utils/password.util');
 
-// Register a new user
 const register = async (req, res) => {
     try {
-        const { email, password, name, role, organizationId } = req.body;
+        const { email, password, firstName, lastName, phone, role, organization } = req.body;
 
-        // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return responseUtil.error(res, 'User already exists', 400);
         }
 
-        // Hash password
-        const hashedPassword = await hashPassword(password);
-
-        // Create user
         const user = new User({
             email,
-            password: hashedPassword,
-            name,
+            password,
+            firstName,
+            lastName,
+            phone,
             role,
-            organizationId
+            organization
         });
 
         await user.save();
 
-        // Generate token
         const token = generateToken(user._id);
 
-        responseUtil.success(res, 'User registered successfully', { user, token }, 201);
+        const userObj = user.toObject();
+        delete userObj.password;
+
+        responseUtil.success(res, 'User registered successfully', { user: userObj, token }, 201);
     } catch (error) {
         responseUtil.error(res, error.message, 400);
     }
 };
 
-// Login user
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return responseUtil.error(res, 'Invalid credentials', 401);
         }
 
-        // Check password
-        const isPasswordValid = await comparePassword(password, user.password);
+        const isPasswordValid = await user.comparePassword(password);
         if (!isPasswordValid) {
             return responseUtil.error(res, 'Invalid credentials', 401);
         }
 
-        // Generate token
+        user.lastLogin = new Date();
+        await user.save();
+
         const token = generateToken(user._id);
 
-        responseUtil.success(res, 'Login successful', { user, token });
+        const userObj = user.toObject();
+        delete userObj.password;
+
+        responseUtil.success(res, 'Login successful', { user: userObj, token });
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get current user
 const getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).populate('organizationId');
+        const user = await User.findById(req.user.id).populate('organization', 'name');
         if (!user) {
             return responseUtil.error(res, 'User not found', 404);
         }
@@ -76,7 +75,6 @@ const getMe = async (req, res) => {
     }
 };
 
-// Logout user
 const logout = async (req, res) => {
     try {
         responseUtil.success(res, 'Logged out successfully');
@@ -85,18 +83,21 @@ const logout = async (req, res) => {
     }
 };
 
-// Update password
 const updatePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).select('+password');
         
-        const isMatch = await comparePassword(currentPassword, user.password);
+        if (!user) {
+            return responseUtil.error(res, 'User not found', 404);
+        }
+
+        const isMatch = await user.comparePassword(currentPassword);
         if (!isMatch) {
             return responseUtil.error(res, 'Invalid current password', 400);
         }
 
-        user.password = await hashPassword(newPassword);
+        user.password = newPassword;
         await user.save();
 
         responseUtil.success(res, 'Password updated successfully');

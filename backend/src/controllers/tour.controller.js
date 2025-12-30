@@ -1,10 +1,12 @@
 const Tour = require('../models/Tour.model');
 const { responseUtil } = require('../utils/response.util');
 
-// Create a new tour
 const createTour = async (req, res) => {
     try {
-        const tour = new Tour(req.body);
+        const tour = new Tour({
+            ...req.body,
+            organizer: req.user.id
+        });
         await tour.save();
         responseUtil.success(res, 'Tour created successfully', tour, 201);
     } catch (error) {
@@ -12,20 +14,22 @@ const createTour = async (req, res) => {
     }
 };
 
-// Get all tours
 const getTours = async (req, res) => {
     try {
-        const tours = await Tour.find().populate('organizationId organizerId');
+        const tours = await Tour.find()
+            .populate('organization', 'name')
+            .populate('organizer', 'firstName lastName email');
         responseUtil.success(res, 'Tours retrieved successfully', tours);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get tour by ID
 const getTourById = async (req, res) => {
     try {
-        const tour = await Tour.findById(req.params.id).populate('organizationId organizerId');
+        const tour = await Tour.findById(req.params.id)
+            .populate('organization', 'name')
+            .populate('organizer', 'firstName lastName email');
         if (!tour) {
             return responseUtil.error(res, 'Tour not found', 404);
         }
@@ -35,10 +39,13 @@ const getTourById = async (req, res) => {
     }
 };
 
-// Update tour
 const updateTour = async (req, res) => {
     try {
-        const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const tour = await Tour.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true, runValidators: true }
+        );
         if (!tour) {
             return responseUtil.error(res, 'Tour not found', 404);
         }
@@ -48,7 +55,6 @@ const updateTour = async (req, res) => {
     }
 };
 
-// Delete tour
 const deleteTour = async (req, res) => {
     try {
         const tour = await Tour.findByIdAndDelete(req.params.id);
@@ -61,13 +67,30 @@ const deleteTour = async (req, res) => {
     }
 };
 
-// Get tours by organization
 const getToursByOrganization = async (req, res) => {
     try {
-        const tours = await Tour.find({ organizationId: req.params.organizationId });
+        const tours = await Tour.find({ organization: req.params.organizationId })
+            .populate('organizer', 'firstName lastName email');
         responseUtil.success(res, 'Tours retrieved successfully', tours);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
+    }
+};
+
+const updateTourStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const tour = await Tour.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        );
+        if (!tour) {
+            return responseUtil.error(res, 'Tour not found', 404);
+        }
+        responseUtil.success(res, 'Tour status updated successfully', tour);
+    } catch (error) {
+        responseUtil.error(res, error.message, 400);
     }
 };
 
@@ -77,5 +100,6 @@ module.exports = {
     getTourById,
     updateTour,
     deleteTour,
-    getToursByOrganization
+    getToursByOrganization,
+    updateTourStatus
 };

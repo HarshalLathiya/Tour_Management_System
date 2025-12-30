@@ -1,31 +1,46 @@
 const Participant = require('../models/Participant.model');
+const Tour = require('../models/Tour.model');
 const { responseUtil } = require('../utils/response.util');
 
-// Create a new participant
 const createParticipant = async (req, res) => {
     try {
+        const tour = await Tour.findById(req.body.tour);
+        if (!tour) {
+            return responseUtil.error(res, 'Tour not found', 404);
+        }
+        
+        if (tour.currentParticipants >= tour.maxParticipants) {
+            return responseUtil.error(res, 'Tour is full', 400);
+        }
+
         const participant = new Participant(req.body);
         await participant.save();
-        responseUtil.success(res, 'Participant created successfully', participant, 201);
+
+        tour.currentParticipants += 1;
+        await tour.save();
+
+        responseUtil.success(res, 'Participant registered successfully', participant, 201);
     } catch (error) {
         responseUtil.error(res, error.message, 400);
     }
 };
 
-// Get all participants
 const getParticipants = async (req, res) => {
     try {
-        const participants = await Participant.find().populate('tourId userId');
+        const participants = await Participant.find()
+            .populate('tour', 'name')
+            .populate('user', 'firstName lastName email');
         responseUtil.success(res, 'Participants retrieved successfully', participants);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get participant by ID
 const getParticipantById = async (req, res) => {
     try {
-        const participant = await Participant.findById(req.params.id).populate('tourId userId');
+        const participant = await Participant.findById(req.params.id)
+            .populate('tour', 'name')
+            .populate('user', 'firstName lastName email phone');
         if (!participant) {
             return responseUtil.error(res, 'Participant not found', 404);
         }
@@ -35,10 +50,13 @@ const getParticipantById = async (req, res) => {
     }
 };
 
-// Update participant
 const updateParticipant = async (req, res) => {
     try {
-        const participant = await Participant.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const participant = await Participant.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true, runValidators: true }
+        );
         if (!participant) {
             return responseUtil.error(res, 'Participant not found', 404);
         }
@@ -48,26 +66,67 @@ const updateParticipant = async (req, res) => {
     }
 };
 
-// Delete participant
 const deleteParticipant = async (req, res) => {
     try {
-        const participant = await Participant.findByIdAndDelete(req.params.id);
+        const participant = await Participant.findById(req.params.id);
         if (!participant) {
             return responseUtil.error(res, 'Participant not found', 404);
         }
+
+        const tour = await Tour.findById(participant.tour);
+        if (tour && tour.currentParticipants > 0) {
+            tour.currentParticipants -= 1;
+            await tour.save();
+        }
+
+        await Participant.findByIdAndDelete(req.params.id);
         responseUtil.success(res, 'Participant deleted successfully');
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get participants by tour
 const getParticipantsByTour = async (req, res) => {
     try {
-        const participants = await Participant.find({ tourId: req.params.tourId });
+        const participants = await Participant.find({ tour: req.params.tourId })
+            .populate('user', 'firstName lastName email phone');
         responseUtil.success(res, 'Participants retrieved successfully', participants);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
+    }
+};
+
+const updateParticipantStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const participant = await Participant.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        );
+        if (!participant) {
+            return responseUtil.error(res, 'Participant not found', 404);
+        }
+        responseUtil.success(res, 'Participant status updated successfully', participant);
+    } catch (error) {
+        responseUtil.error(res, error.message, 400);
+    }
+};
+
+const updatePaymentStatus = async (req, res) => {
+    try {
+        const { paymentStatus, amountPaid } = req.body;
+        const participant = await Participant.findByIdAndUpdate(
+            req.params.id,
+            { paymentStatus, amountPaid },
+            { new: true, runValidators: true }
+        );
+        if (!participant) {
+            return responseUtil.error(res, 'Participant not found', 404);
+        }
+        responseUtil.success(res, 'Payment status updated successfully', participant);
+    } catch (error) {
+        responseUtil.error(res, error.message, 400);
     }
 };
 
@@ -77,5 +136,7 @@ module.exports = {
     getParticipantById,
     updateParticipant,
     deleteParticipant,
-    getParticipantsByTour
+    getParticipantsByTour,
+    updateParticipantStatus,
+    updatePaymentStatus
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -24,8 +24,15 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (user) {
+      const redirectPath = user.role === 'admin' ? '/admin' : user.role === 'organizer' ? '/organizer' : '/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [user, navigate]);
 
   const {
     control,
@@ -43,19 +50,6 @@ const Login: React.FC = () => {
     setError('');
     try {
       await login(data.email, data.password);
-      
-      // Redirect based on user role
-      const userRole = 'participant'; // This would come from auth context
-      switch (userRole) {
-        case 'admin':
-          navigate('/admin');
-          break;
-        case 'organizer':
-          navigate('/organizer');
-          break;
-        default:
-          navigate('/dashboard');
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
     }

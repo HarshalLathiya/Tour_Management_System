@@ -1,19 +1,52 @@
-export const USER_ROLES = {
-    ADMIN: 'ADMIN',
-    ORGANIZER: 'ORGANIZER',
-    COORDINATOR: 'COORDINATOR',
-    PARTICIPANT: 'PARTICIPANT'
+const USER_ROLES = {
+    ADMIN: 'admin',
+    ORGANIZER: 'organizer',
+    COORDINATOR: 'coordinator',
+    PARTICIPANT: 'participant'
 };
 
-export const TOUR_STATUS = {
-    PLANNING: 'PLANNING',
-    APPROVED: 'APPROVED',
-    ACTIVE: 'ACTIVE',
-    COMPLETED: 'COMPLETED'
+const TOUR_STATUS = {
+    DRAFT: 'draft',
+    PLANNED: 'planned',
+    ONGOING: 'ongoing',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled'
 };
 
-export const INCIDENT_SEVERITY = {
-    LOW: 'LOW',
-    MEDIUM: 'MEDIUM',
-    HIGH: 'HIGH'
+const INCIDENT_SEVERITY = {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical'
+};
+
+const PAYMENT_STATUS = {
+    PENDING: 'pending',
+    PARTIAL: 'partial',
+    PAID: 'paid',
+    REFUNDED: 'refunded'
+};
+
+const PARTICIPANT_STATUS = {
+    PENDING: 'pending',
+    CONFIRMED: 'confirmed',
+    WAITLISTED: 'waitlisted',
+    CANCELLED: 'cancelled',
+    COMPLETED: 'completed'
+};
+
+const BUDGET_STATUS = {
+    DRAFT: 'draft',
+    ACTIVE: 'active',
+    LOCKED: 'locked',
+    ARCHIVED: 'archived'
+};
+
+module.exports = {
+    USER_ROLES,
+    TOUR_STATUS,
+    INCIDENT_SEVERITY,
+    PAYMENT_STATUS,
+    PARTICIPANT_STATUS,
+    BUDGET_STATUS
 };

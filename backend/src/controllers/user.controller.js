@@ -1,31 +1,30 @@
 const User = require('../models/User.model');
 const { responseUtil } = require('../utils/response.util');
 
-// Create a new user
 const createUser = async (req, res) => {
     try {
         const user = new User(req.body);
         await user.save();
-        responseUtil.success(res, 'User created successfully', user, 201);
+        const userObj = user.toObject();
+        delete userObj.password;
+        responseUtil.success(res, 'User created successfully', userObj, 201);
     } catch (error) {
         responseUtil.error(res, error.message, 400);
     }
 };
 
-// Get all users
 const getUsers = async (req, res) => {
     try {
-        const users = await User.find().populate('organizationId');
+        const users = await User.find().populate('organization', 'name');
         responseUtil.success(res, 'Users retrieved successfully', users);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get user by ID
 const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).populate('organizationId');
+        const user = await User.findById(req.params.id).populate('organization', 'name');
         if (!user) {
             return responseUtil.error(res, 'User not found', 404);
         }
@@ -35,10 +34,16 @@ const getUserById = async (req, res) => {
     }
 };
 
-// Update user
 const updateUser = async (req, res) => {
     try {
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updateData = { ...req.body };
+        delete updateData.password;
+        
+        const user = await User.findByIdAndUpdate(
+            req.params.id, 
+            updateData, 
+            { new: true, runValidators: true }
+        );
         if (!user) {
             return responseUtil.error(res, 'User not found', 404);
         }
@@ -48,7 +53,6 @@ const updateUser = async (req, res) => {
     }
 };
 
-// Delete user
 const deleteUser = async (req, res) => {
     try {
         const user = await User.findByIdAndDelete(req.params.id);
@@ -61,11 +65,43 @@ const deleteUser = async (req, res) => {
     }
 };
 
-// Get users by organization
 const getUsersByOrganization = async (req, res) => {
     try {
-        const users = await User.find({ organizationId: req.params.organizationId });
+        const users = await User.find({ organization: req.params.organizationId });
         responseUtil.success(res, 'Users retrieved successfully', users);
+    } catch (error) {
+        responseUtil.error(res, error.message, 500);
+    }
+};
+
+const updateUserRole = async (req, res) => {
+    try {
+        const { role } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { role },
+            { new: true, runValidators: true }
+        );
+        if (!user) {
+            return responseUtil.error(res, 'User not found', 404);
+        }
+        responseUtil.success(res, 'User role updated successfully', user);
+    } catch (error) {
+        responseUtil.error(res, error.message, 400);
+    }
+};
+
+const toggleUserStatus = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return responseUtil.error(res, 'User not found', 404);
+        }
+        
+        user.isActive = !user.isActive;
+        await user.save();
+        
+        responseUtil.success(res, `User ${user.isActive ? 'activated' : 'deactivated'} successfully`, user);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
@@ -77,5 +113,7 @@ module.exports = {
     getUserById,
     updateUser,
     deleteUser,
-    getUsersByOrganization
+    getUsersByOrganization,
+    updateUserRole,
+    toggleUserStatus
 };

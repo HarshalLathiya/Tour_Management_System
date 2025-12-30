@@ -1,7 +1,6 @@
 const Transport = require('../models/Transport.model');
 const { responseUtil } = require('../utils/response.util');
 
-// Create a new transport
 const createTransport = async (req, res) => {
     try {
         const transport = new Transport(req.body);
@@ -12,20 +11,18 @@ const createTransport = async (req, res) => {
     }
 };
 
-// Get all transports
 const getTransports = async (req, res) => {
     try {
-        const transports = await Transport.find().populate('organizationId tourId');
+        const transports = await Transport.find().populate('tour', 'name');
         responseUtil.success(res, 'Transports retrieved successfully', transports);
     } catch (error) {
         responseUtil.error(res, error.message, 500);
     }
 };
 
-// Get transport by ID
 const getTransportById = async (req, res) => {
     try {
-        const transport = await Transport.findById(req.params.id).populate('organizationId tourId');
+        const transport = await Transport.findById(req.params.id).populate('tour', 'name');
         if (!transport) {
             return responseUtil.error(res, 'Transport not found', 404);
         }
@@ -35,10 +32,13 @@ const getTransportById = async (req, res) => {
     }
 };
 
-// Update transport
 const updateTransport = async (req, res) => {
     try {
-        const transport = await Transport.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const transport = await Transport.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true, runValidators: true }
+        );
         if (!transport) {
             return responseUtil.error(res, 'Transport not found', 404);
         }
@@ -48,7 +48,6 @@ const updateTransport = async (req, res) => {
     }
 };
 
-// Delete transport
 const deleteTransport = async (req, res) => {
     try {
         const transport = await Transport.findByIdAndDelete(req.params.id);
@@ -61,10 +60,9 @@ const deleteTransport = async (req, res) => {
     }
 };
 
-// Get transports by tour
 const getTransportsByTour = async (req, res) => {
     try {
-        const transports = await Transport.find({ tourId: req.params.tourId });
+        const transports = await Transport.find({ tour: req.params.tourId });
         responseUtil.success(res, 'Transports retrieved successfully', transports);
     } catch (error) {
         responseUtil.error(res, error.message, 500);

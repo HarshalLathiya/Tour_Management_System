@@ -6,20 +6,21 @@ const {
     getExpenseById,
     updateExpense,
     deleteExpense,
-    getExpensesByTour
+    getExpensesByTour,
+    approveExpense,
+    rejectExpense
 } = require('../controllers/expense.controller');
 const { protect } = require('../middlewares/auth.middleware');
 const { roleCheck } = require('../middlewares/role.middleware');
 
-// All routes require authentication
 router.use(protect);
 
-// Admin and organizer routes
 router.post('/', roleCheck(['admin', 'organizer']), createExpense);
 router.put('/:id', roleCheck(['admin', 'organizer']), updateExpense);
 router.delete('/:id', roleCheck(['admin', 'organizer']), deleteExpense);
+router.patch('/:id/approve', roleCheck(['admin', 'organizer']), approveExpense);
+router.patch('/:id/reject', roleCheck(['admin', 'organizer']), rejectExpense);
 
-// All authenticated users
 router.get('/', getExpenses);
 router.get('/:id', getExpenseById);
 router.get('/tour/:tourId', getExpensesByTour);
