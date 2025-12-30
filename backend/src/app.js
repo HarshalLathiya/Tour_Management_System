@@ -6,17 +6,18 @@ const rateLimit = require('express-rate-limit');
 
 const { errorHandler } = require('./middlewares/error.middleware');
 const { requestLogger } = require('./config/logger');
+// Routes
 const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const tourRoutes = require('./routes/tour.routes');
-const budgetRoutes = require('./routes/budget.routes');
-const expenseRoutes = require('./routes/expense.routes');
-const participantRoutes = require('./routes/participant.routes');
-const accommodationRoutes = require('./routes/accommodation.routes');
-const transportRoutes = require('./routes/transport.routes');
-const incidentRoutes = require('./routes/incident.routes');
-const organizationRoutes = require('./routes/organization.routes');
-const reportRoutes = require('./routes/report.routes');
+// const userRoutes = require('./routes/user.routes');
+// const tourRoutes = require('./routes/tour.routes');
+// const budgetRoutes = require('./routes/budget.routes');
+// const expenseRoutes = require('./routes/expense.routes');
+// const participantRoutes = require('./routes/participant.routes');
+// const accommodationRoutes = require('./routes/accommodation.routes');
+// const transportRoutes = require('./routes/transport.routes');
+// const incidentRoutes = require('./routes/incident.routes');
+// const organizationRoutes = require('./routes/organization.routes');
+// const reportRoutes = require('./routes/report.routes');
 
 const app = express();
 

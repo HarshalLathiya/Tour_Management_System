@@ -76,8 +76,39 @@ const getMe = async (req, res) => {
     }
 };
 
+// Logout user
+const logout = async (req, res) => {
+    try {
+        responseUtil.success(res, 'Logged out successfully');
+    } catch (error) {
+        responseUtil.error(res, error.message, 500);
+    }
+};
+
+// Update password
+const updatePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(req.user.id);
+        
+        const isMatch = await comparePassword(currentPassword, user.password);
+        if (!isMatch) {
+            return responseUtil.error(res, 'Invalid current password', 400);
+        }
+
+        user.password = await hashPassword(newPassword);
+        await user.save();
+
+        responseUtil.success(res, 'Password updated successfully');
+    } catch (error) {
+        responseUtil.error(res, error.message, 500);
+    }
+};
+
 module.exports = {
     register,
     login,
-    getMe
+    getMe,
+    logout,
+    updatePassword
 };
