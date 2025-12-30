@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 import { routes } from './routes';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, AuthProvider } from '../context/AuthContext';
 
 const LoadingFallback = () => (
   <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -10,7 +10,7 @@ const LoadingFallback = () => (
   </Box>
 );
 
-function App() {
+function AppContent() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -29,7 +29,11 @@ function App() {
               element={
                 route.protected ? (
                   user ? (
-                    <Element />
+                    route.path === '/' ? (
+                      <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'organizer' ? '/organizer' : '/dashboard'} replace />
+                    ) : (
+                      <Element />
+                    )
                   ) : (
                     <Navigate to="/login" replace />
                   )
@@ -47,6 +51,14 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

@@ -30,12 +30,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+    useEffect(() => {
     const initAuth = async () => {
       if (token) {
         try {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
+          const response = await authService.getCurrentUser();
+          setUser(response.data.data);
         } catch (error) {
           console.error('Failed to fetch user:', error);
           localStorage.removeItem('token');
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       const response = await authService.login(email, password);
-      const { token: newToken, user: userData } = response.data;
+      const { token: newToken, user: userData } = response.data.data;
       
       localStorage.setItem('token', newToken);
       setToken(newToken);
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       const response = await authService.register(userData);
-      const { token: newToken, user: registeredUser } = response.data;
+      const { token: newToken, user: registeredUser } = response.data.data;
       
       localStorage.setItem('token', newToken);
       setToken(newToken);
