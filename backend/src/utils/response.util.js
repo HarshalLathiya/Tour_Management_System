@@ -1,12 +1,19 @@
-const successResponse = (res, data, message = 'Success', statusCode = 200) => {
-    return res.status(statusCode).json({
+// Success response utility
+const success = (res, message, data = null, statusCode = 200) => {
+    const response = {
         success: true,
-        message,
-        data
-    });
+        message
+    };
+
+    if (data !== null) {
+        response.data = data;
+    }
+
+    return res.status(statusCode).json(response);
 };
 
-const errorResponse = (res, message = 'Error', statusCode = 400, errors = null) => {
+// Error response utility
+const error = (res, message, statusCode = 500, errors = null) => {
     const response = {
         success: false,
         message
@@ -19,23 +26,69 @@ const errorResponse = (res, message = 'Error', statusCode = 400, errors = null) 
     return res.status(statusCode).json(response);
 };
 
-const notFoundResponse = (res, message = 'Resource not found') => {
-    return res.status(404).json({
-        success: false,
+// Pagination response utility
+const pagination = (res, message, data, paginationInfo, statusCode = 200) => {
+    return res.status(statusCode).json({
+        success: true,
+        message,
+        data,
+        pagination: paginationInfo
+    });
+};
+
+// Created response utility
+const created = (res, message, data = null) => {
+    return success(res, message, data, 201);
+};
+
+// No content response utility
+const noContent = (res, message = 'No content') => {
+    return res.status(204).json({
+        success: true,
         message
     });
 };
 
-const serverErrorResponse = (res, message = 'Internal server error') => {
-    return res.status(500).json({
-        success: false,
-        message
-    });
+// Bad request response utility
+const badRequest = (res, message, errors = null) => {
+    return error(res, message, 400, errors);
+};
+
+// Unauthorized response utility
+const unauthorized = (res, message = 'Unauthorized') => {
+    return error(res, message, 401);
+};
+
+// Forbidden response utility
+const forbidden = (res, message = 'Forbidden') => {
+    return error(res, message, 403);
+};
+
+// Not found response utility
+const notFound = (res, message = 'Resource not found') => {
+    return error(res, message, 404);
+};
+
+// Conflict response utility
+const conflict = (res, message) => {
+    return error(res, message, 409);
+};
+
+// Internal server error response utility
+const internalServerError = (res, message = 'Internal server error') => {
+    return error(res, message, 500);
 };
 
 module.exports = {
-    successResponse,
-    errorResponse,
-    notFoundResponse,
-    serverErrorResponse
+    success,
+    error,
+    pagination,
+    created,
+    noContent,
+    badRequest,
+    unauthorized,
+    forbidden,
+    notFound,
+    conflict,
+    internalServerError
 };

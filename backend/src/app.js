@@ -34,7 +34,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Logging
-app.use(morgan('combined', { stream: requestLogger.stream }));
+// app.use(morgan('combined', { stream: requestLogger }));
 
 // Routes
 app.use('/api/auth', authRoutes);
