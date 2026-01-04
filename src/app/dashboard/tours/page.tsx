@@ -50,9 +50,10 @@ export default function ToursPage() {
         ) : (
           tours.map((tour) => (
             <div key={tour.id} className="card group hover:border-blue-500 transition-all cursor-pointer">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600">{tour.title}</h3>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600">{tour.name}</h3>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+
                   tour.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                 }`}>
                   {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
