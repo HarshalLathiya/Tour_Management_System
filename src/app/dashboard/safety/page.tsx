@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 const mockIncidents = [
   {
@@ -39,6 +40,7 @@ const mockIncidents = [
 export default function SafetyPage() {
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Safety & SOS</h2>

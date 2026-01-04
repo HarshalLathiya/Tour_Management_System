@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 
 const mockAnnouncements = [
   { id: 1, author: 'Tour Leader A', content: 'Assembly at the hotel lobby in 15 minutes. Please be on time.', time: '5m ago', urgent: true, readBy: 38 },
@@ -15,6 +16,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Announcements</h2>

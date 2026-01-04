@@ -2,20 +2,15 @@
 
 import { useState } from "react";
 import { Users, CheckCircle, XCircle, Clock, Search } from "lucide-react";
-
-const mockParticipants = [
-  { id: 1, name: "Alice Johnson", status: "present", time: "09:15 AM" },
-  { id: 2, name: "Bob Smith", status: "absent", time: "-" },
-  { id: 3, name: "Charlie Davis", status: "present", time: "09:20 AM" },
-  { id: 4, name: "Diana Prince", status: "permission", time: "08:45 AM" },
-  { id: 5, name: "Edward Norton", status: "present", time: "09:18 AM" },
-];
+import { BackButton } from "@/components/BackButton";
 
 export default function AttendancePage() {
+
   const [filter, setFilter] = useState("all");
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Attendance</h2>

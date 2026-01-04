@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Plus, MapPin, Calendar, Users, ChevronRight } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 
 export default function ToursPage() {
   const [tours, setTours] = useState<any[]>([]);
@@ -26,6 +27,7 @@ export default function ToursPage() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Tours</h2>

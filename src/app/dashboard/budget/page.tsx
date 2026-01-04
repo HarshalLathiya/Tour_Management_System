@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, Plus, PieChart, DollarSign } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 
 const mockExpenses = [
   { id: 1, category: 'transport', amount: 12500, description: 'Bus rental for Day 1-3', date: '2026-01-01' },
@@ -13,6 +14,7 @@ const mockExpenses = [
 export default function BudgetPage() {
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Budget & Funds</h2>

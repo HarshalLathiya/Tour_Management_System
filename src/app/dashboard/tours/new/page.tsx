@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, MapPin, Calendar, DollarSign, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,19 +99,16 @@ export default function NewTourPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex h-16 max-w-4xl items-center gap-4 px-6">
-          <Link href="/dashboard/tours">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Create New Tour</h1>
-            <p className="text-sm text-slate-500">Plan and organize your tour details</p>
+        <header className="border-b bg-white">
+          <div className="mx-auto flex h-16 max-w-4xl items-center gap-4 px-6">
+            <BackButton className="mb-0" />
+            <div className="ml-2 border-l pl-4">
+              <h1 className="text-xl font-semibold text-slate-900">Create New Tour</h1>
+              <p className="text-sm text-slate-500">Plan and organize your tour details</p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+
 
       <main className="mx-auto max-w-4xl p-6">
         <motion.div
