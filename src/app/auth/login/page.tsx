@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,8 +34,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
-        <div className="flex flex-col items-center justify-center space-y-2">
+      <div className="w-full max-w-md space-y-8">
+        <BackButton />
+        <div className="rounded-xl bg-white p-8 shadow-lg space-y-8">
+          <div className="flex flex-col items-center justify-center space-y-2">
           <Link href="/" className="flex items-center space-x-2">
             <MapPin className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold">TourSync</span>

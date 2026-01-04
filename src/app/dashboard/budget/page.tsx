@@ -14,7 +14,6 @@ const mockExpenses = [
 export default function BudgetPage() {
   return (
     <div className="space-y-6">
-      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Budget & Funds</h2>
