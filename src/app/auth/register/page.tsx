@@ -27,7 +27,7 @@ export default function RegisterPage() {
       options: {
         data: {
           full_name: fullName,
-          role: role,
+          role: role.toUpperCase(),
         },
       },
     });
@@ -39,21 +39,7 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
-      // Create profile record
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          full_name: fullName,
-          role: role,
-        });
-
-      if (profileError) {
-        setError(profileError.message);
-        setLoading(false);
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
     }
   };
 

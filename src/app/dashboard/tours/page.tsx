@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import { Plus, MapPin, Calendar, Users, ChevronRight } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 
@@ -32,9 +33,9 @@ export default function ToursPage() {
           <h2 className="text-2xl font-bold text-slate-800">Tours</h2>
           <p className="text-slate-500">Manage and monitor all your tours.</p>
         </div>
-        <button className="btn-primary flex items-center bg-blue-600">
-          <Plus className="mr-2 h-4 w-4" /> Create New Tour
-        </button>
+          <Link href="/dashboard/tours/new" className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all">
+            <Plus className="mr-2 h-4 w-4" /> Create New Tour
+          </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -49,38 +50,37 @@ export default function ToursPage() {
             <p className="mt-2 text-slate-500">Get started by creating your first tour itinerary.</p>
           </div>
         ) : (
-          tours.map((tour) => (
-            <div key={tour.id} className="card group hover:border-blue-500 transition-all cursor-pointer">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600">{tour.name}</h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-
-                  tour.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
-                </span>
-              </div>
-              <div className="space-y-2 text-sm text-slate-500">
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {new Date(tour.start_date).toLocaleDateString()} - {new Date(tour.end_date).toLocaleDateString()}
+            tours.map((tour) => (
+              <Link key={tour.id} href={`/dashboard/tours/${tour.id}`} className="card group hover:border-blue-500 transition-all cursor-pointer block">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600">{tour.name}</h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+    1.  tour.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
+                  </span>
                 </div>
-                <div className="flex items-center">
-                  <MapPin className="mr-2 h-4 w-4" />
-                  {tour.locations_count || 5} Locations
+                <div className="space-y-2 text-sm text-slate-500">
+                  <div className="flex items-center">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {new Date(tour.start_date).toLocaleDateString()} - {new Date(tour.end_date).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    {tour.destination || 'Multiple Locations'}
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="mr-2 h-4 w-4" />
+                    {tour.max_participants || 0} Max Participants
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <Users className="mr-2 h-4 w-4" />
-                  {tour.participants_count || 45} Participants
+                <div className="mt-6 pt-4 border-t flex justify-end">
+                  <div className="text-sm font-semibold text-blue-600 flex items-center">
+                    Manage Details <ChevronRight className="ml-1 h-4 w-4" />
+                  </div>
                 </div>
-              </div>
-              <div className="mt-6 pt-4 border-t flex justify-end">
-                <button className="text-sm font-semibold text-blue-600 flex items-center">
-                  Manage Details <ChevronRight className="ml-1 h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))
+              </Link>
+            ))
         )}
       </div>
     </div>
