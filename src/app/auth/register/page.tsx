@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
+  const supabase = createClient();
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,7 +39,7 @@ export default function RegisterPage() {
       options: {
         data: {
           full_name: fullName,
-          role: role.toUpperCase(),
+          role: role,
         },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
@@ -51,7 +52,7 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
-      // Show success message before redirecting
+      // Email confirmation is required - redirect to verify email page
       router.push("/auth/verify-email?email=" + encodeURIComponent(email));
     }
   };

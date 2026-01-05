@@ -14,7 +14,13 @@ import {
   Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { Organization, Tour } from "@/types";
 
 interface DashboardClientProps {
@@ -30,7 +36,10 @@ const statusColors = {
   cancelled: "bg-red-100 text-red-700",
 };
 
-export function DashboardClient({ organizations, tours }: DashboardClientProps) {
+export function DashboardClient({
+  organizations,
+  tours,
+}: DashboardClientProps) {
   const stats = [
     {
       label: "Active Tours",
@@ -77,7 +86,9 @@ export function DashboardClient({ organizations, tours }: DashboardClientProps) 
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stat.label}
+                      </p>
                       <p className="mt-1 text-3xl font-bold">{stat.value}</p>
                     </div>
                     <div
@@ -131,17 +142,24 @@ export function DashboardClient({ organizations, tours }: DashboardClientProps) 
                           <MapPin className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900">{tour.name}</p>
-                          <p className="text-sm text-slate-500">{tour.destination}</p>
+                          <p className="font-medium text-slate-900">
+                            {tour.name}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {tour.destination}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            statusColors[tour.status as keyof typeof statusColors]
+                            statusColors[
+                              tour.status as keyof typeof statusColors
+                            ]
                           }`}
                         >
-                          {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
+                          {tour.status.charAt(0).toUpperCase() +
+                            tour.status.slice(1)}
                         </span>
                         <ChevronRight className="h-5 w-5 text-slate-400" />
                       </div>
@@ -167,7 +185,9 @@ export function DashboardClient({ organizations, tours }: DashboardClientProps) 
                 </div>
                 <div>
                   <p className="font-medium text-slate-900">Create New Tour</p>
-                  <p className="text-sm text-slate-500">Start planning a new tour</p>
+                  <p className="text-sm text-slate-500">
+                    Start planning a new tour
+                  </p>
                 </div>
               </Link>
               <Link
@@ -179,7 +199,9 @@ export function DashboardClient({ organizations, tours }: DashboardClientProps) 
                 </div>
                 <div>
                   <p className="font-medium text-slate-900">Take Attendance</p>
-                  <p className="text-sm text-slate-500">Mark attendance for current tour</p>
+                  <p className="text-sm text-slate-500">
+                    Mark attendance for current tour
+                  </p>
                 </div>
               </Link>
               <Link
@@ -190,8 +212,12 @@ export function DashboardClient({ organizations, tours }: DashboardClientProps) 
                   <Bell className="h-5 w-5 text-violet-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900">Send Announcement</p>
-                  <p className="text-sm text-slate-500">Notify all participants</p>
+                  <p className="font-medium text-slate-900">
+                    Send Announcement
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    Notify all participants
+                  </p>
                 </div>
               </Link>
               <Link
@@ -203,7 +229,9 @@ export function DashboardClient({ organizations, tours }: DashboardClientProps) 
                 </div>
                 <div>
                   <p className="font-medium text-slate-900">Report Incident</p>
-                  <p className="text-sm text-slate-500">Log safety concerns or emergencies</p>
+                  <p className="text-sm text-slate-500">
+                    Log safety concerns or emergencies
+                  </p>
                 </div>
               </Link>
             </CardContent>

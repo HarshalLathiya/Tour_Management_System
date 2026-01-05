@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Lock, Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -13,21 +13,36 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
+      // Check if the error is due to unconfirmed email
+      if (
+        error.message.includes("Email not confirmed") ||
+        error.message.includes("email_not_confirmed")
+      ) {
+        setError(
+          "Please check your email and click the verification link before signing in."
+        );
+        // Optionally redirect to verify-email page
+        router.push("/auth/verify-email?email=" + encodeURIComponent(email));
+        return;
+      }
       setError(error.message);
       setLoading(false);
     } else {
+      // Success - redirect to dashboard
+      setLoading(false);
       router.push("/dashboard");
     }
   };
