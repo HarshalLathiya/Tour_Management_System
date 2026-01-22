@@ -58,18 +58,12 @@
 
 ### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/tour-management-system.git
-   cd tour-management-system
-   ```
-
-2. **Install dependencies:**
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Set up environment variables:**
+2. **Set up environment variables:**
    Create a `.env` file in the root directory and add your Supabase credentials:
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -78,7 +72,7 @@
    DATABASE_URL=your_postgresql_connection_string
    ```
 
-4. **Run the development server:**
+3. **Run the development server:**
    ```bash
    npm run dev
    ```
@@ -115,7 +109,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🤝 Support
 
-For support, email support@toursync.com or join our Discord community.
+For support, email harshalplathiya@gmail.com.
 
 ---
 Built with ❤️ for better travel experiences.
