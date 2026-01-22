@@ -15,6 +15,9 @@ export interface Profile {
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
   health_notes?: string;
+  passport_url?: string;
+  medical_info_url?: string;
+  dietary_requirements?: string;
   created_at: string;
   updated_at: string;
 }
@@ -133,8 +136,20 @@ export interface Expense {
   amount: number;
   vendor_name?: string;
   receipt_url?: string;
+  currency: string;
+  exchange_rate: number;
   created_by?: string;
   created_at: string;
+}
+
+export interface TourPhoto {
+  id: string;
+  tour_id: string;
+  user_id: string;
+  photo_url: string;
+  caption?: string;
+  created_at: string;
+  profile?: Profile;
 }
 
 export interface Incident {

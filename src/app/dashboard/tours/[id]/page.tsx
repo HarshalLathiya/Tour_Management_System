@@ -6,10 +6,11 @@ import { useParams } from 'next/navigation';
 import { 
   Calendar, MapPin, Users, DollarSign, 
   Clock, CheckCircle, AlertCircle, Plus,
-  ChevronRight, ArrowLeft
+  ChevronRight, ArrowLeft, Camera, FileText, Shield
 } from 'lucide-react';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
+import { PhotoGallery } from '@/components/photo-gallery';
 
 export default function TourDetailsPage() {
   const { id } = useParams();
@@ -64,25 +65,26 @@ export default function TourDetailsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-slate-200">
-        <nav className="-mb-px flex space-x-8">
-          {['itinerary', 'attendance', 'budget', 'safety'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`
-                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
-                ${activeTab === tab 
-                  ? 'border-blue-500 text-blue-600' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}
-              `}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </nav>
-      </div>
+        {/* Tabs */}
+        <div className="border-b border-slate-200">
+          <nav className="-mb-px flex space-x-8">
+            {['itinerary', 'attendance', 'budget', 'safety', 'gallery', 'documents'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`
+                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                  ${activeTab === tab 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}
+                `}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </nav>
+        </div>
+
 
       {/* Tab Content */}
       <div className="py-4">
