@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("participant");
+  const [organizationName, setOrganizationName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,31 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
+      // Create profile record
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: data.user.id,
+        email: email,
+        full_name: fullName,
+        role: role,
+      });
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+      }
+
+      // Create organization if role is org_admin
+      if (role === "org_admin" && organizationName) {
+        const { error: orgError } = await supabase.from("organizations").insert({
+          name: organizationName,
+          type: "organization",
+          created_by: data.user.id,
+        });
+
+        if (orgError) {
+          console.error("Organization creation error:", orgError);
+        }
+      }
+
       // Email confirmation is required - redirect to verify email page
       router.push("/auth/verify-email?email=" + encodeURIComponent(email));
     }
@@ -231,12 +257,38 @@ export default function RegisterPage() {
                         )}
                       </button>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Use 8+ characters with a mix of letters, numbers & symbols
-                    </p>
-                  </div>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Use 8+ characters with a mix of letters, numbers & symbols
+                      </p>
+                    </div>
 
-                  {/* Role Selection */}
+                    {/* Organization Name Input (Conditional) */}
+                    {role === "org_admin" && (
+                      <div>
+                        <label
+                          htmlFor="organizationName"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
+                          Organization Name
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Building className="h-5 w-5 text-slate-400" />
+                          </div>
+                          <input
+                            id="organizationName"
+                            type="text"
+                            required
+                            value={organizationName}
+                            onChange={(e) => setOrganizationName(e.target.value)}
+                            className="block w-full pl-10 pr-3 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Enter Your Organization Name"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Role Selection */}
                   <div>
                     <label
                       htmlFor="role"

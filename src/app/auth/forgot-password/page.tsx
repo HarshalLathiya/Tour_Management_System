@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
 
     if (error) {
       if (error.message.includes("rate limit")) {
-        setError("Email rate limit exceeded. Please wait a few minutes before trying again or contact support.");
+        setError("Email rate limit exceeded. If you just set up a custom SMTP provider, please wait 15-30 minutes for the Supabase cooldown to clear, or try a different email address.");
       } else {
         setError(error.message);
       }
