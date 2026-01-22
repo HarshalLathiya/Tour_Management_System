@@ -3,10 +3,13 @@
 import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { MapPin, Mail, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { MapPin, Mail, ArrowRight, ArrowLeft, CheckCircle2, Key, ShieldAlert } from "lucide-react";
+import { adminResetPassword } from "./actions";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [mode, setMode] = useState<"standard" | "admin">("standard");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -16,6 +19,23 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (mode === "admin") {
+      if (!newPassword) {
+        setError("Please enter a new password.");
+        setLoading(false);
+        return;
+      }
+      const result = await adminResetPassword(email, newPassword);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        setSuccess(true);
+        setLoading(false);
+      }
+      return;
+    }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/api/auth/callback?next=/auth/update-password`,
@@ -61,16 +81,30 @@ export default function ForgotPasswordPage() {
                 <>
                   <div className="pt-8 text-center mb-8">
                     <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                      Forgot Password?
+                      {mode === "admin" ? "Direct Reset" : "Forgot Password?"}
                     </h2>
                     <p className="text-slate-600">
-                      Enter your email and we'll send you a link to reset your password
+                      {mode === "admin" 
+                        ? "Temporary admin tool: Reset password immediately without email."
+                        : "Enter your email and we'll send you a link to reset your password"}
                     </p>
                   </div>
 
                   {error && (
                     <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4">
-                      <p className="text-sm font-medium text-red-800">{error}</p>
+                      <div className="flex">
+                        <ShieldAlert className="h-5 w-5 text-red-600 mr-2 flex-shrink-0" />
+                        <p className="text-sm font-medium text-red-800">{error}</p>
+                      </div>
+                      {error.includes("rate limit") && mode === "standard" && (
+                        <button 
+                          onClick={() => setMode("admin")}
+                          className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-700 underline flex items-center"
+                        >
+                          Try Direct Reset (No Email Needed)
+                          <ArrowRight className="ml-1 h-3 w-3" />
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -95,18 +129,62 @@ export default function ForgotPasswordPage() {
                       </div>
                     </div>
 
+                    {mode === "admin" && (
+                      <div>
+                        <label htmlFor="pass" className="block text-sm font-medium text-slate-700 mb-2">
+                          New Password
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Key className="h-5 w-5 text-slate-400" />
+                          </div>
+                          <input
+                            id="pass"
+                            type="password"
+                            required
+                            className="block w-full pl-10 pr-3 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                            placeholder="••••••••"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <button
                       type="submit"
                       disabled={loading}
                       className="group relative w-full inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? "Sending link..." : (
+                      {loading ? (mode === "admin" ? "Resetting..." : "Sending link...") : (
                         <>
-                          Send Reset Link
+                          {mode === "admin" ? "Reset Password Now" : "Send Reset Link"}
                           <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
                     </button>
+
+                    {mode === "standard" ? (
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setMode("admin")}
+                          className="text-sm text-slate-500 hover:text-blue-600 transition-colors"
+                        >
+                          Having trouble with emails? Try Direct Reset
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setMode("standard")}
+                          className="text-sm text-slate-500 hover:text-blue-600 transition-colors"
+                        >
+                          Back to standard reset
+                        </button>
+                      </div>
+                    )}
                   </form>
                 </>
               ) : (
@@ -117,10 +195,12 @@ export default function ForgotPasswordPage() {
                     </div>
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                    Check your email
+                    {mode === "admin" ? "Password Reset!" : "Check your email"}
                   </h2>
                   <p className="text-slate-600 mb-8">
-                    We've sent a password reset link to <span className="font-semibold">{email}</span>.
+                    {mode === "admin" 
+                      ? "Your password has been updated successfully. You can now log in with your new password."
+                      : `We've sent a password reset link to ${email}.`}
                   </p>
                   <Link
                     href="/auth/login"
