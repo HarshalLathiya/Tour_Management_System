@@ -25,7 +25,11 @@ export default function VerifyEmailPage() {
       });
 
       if (error) {
-        setResendMessage("Failed to resend email. Please try again.");
+        if (error.message.toLowerCase().includes("rate limit")) {
+          setResendMessage("Email rate limit exceeded. Please wait 15-30 minutes for the Supabase cooldown to clear, or try again later.");
+        } else {
+          setResendMessage("Failed to resend email. Please try again.");
+        }
       } else {
         setResendMessage("Verification email sent! Please check your inbox.");
       }

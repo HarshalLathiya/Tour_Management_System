@@ -47,7 +47,11 @@ export default function RegisterPage() {
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      if (signUpError.message.toLowerCase().includes("rate limit")) {
+        setError("Email rate limit exceeded. If you just set up a custom SMTP provider, please wait 15-30 minutes for the Supabase cooldown to clear, or try a different email address.");
+      } else {
+        setError(signUpError.message);
+      }
       setLoading(false);
       return;
     }
