@@ -29,6 +29,23 @@ export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  const handleOAuthLogin = async (provider: "google" | "github") => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
+        data: {
+          role: role,
+          full_name: fullName || undefined,
+        },
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+    }
+  };
+
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -426,9 +443,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200"
-                    onClick={() => {
-                      /* Add Google OAuth */
-                    }}
+                    onClick={() => handleOAuthLogin("google")}
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24">
                       <path
@@ -453,9 +468,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200"
-                    onClick={() => {
-                      /* Add GitHub OAuth */
-                    }}
+                    onClick={() => handleOAuthLogin("github")}
                   >
                     <svg
                       className="h-5 w-5"
