@@ -20,12 +20,75 @@ function AttendanceContent() {
   const [selectedItineraryId, setSelectedItineraryId] = useState<string>('');
   const [participants, setParticipants] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [marking, setMarking] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [isAutoChecking, setIsAutoChecking] = useState(false);
+    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
-  useEffect(() => {
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371e3; // metres
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c; // in metres
+    };
+
+    const handleAutoCheckIn = async () => {
+        setIsAutoChecking(true);
+        const itinerary = itineraries.find(i => i.id === selectedItineraryId);
+        
+        if (!itinerary || !itinerary.coordinates_lat || !itinerary.coordinates_lng) {
+            alert('This location does not have coordinates set.');
+            setIsAutoChecking(false);
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser.');
+            setIsAutoChecking(false);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserLocation({ lat: latitude, lng: longitude });
+
+            const distance = calculateDistance(
+                latitude, 
+                longitude, 
+                parseFloat(itinerary.coordinates_lat), 
+                parseFloat(itinerary.coordinates_lng)
+            );
+
+            const radius = itinerary.geofence_radius || 100;
+
+            if (distance <= radius) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await markAttendance(user.id, 'PRESENT');
+                    alert(`Successfully checked in! You are ${Math.round(distance)}m away.`);
+                }
+            } else {
+                alert(`You are outside the geofence (${Math.round(distance)}m away. Required: ${radius}m).`);
+            }
+            setIsAutoChecking(false);
+        }, (error) => {
+            alert('Error getting location: ' + error.message);
+            setIsAutoChecking(false);
+        });
+    };
+
+    useEffect(() => {
+
     const fetchInitialData = async () => {
       const { data: tourData } = await supabase
         .from('tours')
@@ -198,8 +261,23 @@ function AttendanceContent() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            {['all', 'present', 'absent', 'pending'].map(f => (
+            <div className="flex gap-2">
+              <button
+                onClick={handleAutoCheckIn}
+                disabled={isAutoChecking || !selectedItineraryId}
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  isAutoChecking ? 'bg-slate-100 text-slate-400' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+                }`}
+              >
+                {isAutoChecking ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <MapPin className="h-4 w-4 mr-2" />
+                )}
+                Auto Check-In
+              </button>
+              {['all', 'present', 'absent', 'pending'].map(f => (
+
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}

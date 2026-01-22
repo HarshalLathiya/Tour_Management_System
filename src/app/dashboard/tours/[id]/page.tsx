@@ -6,11 +6,13 @@ import { useParams } from 'next/navigation';
 import { 
   Calendar, MapPin, Users, DollarSign, 
   Clock, CheckCircle, AlertCircle, Plus,
-  ChevronRight, ArrowLeft, Camera, FileText, Shield
+  ChevronRight, ArrowLeft, Camera, FileText, Shield,
+  Hotel
 } from 'lucide-react';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { PhotoGallery } from '@/components/photo-gallery';
+import { AccommodationManager } from '@/components/accommodation-manager';
 
 export default function TourDetailsPage() {
   const { id } = useParams();
@@ -67,19 +69,23 @@ export default function TourDetailsPage() {
 
         {/* Tabs */}
         <div className="border-b border-slate-200">
-          <nav className="-mb-px flex space-x-8">
-            {['itinerary', 'attendance', 'budget', 'safety', 'gallery', 'documents'].map((tab) => (
+          <nav className="-mb-px flex space-x-8 overflow-x-auto">
+            {['itinerary', 'accommodation', 'attendance', 'budget', 'safety', 'gallery', 'documents'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`
-                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
                   ${activeTab === tab 
                     ? 'border-blue-500 text-blue-600' 
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}
                 `}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'accommodation' ? (
+                  <span className="flex items-center"><Hotel className="h-4 w-4 mr-1.5" /> Accommodation</span>
+                ) : (
+                  tab.charAt(0).toUpperCase() + tab.slice(1)
+                )}
               </button>
             ))}
           </nav>
@@ -119,6 +125,10 @@ export default function TourDetailsPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'accommodation' && (
+          <AccommodationManager tourId={id as string} />
         )}
 
         {activeTab === 'attendance' && (

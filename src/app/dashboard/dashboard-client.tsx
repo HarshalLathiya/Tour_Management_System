@@ -347,15 +347,23 @@ export function DashboardClient({
                       title: "Send Announcement",
                       description: "Notify all participants",
                     },
-                    {
-                      href: "/dashboard/safety",
-                      icon: AlertTriangle,
-                      iconColor:
-                        "bg-gradient-to-br from-amber-500 to-orange-500",
-                      title: "Report Incident",
-                      description: "Log safety concerns or emergencies",
-                    },
-                  ].map((action, index) => (
+                      {
+                        href: "/dashboard/safety",
+                        icon: AlertTriangle,
+                        iconColor:
+                          "bg-gradient-to-br from-amber-500 to-orange-500",
+                        title: "Report Incident",
+                        description: "Log safety concerns or emergencies",
+                      },
+                      {
+                        href: "/dashboard/audit-logs",
+                        icon: History,
+                        iconColor: "bg-gradient-to-br from-slate-600 to-slate-800",
+                        title: "System Audit Logs",
+                        description: "Track all administrative changes",
+                      },
+                    ].map((action, index) => (
+
                     <motion.div
                       key={action.title}
                       whileHover={{ scale: 1.02 }}

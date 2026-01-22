@@ -14,13 +14,9 @@ export default function SafetyPage() {
   const [selectedTourId, setSelectedTourId] = useState<string>('');
   const [incidents, setIncidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isReporting, setIsReporting] = useState(false);
-  const [reportingSeverity, setReportingSeverity] = useState('LOW');
-  const [reportForm, setReportForm] = useState({
-    title: '',
-    description: '',
-    location: ''
-  });
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -40,9 +36,11 @@ export default function SafetyPage() {
   useEffect(() => {
     if (!selectedTourId) return;
 
-    const fetchIncidents = async () => {
+    const fetchSafetyData = async () => {
       setLoading(true);
-      const { data } = await supabase
+      
+      // Fetch Incidents
+      const { data: incidentData } = await supabase
         .from('incidents')
         .select(`
           *,
@@ -51,12 +49,37 @@ export default function SafetyPage() {
         .eq('tour_id', selectedTourId)
         .order('created_at', { ascending: false });
       
-      setIncidents(data || []);
+      setIncidents(incidentData || []);
+
+      // Fetch Participants with Health Info
+      const { data: partData } = await supabase
+        .from('tour_participants')
+        .select(`
+          user_id,
+          profiles:profiles (
+            full_name,
+            phone,
+            emergency_contact_name,
+            emergency_contact_phone,
+            health_notes,
+            dietary_requirements,
+            medical_info_url
+          )
+        `)
+        .eq('tour_id', selectedTourId);
+      
+      setParticipants(partData || []);
       setLoading(false);
     };
 
-    fetchIncidents();
+    fetchSafetyData();
   }, [selectedTourId]);
+
+  const filteredParticipants = participants.filter(p => 
+    p.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.profiles?.health_notes?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
 
   const triggerSOS = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -215,8 +238,62 @@ export default function SafetyPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-slate-200">
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm overflow-hidden">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                <Users className="h-5 w-5 mr-2 text-blue-600" />
+                Participant Health Registry
+              </h3>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input 
+                  type="text"
+                  placeholder="Search health notes..."
+                  className="w-full pl-10 pr-4 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {filteredParticipants.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">No health records found.</p>
+                ) : (
+                  filteredParticipants.map(p => (
+                    <div key={p.user_id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-slate-900 text-sm">{p.profiles?.full_name}</h4>
+                        <div className="flex gap-2">
+                          {p.profiles?.medical_info_url && (
+                            <a href={p.profiles.medical_info_url} target="_blank" className="text-blue-600 hover:underline text-[10px] font-bold">DOCS</a>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {p.profiles?.health_notes && (
+                        <div className="flex items-start mb-2">
+                          <AlertCircle className="h-3 w-3 text-red-500 mr-1 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-slate-600 italic leading-tight">{p.profiles.health_notes}</p>
+                        </div>
+                      )}
+
+                      {p.profiles?.dietary_requirements && (
+                        <div className="flex items-center mb-2">
+                          <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">Diet: {p.profiles.dietary_requirements}</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-slate-200">
+                        <p className="text-[10px] text-slate-400 font-medium">Emergency Contact:</p>
+                        <p className="text-xs font-bold text-slate-700">{p.profiles?.emergency_contact_name}: {p.profiles?.emergency_contact_phone}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-slate-200">
             <h3 className="text-lg font-bold flex items-center mb-6">
               <Phone className="mr-2 h-5 w-5 text-red-500" /> Emergency Contacts
             </h3>
