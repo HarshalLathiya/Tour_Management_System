@@ -22,7 +22,11 @@ export default function ForgotPasswordPage() {
     });
 
     if (error) {
-      setError(error.message);
+      if (error.message.includes("rate limit")) {
+        setError("Email rate limit exceeded. Please wait a few minutes before trying again or contact support.");
+      } else {
+        setError(error.message);
+      }
       setLoading(false);
     } else {
       setSuccess(true);
