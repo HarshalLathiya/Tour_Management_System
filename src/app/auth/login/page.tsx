@@ -144,42 +144,42 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {/* Password Input */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label
-                        htmlFor="password"
-                        className="block text-sm font-medium text-slate-700"
-                      >
-                        Password
-                      </label>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-slate-400" />
+                    {/* Password Input */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label
+                          htmlFor="password"
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Password
+                        </label>
+                        <Link
+                          href="/auth/forgot-password"
+                          className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                        >
+                          Forgot password?
+                        </Link>
                       </div>
-                      <input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="current-password"
-                        required
-                        className="block w-full pl-10 pr-12 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                      <Link
-                        href="/auth/forgot-password"
-                        className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
-                      >
-                        Forgot password?
-                      </Link>
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <input
+                          id="password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="current-password"
+                          required
+                          className="block w-full pl-10 pr-12 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
                         {showPassword ? (
                           <EyeOff className="h-5 w-5 text-slate-400 hover:text-slate-600" />
                         ) : (
