@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { Plus, MapPin, Calendar, Users, ChevronRight } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
@@ -10,21 +9,24 @@ export default function ToursPage() {
   const [tours, setTours] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchTours = async () => {
-      const { data, error } = await supabase
-        .from("tours")
-        .select("*")
-        .order("created_at", { ascending: false });
+    useEffect(() => {
+      const fetchTours = async () => {
+        try {
+          const response = await fetch("http://localhost:5000/api/tours");
+          if (response.ok) {
+            const data = await response.json();
+            setTours(data || []);
+          }
+        } catch (error) {
+          console.error("Error fetching tours:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-      if (!error) {
-        setTours(data || []);
-      }
-      setLoading(false);
-    };
+      fetchTours();
+    }, []);
 
-    fetchTours();
-  }, []);
 
   return (
     <div className="space-y-6">
