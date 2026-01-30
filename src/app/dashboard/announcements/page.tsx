@@ -19,24 +19,20 @@ export default function AnnouncementsPage() {
 
   useEffect(() => {
     const fetchInitial = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        setProfile(profileData);
-      }
+      // For now, mock a user profile since we are moving away from Supabase Auth in this session
+      setProfile({ id: 1, full_name: 'Admin User', role: 'ORG_ADMIN' });
 
-      const { data: tourData } = await supabase
-        .from('tours')
-        .select('id, name')
-        .order('created_at', { ascending: false });
-      
-      setTours(tourData || []);
-      if (tourData && tourData.length > 0) {
-        setSelectedTourId(tourData[0].id);
+      try {
+        const response = await fetch('http://localhost:5000/api/tours');
+        if (response.ok) {
+          const tourData = await response.json();
+          setTours(tourData || []);
+          if (tourData && tourData.length > 0) {
+            setSelectedTourId(tourData[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
       }
     };
     fetchInitial();
@@ -47,18 +43,17 @@ export default function AnnouncementsPage() {
 
     const fetchAnnouncements = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('announcements')
-        .select(`
-          *,
-          profiles:sender_id (full_name),
-          announcement_reads (user_id)
-        `)
-        .eq('tour_id', selectedTourId)
-        .order('created_at', { ascending: false });
-      
-      setAnnouncements(data || []);
-      setLoading(false);
+      try {
+        const response = await fetch(`http://localhost:5000/api/announcements?tour_id=${selectedTourId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAnnouncements(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching announcements:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchAnnouncements();
@@ -69,24 +64,27 @@ export default function AnnouncementsPage() {
     if (!newAnn.content) return;
     setPosting(true);
     
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const { data, error } = await supabase
-      .from('announcements')
-      .insert({
-        tour_id: selectedTourId,
-        sender_id: user?.id,
-        title: newAnn.title || 'Tour Update',
-        content: newAnn.content
-      })
-      .select()
-      .single();
+    try {
+      const response = await fetch('http://localhost:5000/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tour_id: selectedTourId,
+          title: newAnn.title || 'Tour Update',
+          content: newAnn.content
+        }),
+      });
 
-    if (!error) {
-      setAnnouncements([{ ...data, profiles: { full_name: profile?.full_name }, announcement_reads: [] }, ...announcements]);
-      setNewAnn({ title: '', content: '' });
+      if (response.ok) {
+        const data = await response.json();
+        setAnnouncements([{ ...data, profiles: { full_name: profile?.full_name }, announcement_reads: [] }, ...announcements]);
+        setNewAnn({ title: '', content: '' });
+      }
+    } catch (error) {
+      console.error('Error posting announcement:', error);
+    } finally {
+      setPosting(false);
     }
-    setPosting(false);
   };
 
   const markAsRead = async (annId: string) => {

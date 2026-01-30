@@ -47,75 +47,42 @@ export default function NewTourPage() {
     status: "draft",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
 
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const response = await fetch('http://localhost:5000/api/tours', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            destination: formData.destination,
+            description: formData.description,
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            price: parseFloat(formData.per_person_fee) || 0,
+            status: formData.status,
+          }),
+        });
 
-      if (!user) {
-        toast.error("Please sign in to create a tour");
-        return;
-      }
-
-      const { data: organizations } = await supabase
-        .from("organizations")
-        .select("id")
-        .eq("created_by", user.id)
-        .limit(1);
-
-      let organizationId = organizations?.[0]?.id;
-
-      if (!organizationId) {
-        const { data: newOrg, error: orgError } = await supabase
-          .from("organizations")
-          .insert({
-            name: "My Organization",
-            type: "organization",
-            created_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (orgError) {
-          toast.error("Failed to create organization");
+        if (!response.ok) {
+          const errorData = await response.json();
+          toast.error(errorData.error || "Failed to create tour");
           return;
         }
-        organizationId = newOrg.id;
+
+        toast.success("Tour created successfully!");
+        router.push("/dashboard/tours");
+        router.refresh();
+      } catch (error) {
+        console.error('Error creating tour:', error);
+        toast.error("An unexpected error occurred");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const { error } = await supabase.from("tours").insert({
-        organization_id: organizationId,
-        name: formData.name,
-        destination: formData.destination,
-        description: formData.description,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        per_person_fee: parseFloat(formData.per_person_fee) || 0,
-        buffer_amount: parseFloat(formData.buffer_amount) || 0,
-        max_participants: parseInt(formData.max_participants) || null,
-        status: formData.status,
-        created_by: user.id,
-      });
-
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      toast.success("Tour created successfully!");
-      router.push("/dashboard/tours");
-      router.refresh();
-    } catch {
-      toast.error("An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-50">

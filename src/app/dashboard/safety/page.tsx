@@ -20,14 +20,17 @@ export default function SafetyPage() {
 
   useEffect(() => {
     const fetchTours = async () => {
-      const { data } = await supabase
-        .from('tours')
-        .select('id, name')
-        .order('created_at', { ascending: false });
-      
-      setTours(data || []);
-      if (data && data.length > 0) {
-        setSelectedTourId(data[0].id);
+      try {
+        const response = await fetch('http://localhost:5000/api/tours');
+        if (response.ok) {
+          const data = await response.json();
+          setTours(data || []);
+          if (data && data.length > 0) {
+            setSelectedTourId(data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tours:', error);
       }
     };
     fetchTours();
@@ -38,105 +41,96 @@ export default function SafetyPage() {
 
     const fetchSafetyData = async () => {
       setLoading(true);
-      
-      // Fetch Incidents
-      const { data: incidentData } = await supabase
-        .from('incidents')
-        .select(`
-          *,
-          profiles:reported_by (full_name)
-        `)
-        .eq('tour_id', selectedTourId)
-        .order('created_at', { ascending: false });
-      
-      setIncidents(incidentData || []);
+      try {
+        // Fetch Incidents
+        const incidentResponse = await fetch(`http://localhost:5000/api/incidents?tour_id=${selectedTourId}`);
+        if (incidentResponse.ok) {
+          const incidentData = await incidentResponse.json();
+          setIncidents(incidentData || []);
+        }
 
-      // Fetch Participants with Health Info
-      const { data: partData } = await supabase
-        .from('tour_participants')
-        .select(`
-          user_id,
-          profiles:profiles (
-            full_name,
-            phone,
-            emergency_contact_name,
-            emergency_contact_phone,
-            health_notes,
-            dietary_requirements,
-            medical_info_url
-          )
-        `)
-        .eq('tour_id', selectedTourId);
-      
-      setParticipants(partData || []);
-      setLoading(false);
+        // Fetch Participants (Mocked or using participants endpoint)
+        const participantResponse = await fetch(`http://localhost:5000/api/tours/${selectedTourId}/participants`);
+        if (participantResponse.ok) {
+          const partData = await participantResponse.json();
+          setParticipants(partData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching safety data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchSafetyData();
   }, [selectedTourId]);
 
-  const filteredParticipants = participants.filter(p => 
-    p.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.profiles?.health_notes?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-
   const triggerSOS = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tour_id: selectedTourId,
+          reported_by: 1, // Mocked user id
+          title: 'URGENT SOS TRIGGERED',
+          description: 'Automatic SOS alert triggered by user.',
+          severity: 'CRITICAL',
+          status: 'OPEN'
+        }),
+      });
 
-    const { data, error } = await supabase
-      .from('incidents')
-      .insert({
-        tour_id: selectedTourId,
-        reported_by: user.id,
-        title: 'URGENT SOS TRIGGERED',
-        description: 'Automatic SOS alert triggered by user.',
-        severity: 'CRITICAL',
-        status: 'OPEN'
-      })
-      .select()
-      .single();
-
-    if (!error) {
-      setIncidents([data, ...incidents]);
-      alert('CRITICAL SOS ALERT SENT TO ALL COORDINATORS!');
+      if (response.ok) {
+        const data = await response.json();
+        setIncidents([data, ...incidents]);
+        alert('CRITICAL SOS ALERT SENT TO ALL COORDINATORS!');
+      }
+    } catch (error) {
+      console.error('Error triggering SOS:', error);
     }
   };
 
   const handleReportIncident = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const { data, error } = await supabase
-      .from('incidents')
-      .insert({
-        tour_id: selectedTourId,
-        reported_by: user?.id,
-        title: reportForm.title,
-        description: reportForm.description,
-        location: reportForm.location,
-        severity: reportingSeverity,
-        status: 'OPEN'
-      })
-      .select()
-      .single();
+    try {
+      const response = await fetch('http://localhost:5000/api/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tour_id: selectedTourId,
+          reported_by: 1, // Mocked user id
+          title: reportForm.title,
+          description: reportForm.description,
+          location: reportForm.location,
+          severity: reportingSeverity,
+          status: 'OPEN'
+        }),
+      });
 
-    if (!error) {
-      setIncidents([data, ...incidents]);
-      setIsReporting(false);
-      setReportForm({ title: '', description: '', location: '' });
+      if (response.ok) {
+        const data = await response.json();
+        setIncidents([data, ...incidents]);
+        setIsReporting(false);
+        setReportForm({ title: '', description: '', location: '' });
+      }
+    } catch (error) {
+      console.error('Error reporting incident:', error);
     }
   };
 
   const resolveIncident = async (id: string) => {
-    const { error } = await supabase
-      .from('incidents')
-      .update({ status: 'RESOLVED', updated_at: new Date().toISOString() })
-      .eq('id', id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/incidents/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'RESOLVED' }),
+      });
 
-    if (!error) {
-      setIncidents(incidents.map(inc => inc.id === id ? { ...inc, status: 'RESOLVED' } : inc));
+      if (response.ok) {
+        setIncidents(incidents.map(inc => inc.id === id ? { ...inc, status: 'RESOLVED' } : inc));
+      }
+    } catch (error) {
+      console.error('Error resolving incident:', error);
     }
   };
 

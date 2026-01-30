@@ -20,84 +20,26 @@ function AttendanceContent() {
   const [selectedItineraryId, setSelectedItineraryId] = useState<string>('');
   const [participants, setParticipants] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<Record<string, any>>({});
-    const [loading, setLoading] = useState(true);
-    const [marking, setMarking] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [isAutoChecking, setIsAutoChecking] = useState(false);
-    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isAutoChecking, setIsAutoChecking] = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371e3; // metres
-        const φ1 = lat1 * Math.PI/180;
-        const φ2 = lat2 * Math.PI/180;
-        const Δφ = (lat2-lat1) * Math.PI/180;
-        const Δλ = (lon2-lon1) * Math.PI/180;
-
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-        return R * c; // in metres
-    };
-
-    const handleAutoCheckIn = async () => {
-        setIsAutoChecking(true);
-        const itinerary = itineraries.find(i => i.id === selectedItineraryId);
-        
-        if (!itinerary || !itinerary.coordinates_lat || !itinerary.coordinates_lng) {
-            alert('This location does not have coordinates set.');
-            setIsAutoChecking(false);
-            return;
-        }
-
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser.');
-            setIsAutoChecking(false);
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(async (position) => {
-            const { latitude, longitude } = position.coords;
-            setUserLocation({ lat: latitude, lng: longitude });
-
-            const distance = calculateDistance(
-                latitude, 
-                longitude, 
-                parseFloat(itinerary.coordinates_lat), 
-                parseFloat(itinerary.coordinates_lng)
-            );
-
-            const radius = itinerary.geofence_radius || 100;
-
-            if (distance <= radius) {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await markAttendance(user.id, 'PRESENT');
-                    alert(`Successfully checked in! You are ${Math.round(distance)}m away.`);
-                }
-            } else {
-                alert(`You are outside the geofence (${Math.round(distance)}m away. Required: ${radius}m).`);
-            }
-            setIsAutoChecking(false);
-        }, (error) => {
-            alert('Error getting location: ' + error.message);
-            setIsAutoChecking(false);
-        });
-    };
-
-    useEffect(() => {
-
+  useEffect(() => {
     const fetchInitialData = async () => {
-      const { data: tourData } = await supabase
-        .from('tours')
-        .select('id, name')
-        .order('created_at', { ascending: false });
-      
-      setTours(tourData || []);
-      if (!selectedTourId && tourData && tourData.length > 0) {
-        setSelectedTourId(tourData[0].id);
+      try {
+        const response = await fetch('http://localhost:5000/api/tours');
+        if (response.ok) {
+          const tourData = await response.json();
+          setTours(tourData || []);
+          if (!selectedTourId && tourData && tourData.length > 0) {
+            setSelectedTourId(tourData[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
       }
     };
     fetchInitialData();
@@ -108,81 +50,59 @@ function AttendanceContent() {
 
     const fetchTourDetails = async () => {
       setLoading(true);
-      // Fetch itineraries
-      const { data: itineraryData } = await supabase
-        .from('itineraries')
-        .select('*')
-        .eq('tour_id', selectedTourId)
-        .order('day_number', { ascending: true })
-        .order('sequence_order', { ascending: true });
-      
-      setItineraries(itineraryData || []);
-      if (itineraryData && itineraryData.length > 0) {
-        setSelectedItineraryId(itineraryData[0].id);
-      } else {
-        setSelectedItineraryId('');
+      try {
+        // Fetch participants (Assuming there's an endpoint for this)
+        const participantResponse = await fetch(`http://localhost:5000/api/tours/${selectedTourId}/participants`);
+        if (participantResponse.ok) {
+          const participantData = await participantResponse.json();
+          setParticipants(participantData || []);
+        }
+
+        // Fetch attendance for the current selection
+        const attendanceResponse = await fetch(`http://localhost:5000/api/attendance?tour_id=${selectedTourId}`);
+        if (attendanceResponse.ok) {
+          const attendanceData = await attendanceResponse.json();
+          const attendanceMap: Record<string, any> = {};
+          attendanceData?.forEach((record: any) => {
+            attendanceMap[record.user_id] = record;
+          });
+          setAttendance(attendanceMap);
+        }
+      } catch (error) {
+        console.error('Error fetching tour details:', error);
+      } finally {
+        setLoading(false);
       }
-
-      // Fetch participants
-      const { data: participantData } = await supabase
-        .from('tour_participants')
-        .select(`
-          user_id,
-          profiles:user_id (id, full_name, email)
-        `)
-        .eq('tour_id', selectedTourId)
-        .eq('role', 'PARTICIPANT');
-
-      setParticipants(participantData?.map(p => p.profiles) || []);
-      setLoading(false);
     };
 
     fetchTourDetails();
   }, [selectedTourId]);
 
-  useEffect(() => {
-    if (!selectedItineraryId) {
-      setAttendance({});
-      return;
-    }
-
-    const fetchAttendance = async () => {
-      const { data } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('itinerary_id', selectedItineraryId);
-      
-      const attendanceMap: Record<string, any> = {};
-      data?.forEach(record => {
-        attendanceMap[record.user_id] = record;
-      });
-      setAttendance(attendanceMap);
-    };
-
-    fetchAttendance();
-  }, [selectedItineraryId]);
-
   const markAttendance = async (userId: string, status: string) => {
     setMarking(userId);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const { error } = await supabase
-      .from('attendance')
-      .upsert({
-        itinerary_id: selectedItineraryId,
-        user_id: userId,
-        status: status,
-        marked_by: user?.id,
-        marked_at: new Date().toISOString()
-      }, { onConflict: 'itinerary_id,user_id' });
+    try {
+      const response = await fetch('http://localhost:5000/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          tour_id: selectedTourId,
+          date: new Date().toISOString().split('T')[0],
+          status: status.toLowerCase()
+        }),
+      });
 
-    if (!error) {
-      setAttendance(prev => ({
-        ...prev,
-        [userId]: { status, marked_at: new Date().toISOString() }
-      }));
+      if (response.ok) {
+        setAttendance(prev => ({
+          ...prev,
+          [userId]: { status, marked_at: new Date().toISOString() }
+        }));
+      }
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+    } finally {
+      setMarking(null);
     }
-    setMarking(null);
   };
 
   const filteredParticipants = participants.filter(p => {

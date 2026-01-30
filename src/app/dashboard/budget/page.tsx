@@ -24,14 +24,17 @@ export default function BudgetPage() {
 
   useEffect(() => {
     const fetchTours = async () => {
-      const { data } = await supabase
-        .from('tours')
-        .select('id, name, per_person_fee, max_participants, buffer_amount')
-        .order('created_at', { ascending: false });
-      
-      setTours(data || []);
-      if (data && data.length > 0) {
-        setSelectedTourId(data[0].id);
+      try {
+        const response = await fetch('http://localhost:5000/api/tours');
+        if (response.ok) {
+          const data = await response.json();
+          setTours(data || []);
+          if (data && data.length > 0) {
+            setSelectedTourId(data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tours:', error);
       }
     };
     fetchTours();
@@ -47,15 +50,18 @@ export default function BudgetPage() {
       const tour = tours.find(t => t.id === selectedTourId);
       setSelectedTour(tour);
 
-      // Fetch expenses
-      const { data: expenseData } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('tour_id', selectedTourId)
-        .order('created_at', { ascending: false });
-      
-      setExpenses(expenseData || []);
-      setLoading(false);
+      try {
+        // Fetch expenses
+        const response = await fetch(`http://localhost:5000/api/expenses?tour_id=${selectedTourId}`);
+        if (response.ok) {
+          const expenseData = await response.json();
+          setExpenses(expenseData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchTourBudgetData();
@@ -63,24 +69,27 @@ export default function BudgetPage() {
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
-      .from('expenses')
-      .insert({
-        tour_id: selectedTourId,
-        amount: parseFloat(newExpense.amount),
-        category: newExpense.category,
-        description: newExpense.description,
-        logged_by: user?.id
-      })
-      .select()
-      .single();
+    try {
+      const response = await fetch('http://localhost:5000/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tour_id: selectedTourId,
+          amount: parseFloat(newExpense.amount),
+          category: newExpense.category,
+          description: newExpense.description
+        }),
+      });
 
-    if (!error) {
-      setExpenses([data, ...expenses]);
-      setIsAddingExpense(false);
-      setNewExpense({ amount: '', category: 'MISC', description: '' });
+      if (response.ok) {
+        const data = await response.json();
+        setExpenses([data, ...expenses]);
+        setIsAddingExpense(false);
+        setNewExpense({ amount: '', category: 'MISC', description: '' });
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error);
     }
   };
 
