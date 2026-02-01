@@ -4,15 +4,50 @@ import { DashboardClient } from "./dashboard-client";
 export default async function DashboardPage() {
   const supabase = await createClient();
 
+  // Get user role
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let userRole = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    userRole = profile?.role || null;
+  }
+
   // Fetch Organizations
   const { data: organizations } = await supabase
     .from("organizations")
     .select("*");
 
-  // Fetch Tours with Organization info
-  const { data: tours } = await supabase
-    .from("tours")
-    .select("*, organizations(name)");
+  // Fetch Tours based on user role
+  let toursQuery = supabase.from("tours").select("*, organizations(name)");
+
+  if (userRole === "tour_leader" && user) {
+    // For tour leaders, only show tours they are leading
+    toursQuery = supabase
+      .from("tour_leaders")
+      .select(
+        `
+        tours:tour_id (
+          *,
+          organizations(name)
+        )
+      `,
+      )
+      .eq("user_id", user.id);
+  }
+
+  const { data: toursData } = await toursQuery;
+
+  // Extract tours from nested structure for leaders
+  let tours = toursData;
+  if (userRole === "tour_leader") {
+    tours = toursData?.map((item) => item.tours).filter(Boolean) || [];
+  }
 
   return (
     <div className="space-y-8">
@@ -23,9 +58,10 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <DashboardClient 
-        organizations={organizations || []} 
-        tours={tours || []} 
+      <DashboardClient
+        organizations={organizations || []}
+        tours={tours || []}
+        userRole={userRole}
       />
     </div>
   );

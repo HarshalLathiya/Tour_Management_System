@@ -24,7 +24,7 @@ const sidebarLinks = [
     roles: ["super_admin", "org_admin", "tour_leader", "participant"],
   },
   {
-    name: "Tours",
+    name: "My Tours",
     href: "/dashboard/tours",
     icon: Map,
     roles: ["super_admin", "org_admin", "tour_leader", "participant"],
@@ -53,6 +53,12 @@ const sidebarLinks = [
     icon: Bell,
     roles: ["super_admin", "org_admin", "tour_leader", "participant"],
   },
+  {
+    name: "Audit Logs",
+    href: "/dashboard/audit-logs",
+    icon: Settings,
+    roles: ["super_admin", "org_admin"],
+  },
 ];
 
 export default function Sidebar({ userRole }: { userRole: string }) {
@@ -65,7 +71,7 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   };
 
   const filteredLinks = sidebarLinks.filter((link) =>
-    link.roles.includes(userRole)
+    link.roles.includes(userRole),
   );
 
   return (
