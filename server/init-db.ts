@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS tours (
   price NUMERIC(10, 2),
   status VARCHAR(20) NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'ongoing', 'completed', 'cancelled')),
   content TEXT,
+  created_by INT REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
