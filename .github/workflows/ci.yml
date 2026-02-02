@@ -58,6 +58,17 @@ jobs:
       - name: Check code formatting
         run: npm run format:check
 
+      - name: Initialize database schema
+        run: |
+          cd server
+          npx tsx init-db.ts
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+
       - name: Run tests with coverage
         run: npm run test:coverage
         env:
