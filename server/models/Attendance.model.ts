@@ -5,12 +5,7 @@ export class AttendanceModel extends BaseModel {
     super("attendance");
   }
 
-  async getAll(filters?: {
-    tour_id?: number;
-    user_id?: number;
-    date?: string;
-    status?: string;
-  }) {
+  async getAll(filters?: { tour_id?: number; user_id?: number; date?: string; status?: string }) {
     return this.findAll(filters, "date DESC, created_at DESC");
   }
 

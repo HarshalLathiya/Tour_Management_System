@@ -9,11 +9,7 @@ export class AnnouncementModel extends BaseModel {
     return this.findAll({ tour_id: tourId }, "created_at DESC");
   }
 
-  async createAnnouncement(data: {
-    title: string;
-    content: string;
-    tour_id?: number;
-  }) {
+  async createAnnouncement(data: { title: string; content: string; tour_id?: number }) {
     return this.create(data);
   }
 }

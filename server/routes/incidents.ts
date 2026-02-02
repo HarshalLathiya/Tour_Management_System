@@ -7,16 +7,32 @@ import { incidentController } from "../controllers/incident.controller";
 const router = express.Router();
 
 // GET /api/incidents - Get all incidents
-router.get("/", authenticateToken, asyncHandler((req, res) => incidentController.getAll(req, res)));
+router.get(
+  "/",
+  authenticateToken,
+  asyncHandler((req, res) => incidentController.getAll(req, res))
+);
 
 // GET /api/incidents/:id - Get single incident
-router.get("/:id", authenticateToken, asyncHandler((req, res) => incidentController.getById(req, res)));
+router.get(
+  "/:id",
+  authenticateToken,
+  asyncHandler((req, res) => incidentController.getById(req, res))
+);
 
 // POST /api/incidents/sos - Trigger SOS alert (one-click emergency)
-router.post("/sos", authenticateToken, asyncHandler((req, res) => incidentController.triggerSOS(req, res)));
+router.post(
+  "/sos",
+  authenticateToken,
+  asyncHandler((req, res) => incidentController.triggerSOS(req, res))
+);
 
 // POST /api/incidents/health - Report health issue
-router.post("/health", authenticateToken, asyncHandler((req, res) => incidentController.reportHealth(req, res)));
+router.post(
+  "/health",
+  authenticateToken,
+  asyncHandler((req, res) => incidentController.reportHealth(req, res))
+);
 
 // POST /api/incidents - Create general incident
 router.post(

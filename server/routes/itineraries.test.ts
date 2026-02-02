@@ -53,9 +53,7 @@ describe("Itinerary API Routes", () => {
 
       mockQuery.mockResolvedValueOnce({ rows: mockItineraries });
 
-      const response = await request(app)
-        .get("/api/itineraries")
-        .set("Authorization", authToken);
+      const response = await request(app).get("/api/itineraries").set("Authorization", authToken);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -82,10 +80,7 @@ describe("Itinerary API Routes", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data[0].tour_id).toBe(5);
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining("WHERE tour_id = $1"),
-        ["5"]
-      );
+      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining("WHERE tour_id = $1"), ["5"]);
     });
 
     it("should return 401 without authentication", async () => {
@@ -107,9 +102,7 @@ describe("Itinerary API Routes", () => {
 
       mockQuery.mockResolvedValueOnce({ rows: [mockItinerary] });
 
-      const response = await request(app)
-        .get("/api/itineraries/1")
-        .set("Authorization", authToken);
+      const response = await request(app).get("/api/itineraries/1").set("Authorization", authToken);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);

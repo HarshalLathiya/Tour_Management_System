@@ -5,6 +5,7 @@
 **GTMS** is a centralized digital platform to plan, manage, monitor, and secure group tours.
 
 The system handles:
+
 - Tour planning and route management
 - Real-time attendance tracking
 - Budget control and expense management
@@ -19,15 +20,15 @@ The system handles:
 
 ## 🛠️ Technology Stack (Strict Requirements)
 
-| Component | Technology | Notes |
-|-----------|------------|-------|
-| **Frontend** | React.js | Using Next.js 14 (React-based framework) |
-| **Backend** | Node.js + Express.js | TypeScript implementation |
-| **Architecture** | MVC (Model-View-Controller) | Strict separation required |
-| **Database** | ~~MySQL~~ PostgreSQL | **Modified from original spec** |
-| **Authentication** | JWT-based | Access + refresh tokens |
-| **API Style** | RESTful APIs | Standard REST conventions |
-| **Security** | RBAC (Role-Based Access Control) | 3 roles: admin, guide, tourist |
+| Component          | Technology                       | Notes                                    |
+| ------------------ | -------------------------------- | ---------------------------------------- |
+| **Frontend**       | React.js                         | Using Next.js 14 (React-based framework) |
+| **Backend**        | Node.js + Express.js             | TypeScript implementation                |
+| **Architecture**   | MVC (Model-View-Controller)      | Strict separation required               |
+| **Database**       | ~~MySQL~~ PostgreSQL             | **Modified from original spec**          |
+| **Authentication** | JWT-based                        | Access + refresh tokens                  |
+| **API Style**      | RESTful APIs                     | Standard REST conventions                |
+| **Security**       | RBAC (Role-Based Access Control) | 3 roles: admin, guide, tourist           |
 
 ---
 
@@ -38,6 +39,7 @@ The system handles:
 **Role Code**: `admin`
 
 **Responsibilities:**
+
 - Create and manage tours (states, cities, dates, duration)
 - Define itinerary, places, routes, and checkpoints
 - Release total budget and fee per participant
@@ -49,6 +51,7 @@ The system handles:
 - Access analytics and historical records
 
 **Permissions:**
+
 - Full read/write access across the system
 - Administrative and monitoring authority
 - Can override attendance (with audit logging)
@@ -60,6 +63,7 @@ The system handles:
 **Role Code**: `guide`
 
 **Responsibilities:**
+
 - View assigned tour details and routes
 - Take or verify attendance at each place/checkpoint
 - Upload daily tour reports (text, images, documents)
@@ -67,6 +71,7 @@ The system handles:
 - Report incidents to organization
 
 **Permissions:**
+
 - Operational control only
 - **Cannot modify budget or tour structure**
 - Can only access assigned tours
@@ -79,12 +84,14 @@ The system handles:
 **Role Code**: `tourist`
 
 **Responsibilities:**
+
 - View tour itinerary, budget, and rules
 - **Submit self-attendance** (time-stamped, optional location)
 - **Trigger SOS / health emergency alerts**
 - View announcements and leader updates
 
 **Permissions:**
+
 - **Read-only access** to tour data
 - Emergency & attendance actions enabled
 - Cannot modify any tour information
@@ -104,6 +111,7 @@ The system handles:
 - [x] Password hashing (bcryptjs)
 
 **Pending**:
+
 - [ ] Password reset flow
 - [ ] Email verification (optional)
 
@@ -114,6 +122,7 @@ The system handles:
 **Status**: Fully Implemented
 
 **Required Features:**
+
 - [x] State → City → Place hierarchy
 - [x] Route planning with checkpoints
 - [x] Date-wise and time-wise schedules
@@ -122,6 +131,7 @@ The system handles:
 - [x] **Leader assignment to tours** ✅ (Phase 1 Complete)
 
 **Database Tables:**
+
 - `tours` - Main tour information
 - `states` - State/province data
 - `cities` - Cities within states
@@ -137,6 +147,7 @@ The system handles:
 **Status**: Fully Implemented
 
 **Required Features:**
+
 - [x] Place-wise attendance
 - [x] Leader-verified attendance
 - [x] Timestamps and location tracking (lat/lng)
@@ -146,11 +157,13 @@ The system handles:
 - [x] **Immutable attendance logs** ✅ (Phase 2 Complete - PostgreSQL triggers)
 
 **Immutability Requirements:**
+
 - Attendance cannot be edited after submission (PostgreSQL triggers)
 - All changes logged in audit trail
 - Admin override requires justification
 
 **Database Tables:**
+
 - `attendance` - Check-in records
 - `attendance_audit` - Change history (to be created)
 
@@ -161,6 +174,7 @@ The system handles:
 **Status**: Partially Implemented
 
 **Required Features:**
+
 - [x] Organization-defined total budget
 - [x] Per-participant fee field
 - [x] Spent amount tracking
@@ -170,6 +184,7 @@ The system handles:
 - [ ] **Read-only enforcement for leaders/participants** ⚠️
 
 **Database Tables:**
+
 - `budgets` - Tour budgets
 - `expenses` - Expense tracking
 
@@ -180,6 +195,7 @@ The system handles:
 **Status**: Fully Implemented
 
 **Required Features:**
+
 - [x] Incident reporting (basic)
 - [x] Severity levels (LOW, MEDIUM, HIGH, CRITICAL)
 - [x] Status tracking (OPEN, RESOLVED)
@@ -192,11 +208,13 @@ The system handles:
 - [x] **Full audit log of emergencies** ✅ (responded_by, response_time, resolution_notes)
 
 **Database Tables:**
+
 - `incidents` - Incident records
 - `incident_timeline` - Audit trail (to be created)
 - `emergency_contacts` - Emergency contact info (to be created)
 
 **Critical UI Components:**
+
 - Participant: One-click SOS button (prominent, always accessible)
 - Leader: Real-time alert dashboard
 - Organization: Incident monitoring panel
@@ -208,12 +226,14 @@ The system handles:
 **Status**: Basic Implementation
 
 **Required Features:**
+
 - [x] Announcements system
 - [x] File upload support (text, images, documents)
 - [ ] **Daily reports by leaders** ⚠️ (Phase 3 Priority)
 - [ ] **Archived and searchable reports** ⚠️ (Phase 3 Priority)
 
 **Database Tables:**
+
 - `announcements` - Reports/announcements
 - `report_files` - Uploaded documents
 
@@ -224,6 +244,7 @@ The system handles:
 ### Current State: ✅ FULLY MVC COMPLIANT
 
 **Implemented Structure (Phase 1 Complete):**
+
 ```
 server/
   models/            ← ✅ COMPLETE
@@ -276,6 +297,7 @@ server/
 ```
 
 **MVC Separation Requirements:**
+
 1. **Models**: Database operations only (CRUD, queries)
 2. **Controllers**: Business logic, validation, orchestration
 3. **Routes**: Endpoint definitions, route to controller methods
@@ -346,6 +368,7 @@ server/
 #### 1. Role-Based Dashboards ⚠️
 
 **Organization Dashboard** (`/dashboard` - role: admin):
+
 - [x] Tour management page
 - [x] Basic statistics
 - [x] **Leader assignment UI** ✅ (Phase 1 - LeaderAssignment component)
@@ -355,6 +378,7 @@ server/
 - [ ] **Analytics/historical records** ⚠️ (Phase 3)
 
 **Leader Dashboard** (`/dashboard` - role: guide):
+
 - [x] **"My Assigned Tours" page** ✅ (Phase 1 - API endpoint implemented)
 - [x] Tour details viewer
 - [x] **Attendance verification panel** ✅ (Existing attendance page)
@@ -362,6 +386,7 @@ server/
 - [x] **SOS alert dashboard** ✅ (Phase 2 - Real-time SSE notifications)
 
 **Participant Dashboard** (`/dashboard` - role: tourist):
+
 - [x] Tour itinerary viewer
 - [x] Budget viewer (read-only)
 - [x] **Self-attendance check-in page** ✅ (Phase 2 - /dashboard/attendance/checkin)
@@ -394,6 +419,7 @@ server/
 ### 1. Security ✅
 
 **Current Implementation:**
+
 - [x] JWT authentication
 - [x] Role-based authorization
 - [x] Password hashing (bcryptjs, 10 rounds)
@@ -401,6 +427,7 @@ server/
 - [x] Input validation (Zod schemas)
 
 **Phase 4 Requirements:**
+
 - [ ] SQL injection prevention audit
 - [ ] XSS protection verification
 - [ ] CSRF protection
@@ -410,11 +437,13 @@ server/
 ### 2. Scalability ⚠️
 
 **Requirements:**
+
 - Support multiple organizations & tours simultaneously
 - Handle hundreds of participants per tour
 - Efficient database queries with proper indexing
 
 **Phase 4 Tasks:**
+
 - [ ] Connection pool optimization
 - [ ] Query performance testing
 - [ ] Load testing
@@ -422,11 +451,13 @@ server/
 ### 3. Maintainability ⚠️
 
 **Requirements:**
+
 - Clean, well-documented code
 - Consistent coding standards
 - Proper folder structure (MVC)
 
 **Phase 1 Tasks:**
+
 - [ ] Refactor to strict MVC
 - [ ] Add JSDoc comments
 - [ ] Code quality review
@@ -434,11 +465,13 @@ server/
 ### 4. Production-Ready ⚠️
 
 **Requirements:**
+
 - Deployable to production environment
 - Proper error handling
 - Logging and monitoring
 
 **Phase 4 Tasks:**
+
 - [ ] Production environment setup
 - [ ] Deployment guide
 - [ ] Error tracking (optional: Sentry)
@@ -486,6 +519,7 @@ server/
 **Goal**: Achieve MVC compliance and add leader assignment
 
 **Completed Implementation**:
+
 - ✅ BaseModel with reusable CRUD operations
 - ✅ 9 model files (User, Tour, Attendance, Budget, Incident, Location, Itinerary, Announcement)
 - ✅ 7 controller files (auth, tour, attendance, budget, expense, incident, announcement)
@@ -496,6 +530,7 @@ server/
 - ✅ Centralized API service (src/lib/api.ts)
 
 **Completion Criteria**: ✅ ALL MET
+
 - ✅ Strict MVC separation achieved
 - ✅ Leaders can be assigned to tours via UI
 - ✅ Database schema updated
@@ -507,6 +542,7 @@ server/
 **Goal**: Complete emergency system and participant self-attendance
 
 **Completed Implementation**:
+
 - ✅ SOSButton component with geolocation capture
 - ✅ Health issue categorization (INJURY, ILLNESS, LOST, EMERGENCY, OTHER)
 - ✅ Real-time SSE notifications (notificationService + useNotifications hook)
@@ -520,6 +556,7 @@ server/
 - ✅ Incident controller with SOS methods (triggerSOS, reportHealth, respond, resolve)
 
 **Completion Criteria**: ✅ ALL MET
+
 - ✅ SOS alerts work end-to-end with real-time notifications
 - ✅ Participants can self-check-in with location verification
 - ✅ Attendance cannot be edited after 24 hours
@@ -531,6 +568,7 @@ server/
 **Goal**: Complete role-based dashboards and reporting
 
 **Tasks**: 28 tasks
+
 - Leader daily report upload
 - Organization report viewer
 - Role-specific dashboard features
@@ -538,6 +576,7 @@ server/
 - Searchable report archive
 
 **Completion Criteria**:
+
 - Each role has complete dashboard
 - Leaders can upload daily reports
 - Reports are searchable
@@ -549,6 +588,7 @@ server/
 **Goal**: Security, documentation, deployment
 
 **Tasks**: 22 tasks
+
 - Security hardening
 - API documentation (Swagger)
 - Deployment setup
@@ -556,6 +596,7 @@ server/
 - Code quality review
 
 **Completion Criteria**:
+
 - System is production-ready
 - All documentation complete
 - Deployment guide available
@@ -566,27 +607,29 @@ server/
 
 ### Overall Completion: ~85%
 
-| Module | Implementation | Testing | Documentation | Total |
-|--------|---------------|---------|---------------|-------|
-| **Authentication** | 100% | 80% | 70% | 83% |
-| **Tour Management** | 100% | 60% | 60% | 73% |
-| **Attendance** | 100% | 50% | 60% | 70% |
-| **Budget** | 80% | 40% | 40% | 53% |
-| **SOS/Emergency** | 100% | 40% | 60% | 67% |
-| **Reporting** | 60% | 30% | 30% | 40% |
-| **MVC Architecture** | 100% | 60% | 80% | 80% |
-| **Real-time Notifications** | 100% | 40% | 60% | 67% |
-| **OVERALL** | **93%** | **50%** | **58%** | **67%** |
+| Module                      | Implementation | Testing | Documentation | Total   |
+| --------------------------- | -------------- | ------- | ------------- | ------- |
+| **Authentication**          | 100%           | 80%     | 70%           | 83%     |
+| **Tour Management**         | 100%           | 60%     | 60%           | 73%     |
+| **Attendance**              | 100%           | 50%     | 60%           | 70%     |
+| **Budget**                  | 80%            | 40%     | 40%           | 53%     |
+| **SOS/Emergency**           | 100%           | 40%     | 60%           | 67%     |
+| **Reporting**               | 60%            | 30%     | 30%           | 40%     |
+| **MVC Architecture**        | 100%           | 60%     | 80%           | 80%     |
+| **Real-time Notifications** | 100%           | 40%     | 60%           | 67%     |
+| **OVERALL**                 | **93%**        | **50%** | **58%**       | **67%** |
 
 ### Completed Phases:
 
 ✅ **Phase 1: MVC Refactoring & Leader Assignment** (100%)
+
 - Full MVC separation (models, controllers, routes)
 - BaseModel with reusable CRUD operations
 - Leader assignment feature with UI
 - Database migration system established
 
 ✅ **Phase 2: SOS/Emergency & Attendance** (100%)
+
 - One-click SOS button with geolocation
 - Health issue categorization (INJURY, ILLNESS, LOST, EMERGENCY, OTHER)
 - Incident lifecycle (OPEN → IN_PROGRESS → RESOLVED)
@@ -597,6 +640,7 @@ server/
 ### In Progress:
 
 ⚠️ **Phase 3: Reporting & Dashboards** (40%)
+
 - Leader daily report upload (pending)
 - Enhanced role-based dashboards (partial)
 - Data visualization (pending)
@@ -608,6 +652,7 @@ server/
 These are valuable features but **NOT required** by the specification:
 
 ### Performance Enhancements:
+
 - Redis caching
 - CDN integration
 - Database read replicas
@@ -615,6 +660,7 @@ These are valuable features but **NOT required** by the specification:
 - Service worker (offline mode)
 
 ### DevOps Features:
+
 - Docker containerization
 - CI/CD pipeline automation (basic CI exists)
 - Automated backups
@@ -622,6 +668,7 @@ These are valuable features but **NOT required** by the specification:
 - Auto-scaling
 
 ### Advanced Analytics:
+
 - Attendance trend charts
 - Budget utilization graphs
 - Tour performance metrics
@@ -629,18 +676,21 @@ These are valuable features but **NOT required** by the specification:
 - Exportable reports (PDF/Excel)
 
 ### Real-Time Features:
+
 - WebSocket/Socket.IO implementation
 - Real-time location sharing
 - Live attendance updates
 - Push notifications
 
 ### Advanced UI:
+
 - QR code attendance scanner
 - Mobile app (React Native)
 - PWA features
 - Multi-language support
 
 ### Integrations:
+
 - Email notifications (SendGrid/AWS SES)
 - SMS notifications (Twilio)
 - Weather API
@@ -648,6 +698,7 @@ These are valuable features but **NOT required** by the specification:
 - Calendar export (iCal)
 
 ### Other:
+
 - Multi-currency support
 - Tour templates
 - Gamification
@@ -660,10 +711,10 @@ These are valuable features but **NOT required** by the specification:
 
 ## 🔄 Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-02-01 | Initial requirements document |
-| 1.1 | 2025-02-01 | Modified: MySQL → PostgreSQL |
+| Version | Date       | Changes                       |
+| ------- | ---------- | ----------------------------- |
+| 1.0     | 2025-02-01 | Initial requirements document |
+| 1.1     | 2025-02-01 | Modified: MySQL → PostgreSQL  |
 
 ---
 

@@ -83,17 +83,13 @@ export class AuthController {
     }
 
     // Generate tokens
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "24h" }
-    );
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
 
-    const refreshToken = jwt.sign(
-      { id: user.id, email: user.email },
-      JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
+    const refreshToken = jwt.sign({ id: user.id, email: user.email }, JWT_REFRESH_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({
       message: "Login successful",
@@ -129,11 +125,9 @@ export class AuthController {
     }
 
     // Generate new access token
-    const newToken = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "24h" }
-    );
+    const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
 
     res.json({
       token: newToken,

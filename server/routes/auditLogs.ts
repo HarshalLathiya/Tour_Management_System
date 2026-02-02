@@ -10,7 +10,8 @@ const router = express.Router();
 // GET /api/audit-logs - Get all audit logs (with powerful filtering)
 router.get("/", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { user_id, action, entity_type, entity_id, start_date, end_date, limit, offset } = req.query;
+    const { user_id, action, entity_type, entity_id, start_date, end_date, limit, offset } =
+      req.query;
 
     let query = "SELECT * FROM audit_logs WHERE 1=1";
     const params: unknown[] = [];
@@ -146,44 +147,58 @@ router.get("/:id", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // POST /api/audit-logs - Create audit log entry (typically system-generated)
-router.post("/", authenticateToken, validate(auditLogSchemas.create), async (req: Request, res: Response) => {
-  try {
-    const authReq = req as AuthenticatedRequest;
-    const currentUserId = authReq.user?.id;
+router.post(
+  "/",
+  authenticateToken,
+  validate(auditLogSchemas.create),
+  async (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const currentUserId = authReq.user?.id;
 
-    const { user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent } = req.body;
-
-    // Use authenticated user if not provided
-    const effectiveUserId = user_id || currentUserId;
-
-    const result = await pool.query(
-      `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
-      [
-        effectiveUserId || null,
+      const {
+        user_id,
         action,
         entity_type,
         entity_id,
-        old_values ? JSON.stringify(old_values) : null,
-        new_values ? JSON.stringify(new_values) : null,
-        ip_address || req.ip || null,
-        user_agent || req.get("user-agent") || null,
-      ]
-    );
+        old_values,
+        new_values,
+        ip_address,
+        user_agent,
+      } = req.body;
 
-    res.status(201).json({
-      success: true,
-      data: result.rows[0],
-    });
-  } catch (error) {
-    console.error("Error creating audit log:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to create audit log",
-    });
+      // Use authenticated user if not provided
+      const effectiveUserId = user_id || currentUserId;
+
+      const result = await pool.query(
+        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+        [
+          effectiveUserId || null,
+          action,
+          entity_type,
+          entity_id,
+          old_values ? JSON.stringify(old_values) : null,
+          new_values ? JSON.stringify(new_values) : null,
+          ip_address || req.ip || null,
+          user_agent || req.get("user-agent") || null,
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        data: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Error creating audit log:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to create audit log",
+      });
+    }
   }
-});
+);
 
 // GET /api/audit-logs/entity/:type/:id - Get audit trail for specific entity
 router.get("/entity/:type/:id", authenticateToken, async (req: Request, res: Response) => {

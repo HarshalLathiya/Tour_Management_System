@@ -7,10 +7,18 @@ import { attendanceController } from "../controllers/attendance.controller";
 const router = express.Router();
 
 // GET /api/attendance - Get all attendance records
-router.get("/", authenticateToken, asyncHandler((req, res) => attendanceController.getAll(req, res)));
+router.get(
+  "/",
+  authenticateToken,
+  asyncHandler((req, res) => attendanceController.getAll(req, res))
+);
 
 // GET /api/attendance/:id - Get single attendance record
-router.get("/:id", authenticateToken, asyncHandler((req, res) => attendanceController.getById(req, res)));
+router.get(
+  "/:id",
+  authenticateToken,
+  asyncHandler((req, res) => attendanceController.getById(req, res))
+);
 
 // POST /api/attendance/checkin - Self check-in with geofencing
 router.post(
@@ -44,6 +52,10 @@ router.put(
 );
 
 // DELETE /api/attendance/:id - Delete attendance
-router.delete("/:id", authenticateToken, asyncHandler((req, res) => attendanceController.delete(req, res)));
+router.delete(
+  "/:id",
+  authenticateToken,
+  asyncHandler((req, res) => attendanceController.delete(req, res))
+);
 
 export default router;
