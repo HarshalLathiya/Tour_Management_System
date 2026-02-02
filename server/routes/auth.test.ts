@@ -158,7 +158,7 @@ describe("Auth API Routes", () => {
       const mockUser = {
         id: 10,
         email: "user@example.com",
-        password: "$2a$10$hashedpassword",
+        password_hash: "$2a$10$hashedpassword",
         name: "Test User",
         role: "admin",
       };
@@ -184,7 +184,7 @@ describe("Auth API Routes", () => {
         role: "admin",
       });
 
-      expect(bcrypt.compare).toHaveBeenCalledWith("correctpassword", mockUser.password);
+      expect(bcrypt.compare).toHaveBeenCalledWith("correctpassword", mockUser.password_hash);
       expect(jwt.sign).toHaveBeenCalledTimes(2); // access + refresh tokens
     });
 
@@ -206,7 +206,7 @@ describe("Auth API Routes", () => {
       const mockUser = {
         id: 15,
         email: "user@example.com",
-        password: "$2a$10$hashedpassword",
+        password_hash: "$2a$10$hashedpassword",
         name: "Test User",
         role: "guide",
       };
