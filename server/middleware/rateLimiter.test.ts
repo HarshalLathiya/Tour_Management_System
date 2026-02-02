@@ -13,12 +13,12 @@ describe("Rate Limiter Middleware", () => {
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
+    Object.defineProperty(process.env, "NODE_ENV", { value: originalEnv, writable: true });
   });
 
   describe("Test Environment", () => {
     it("should skip rate limiting in test environment", async () => {
-      process.env.NODE_ENV = "test";
+      Object.defineProperty(process.env, "NODE_ENV", { value: "test", writable: true });
 
       app.use("/test", authLimiter, (req, res) => {
         res.json({ success: true });
@@ -34,7 +34,7 @@ describe("Rate Limiter Middleware", () => {
 
   describe("Production Environment", () => {
     it("should enforce rate limiting in production environment", async () => {
-      process.env.NODE_ENV = "production";
+      Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
 
       // Create a fresh app with strict rate limiter (max 3 requests)
       const strictApp = express();
@@ -67,7 +67,7 @@ describe("Rate Limiter Middleware", () => {
 
   describe("Rate Limiter Headers", () => {
     it("should include rate limit headers in response", async () => {
-      process.env.NODE_ENV = "production";
+      Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
 
       const { default: rateLimit } = await import("express-rate-limit");
       const testLimiter = rateLimit({

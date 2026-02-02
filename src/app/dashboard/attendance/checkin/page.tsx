@@ -52,7 +52,7 @@ export default function CheckInPage() {
     try {
       const result = await attendanceApi.getAll({ tour_id: selectedTourId });
       if (result.success && result.data) {
-        setAttendanceHistory(result.data);
+        setAttendanceHistory(result.data as AttendanceRecord[]);
       }
     } catch (error) {
       console.error("Error fetching attendance history:", error);
@@ -75,9 +75,10 @@ export default function CheckInPage() {
     try {
       const result = await tourApi.getAll();
       if (result.success && result.data) {
-        setTours(result.data);
-        if (result.data.length > 0) {
-          setSelectedTourId(result.data[0].id);
+        const tours = result.data as Tour[];
+        setTours(tours);
+        if (tours.length > 0) {
+          setSelectedTourId(tours[0].id);
         }
       }
     } catch (error) {

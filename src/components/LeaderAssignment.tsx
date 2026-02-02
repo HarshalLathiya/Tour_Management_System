@@ -51,7 +51,7 @@ export function LeaderAssignment({
       try {
         const result = await userApi.getLeaders();
         if (result.success && result.data) {
-          setLeaders(result.data);
+          setLeaders(result.data as Leader[]);
         }
       } catch (error) {
         console.error("Failed to fetch leaders:", error);
@@ -211,9 +211,7 @@ export function LeaderAssignment({
             <Button
               onClick={handleAssignLeader}
               disabled={
-                !selectedLeaderId ||
-                selectedLeaderId === currentLeaderId?.toString() ||
-                isAssigning
+                !selectedLeaderId || selectedLeaderId === currentLeaderId?.toString() || isAssigning
               }
             >
               {isAssigning ? "Assigning..." : "Assign"}

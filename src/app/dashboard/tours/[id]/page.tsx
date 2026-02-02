@@ -61,8 +61,9 @@ export default function TourDetailsPage() {
       const result = await tourApi.getById(parseInt(tourId));
 
       if (result.success && result.data) {
-        setTour(result.data);
-        setEditForm(result.data);
+        const tourData = result.data as TourData;
+        setTour(tourData);
+        setEditForm(tourData);
       } else {
         console.error("Failed to fetch tour:", result.error);
       }
