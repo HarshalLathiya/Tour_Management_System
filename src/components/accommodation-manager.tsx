@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { 
-  Hotel, Plus, Trash2, UserPlus, 
-  MapPin, Phone, Calendar, Loader2,
-  X, Check
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  Hotel,
+  Plus,
+  Trash2,
+  UserPlus,
+  MapPin,
+  Phone,
+  Calendar,
+  Loader2,
+  X,
+  Check,
+} from "lucide-react";
 
 interface Accommodation {
   id: string;
@@ -32,24 +38,26 @@ interface RoomAssignment {
 export function AccommodationManager({ tourId }: { tourId: string }) {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [assignments, setAssignments] = useState<RoomAssignment[]>([]);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<
+    { user_id: string; profiles?: { full_name: string } }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
 
   const [newAcc, setNewAcc] = useState({
-    name: '',
-    address: '',
-    check_in_date: '',
-    check_out_date: '',
-    contact_number: ''
+    name: "",
+    address: "",
+    check_in_date: "",
+    check_out_date: "",
+    contact_number: "",
   });
 
   const [newAssign, setNewAssign] = useState({
-    user_id: '',
-    room_number: '',
-    room_type: '',
-    notes: ''
+    user_id: "",
+    room_number: "",
+    room_type: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -58,64 +66,41 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: accData } = await supabase
-      .from('accommodations')
-      .select('*')
-      .eq('tour_id', tourId);
-    
-    setAccommodations(accData || []);
-
-    const { data: assignData } = await supabase
-      .from('room_assignments')
-      .select(`
-        *,
-        profile:profiles(full_name)
-      `)
-      .in('accommodation_id', (accData || []).map(a => a.id));
-    
-    setAssignments(assignData || []);
-
-    const { data: partData } = await supabase
-      .from('tour_participants')
-      .select('user_id, profiles(full_name)')
-      .eq('tour_id', tourId);
-    
-    setParticipants(partData || []);
+    // Accommodation endpoints are not yet available on the Express server.
+    // Initialize with empty data until the endpoints are implemented.
+    setAccommodations([]);
+    setAssignments([]);
+    setParticipants([]);
     setLoading(false);
   };
 
   const handleAddAccommodation = async () => {
-    const { error } = await supabase
-      .from('accommodations')
-      .insert([{ ...newAcc, tour_id: tourId }]);
-    
-    if (!error) {
-      setShowAddModal(false);
-      setNewAcc({ name: '', address: '', check_in_date: '', check_out_date: '', contact_number: '' });
-      fetchData();
+    // Accommodation creation endpoint is not yet available.
+    alert("Accommodation management is not yet implemented.");
+    setShowAddModal(false);
+    setNewAcc({ name: "", address: "", check_in_date: "", check_out_date: "", contact_number: "" });
+  };
+
+  const handleAddAssignment = async (_accommodationId: string) => {
+    // Room assignment endpoint is not yet available.
+    alert("Room assignment is not yet implemented.");
+    setShowAssignModal(null);
+    setNewAssign({ user_id: "", room_number: "", room_type: "", notes: "" });
+  };
+
+  const handleDeleteAccommodation = async (_id: string) => {
+    if (confirm("Are you sure you want to delete this accommodation?")) {
+      // Accommodation deletion endpoint is not yet available.
+      alert("Accommodation deletion is not yet implemented.");
     }
   };
 
-  const handleAddAssignment = async (accommodationId: string) => {
-    const { error } = await supabase
-      .from('room_assignments')
-      .insert([{ ...newAssign, accommodation_id: accommodationId }]);
-    
-    if (!error) {
-      setShowAssignModal(null);
-      setNewAssign({ user_id: '', room_number: '', room_type: '', notes: '' });
-      fetchData();
-    }
-  };
-
-  const handleDeleteAccommodation = async (id: string) => {
-    if (confirm('Are you sure you want to delete this accommodation?')) {
-      await supabase.from('accommodations').delete().eq('id', id);
-      fetchData();
-    }
-  };
-
-  if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  if (loading)
+    return (
+      <div className="flex justify-center p-8">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
 
   return (
     <div className="space-y-6">
@@ -124,7 +109,7 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
           <Hotel className="mr-2 h-5 w-5 text-blue-600" />
           Accommodation & Stays
         </h3>
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium hover:bg-blue-700 transition-colors"
         >
@@ -139,19 +124,30 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
             <p className="text-slate-500">No accommodations recorded for this tour yet.</p>
           </div>
         ) : (
-          accommodations.map(acc => (
-            <div key={acc.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          accommodations.map((acc) => (
+            <div
+              key={acc.id}
+              className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+            >
               <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-lg font-bold text-slate-900">{acc.name}</h4>
                     <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-600">
-                      <span className="flex items-center"><MapPin className="h-3.5 w-3.5 mr-1" /> {acc.address}</span>
-                      <span className="flex items-center"><Phone className="h-3.5 w-3.5 mr-1" /> {acc.contact_number}</span>
-                      <span className="flex items-center"><Calendar className="h-3.5 w-3.5 mr-1" /> {new Date(acc.check_in_date).toLocaleDateString()} - {new Date(acc.check_out_date).toLocaleDateString()}</span>
+                      <span className="flex items-center">
+                        <MapPin className="h-3.5 w-3.5 mr-1" /> {acc.address}
+                      </span>
+                      <span className="flex items-center">
+                        <Phone className="h-3.5 w-3.5 mr-1" /> {acc.contact_number}
+                      </span>
+                      <span className="flex items-center">
+                        <Calendar className="h-3.5 w-3.5 mr-1" />{" "}
+                        {new Date(acc.check_in_date).toLocaleDateString()} -{" "}
+                        {new Date(acc.check_out_date).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleDeleteAccommodation(acc.id)}
                     className="text-slate-400 hover:text-red-600 transition-colors"
                   >
@@ -162,8 +158,10 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
 
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h5 className="font-semibold text-slate-800 text-sm uppercase tracking-wider">Room Assignments</h5>
-                  <button 
+                  <h5 className="font-semibold text-slate-800 text-sm uppercase tracking-wider">
+                    Room Assignments
+                  </h5>
+                  <button
                     onClick={() => setShowAssignModal(acc.id)}
                     className="text-blue-600 text-sm font-medium flex items-center hover:text-blue-700"
                   >
@@ -172,25 +170,35 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {assignments.filter(a => a.accommodation_id === acc.id).map(assign => (
-                    <div key={assign.id} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-slate-800 text-sm">{(assign.profile as any)?.full_name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500">Room {assign.room_number} • {assign.room_type}</p>
-                      </div>
-                      <button 
-                         onClick={async () => {
-                           await supabase.from('room_assignments').delete().eq('id', assign.id);
-                           fetchData();
-                         }}
-                        className="text-slate-300 hover:text-red-500"
+                  {assignments
+                    .filter((a) => a.accommodation_id === acc.id)
+                    .map((assign) => (
+                      <div
+                        key={assign.id}
+                        className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                  {assignments.filter(a => a.accommodation_id === acc.id).length === 0 && (
-                    <p className="text-xs text-slate-400 col-span-full italic">No participants assigned yet.</p>
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">
+                            {assign.profile?.full_name || "Unknown"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Room {assign.room_number} • {assign.room_type}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            alert("Room assignment deletion is not yet implemented.");
+                          }}
+                          className="text-slate-300 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  {assignments.filter((a) => a.accommodation_id === acc.id).length === 0 && (
+                    <p className="text-xs text-slate-400 col-span-full italic">
+                      No participants assigned yet.
+                    </p>
                   )}
                 </div>
               </div>
@@ -207,59 +215,61 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Hotel Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={newAcc.name}
-                  onChange={e => setNewAcc({...newAcc, name: e.target.value})}
+                  onChange={(e) => setNewAcc({ ...newAcc, name: e.target.value })}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={newAcc.address}
-                  onChange={e => setNewAcc({...newAcc, address: e.target.value})}
+                  onChange={(e) => setNewAcc({ ...newAcc, address: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Check-in</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                     value={newAcc.check_in_date}
-                    onChange={e => setNewAcc({...newAcc, check_in_date: e.target.value})}
+                    onChange={(e) => setNewAcc({ ...newAcc, check_in_date: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Check-out</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                     value={newAcc.check_out_date}
-                    onChange={e => setNewAcc({...newAcc, check_out_date: e.target.value})}
+                    onChange={(e) => setNewAcc({ ...newAcc, check_out_date: e.target.value })}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Contact Phone</label>
-                <input 
-                  type="text" 
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Contact Phone
+                </label>
+                <input
+                  type="text"
                   className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={newAcc.contact_number}
-                  onChange={e => setNewAcc({...newAcc, contact_number: e.target.value})}
+                  onChange={(e) => setNewAcc({ ...newAcc, contact_number: e.target.value })}
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button 
+                <button
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-medium hover:bg-slate-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleAddAccommodation}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
                 >
@@ -279,46 +289,50 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Participant</label>
-                <select 
+                <select
                   className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={newAssign.user_id}
-                  onChange={e => setNewAssign({...newAssign, user_id: e.target.value})}
+                  onChange={(e) => setNewAssign({ ...newAssign, user_id: e.target.value })}
                 >
                   <option value="">Select participant</option>
-                  {participants.map(p => (
-                    <option key={p.user_id} value={p.user_id}>{(p.profiles as any)?.full_name}</option>
+                  {participants.map((p) => (
+                    <option key={p.user_id} value={p.user_id}>
+                      {p.profiles?.full_name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Room Number</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Room Number
+                  </label>
+                  <input
+                    type="text"
                     className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                     value={newAssign.room_number}
-                    onChange={e => setNewAssign({...newAssign, room_number: e.target.value})}
+                    onChange={(e) => setNewAssign({ ...newAssign, room_number: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Room Type</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="e.g. Twin Share"
                     className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                     value={newAssign.room_type}
-                    onChange={e => setNewAssign({...newAssign, room_type: e.target.value})}
+                    onChange={(e) => setNewAssign({ ...newAssign, room_type: e.target.value })}
                   />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <button 
+                <button
                   onClick={() => setShowAssignModal(null)}
                   className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-medium hover:bg-slate-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => handleAddAssignment(showAssignModal)}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
                 >

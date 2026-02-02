@@ -61,9 +61,8 @@ export default function LandingPage() {
                   </span>
                 </h1>
                 <p className="mx-auto max-w-2xl text-lg text-slate-600 md:text-xl leading-relaxed">
-                  Streamline on-ground execution, enhance safety coordination,
-                  and automate attendance tracking for educational and
-                  organizational tours worldwide.
+                  Streamline on-ground execution, enhance safety coordination, and automate
+                  attendance tracking for educational and organizational tours worldwide.
                 </p>
               </div>
 
@@ -96,12 +95,8 @@ export default function LandingPage() {
                     key={index}
                     className="text-center p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow duration-300"
                   >
-                    <div className="text-2xl font-bold text-blue-900">
-                      {stat.value}
-                    </div>
-                    <div className="text-sm text-slate-600 mt-1">
-                      {stat.label}
-                    </div>
+                    <div className="text-2xl font-bold text-blue-900">{stat.value}</div>
+                    <div className="text-sm text-slate-600 mt-1">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -123,8 +118,8 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="max-w-2xl mx-auto text-lg text-slate-600">
-                Comprehensive tools designed specifically for educational and
-                organizational tour management
+                Comprehensive tools designed specifically for educational and organizational tour
+                management
               </p>
             </div>
 
@@ -141,8 +136,8 @@ export default function LandingPage() {
                     Smart Attendance Tracking
                   </h3>
                   <p className="text-slate-600 leading-relaxed">
-                    Real-time geofenced attendance with offline capability. QR
-                    code check-ins and automated roll calls.
+                    Real-time geofenced attendance with offline capability. QR code check-ins and
+                    automated roll calls.
                   </p>
                 </div>
                 <div className="mt-6 text-blue-600 font-medium flex items-center">
@@ -159,12 +154,10 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="pt-8 text-center">
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">
-                    Advanced Safety & SOS
-                  </h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">Advanced Safety & SOS</h3>
                   <p className="text-slate-600 leading-relaxed">
-                    Instant SOS alerts with location sharing. Incident reporting
-                    and emergency contact management.
+                    Instant SOS alerts with location sharing. Incident reporting and emergency
+                    contact management.
                   </p>
                 </div>
                 <div className="mt-6 text-green-600 font-medium flex items-center">
@@ -185,8 +178,8 @@ export default function LandingPage() {
                     Intelligent Budget Control
                   </h3>
                   <p className="text-slate-600 leading-relaxed">
-                    Real-time expense tracking, fund allocation, and automated
-                    receipt management with AI insights.
+                    Real-time expense tracking, fund allocation, and automated receipt management
+                    with AI insights.
                   </p>
                 </div>
                 <div className="mt-6 text-purple-600 font-medium flex items-center">
@@ -203,8 +196,7 @@ export default function LandingPage() {
                   Ready to Transform Your Tour Management?
                 </h3>
                 <p className="text-blue-100 mb-6">
-                  Join thousands of organizations that trust TourSync for their
-                  global tours.
+                  Join thousands of organizations that trust TourSync for their global tours.
                 </p>
                 <Link
                   href="/auth/register"
@@ -232,9 +224,7 @@ export default function LandingPage() {
               </span>
             </div>
 
-            <p className="text-sm text-slate-500">
-              © 2026 TourSync Inc. All rights reserved.
-            </p>
+            <p className="text-sm text-slate-500">© 2026 TourSync Inc. All rights reserved.</p>
 
             <nav className="flex gap-6 mt-4 sm:mt-0">
               <Link

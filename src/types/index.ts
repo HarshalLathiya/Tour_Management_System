@@ -1,9 +1,14 @@
-export type UserRole = 'super_admin' | 'org_admin' | 'tour_leader' | 'participant';
-export type TourStatus = 'draft' | 'planned' | 'active' | 'completed' | 'cancelled';
-export type AttendanceStatus = 'present' | 'absent' | 'left_with_permission';
-export type ExpenseCategory = 'transport' | 'accommodation' | 'food' | 'miscellaneous' | 'emergency';
-export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type AnnouncementType = 'general' | 'alert' | 'emergency' | 'reminder';
+export type UserRole = "super_admin" | "org_admin" | "tour_leader" | "participant";
+export type TourStatus = "draft" | "planned" | "active" | "completed" | "cancelled";
+export type AttendanceStatus = "present" | "absent" | "left_with_permission";
+export type ExpenseCategory =
+  | "transport"
+  | "accommodation"
+  | "food"
+  | "miscellaneous"
+  | "emergency";
+export type IncidentSeverity = "low" | "medium" | "high" | "critical";
+export type AnnouncementType = "general" | "alert" | "emergency" | "reminder";
 
 export interface Profile {
   id: string;

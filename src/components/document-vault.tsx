@@ -59,7 +59,10 @@ export function DocumentVault({ profile, onUpdate }: DocumentVaultProps) {
         <form onSubmit={handleUpdate} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="passport_url" className="text-slate-700 font-semibold flex items-center gap-2">
+              <Label
+                htmlFor="passport_url"
+                className="text-slate-700 font-semibold flex items-center gap-2"
+              >
                 <FileText className="h-4 w-4 text-blue-500" />
                 Passport Copy (Link)
               </Label>
@@ -74,7 +77,10 @@ export function DocumentVault({ profile, onUpdate }: DocumentVaultProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="medical_info_url" className="text-slate-700 font-semibold flex items-center gap-2">
+              <Label
+                htmlFor="medical_info_url"
+                className="text-slate-700 font-semibold flex items-center gap-2"
+              >
                 <Shield className="h-4 w-4 text-emerald-500" />
                 Medical Records (Link)
               </Label>
@@ -103,16 +109,24 @@ export function DocumentVault({ profile, onUpdate }: DocumentVaultProps) {
           </div>
 
           {message && (
-            <div className={`p-4 rounded-xl flex items-center gap-3 ${
-              message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
-            }`}>
-              {message.type === "success" ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+            <div
+              className={`p-4 rounded-xl flex items-center gap-3 ${
+                message.type === "success"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                  : "bg-red-50 text-red-700 border border-red-100"
+              }`}
+            >
+              {message.type === "success" ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
               <span className="text-sm font-medium">{message.text}</span>
             </div>
           )}
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isUpdating}
             className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold h-12 shadow-lg shadow-blue-200 transition-all active:scale-95"
           >

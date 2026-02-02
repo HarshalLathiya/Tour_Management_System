@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Users, Map, ShieldAlert, Wallet } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
 export default function DashboardStats() {
   const [stats, setStats] = useState([
@@ -39,34 +38,17 @@ export default function DashboardStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Fetch Total Tours
-        const { count: toursCount } = await supabase
-          .from("tours")
-          .select("*", { count: "exact", head: true });
+        const toursRes = await fetch("http://localhost:5000/api/tours");
+        const toursData = await toursRes.json();
+        const toursCount = Array.isArray(toursData) ? toursData.length : 0;
 
-        // Fetch Total Participants (approximate for demo)
-        const { count: participantsCount } = await supabase
-          .from("tour_participants")
-          .select("*", { count: "exact", head: true });
-
-        // Fetch Open Incidents
-        const { count: incidentsCount } = await supabase
-          .from("incidents")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "open");
-
-        // Fetch Budget Stats
-        const { data: expenses } = await supabase
-          .from("expenses")
-          .select("amount");
-        
-        const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
-        
-        setStats(prev => [
-          { ...prev[0], value: (participantsCount || 0).toString() },
-          { ...prev[1], value: (toursCount || 0).toString() },
-          { ...prev[2], value: (incidentsCount || 0).toString() },
-          { ...prev[3], value: totalExpenses > 0 ? `$${totalExpenses.toLocaleString()}` : "0" },
+        // Participants, incidents, and expenses endpoints are not yet available;
+        // display tours count and leave the remaining stats at their defaults.
+        setStats((prev) => [
+          { ...prev[0], value: "0" },
+          { ...prev[1], value: toursCount.toString() },
+          { ...prev[2], value: "0" },
+          { ...prev[3], value: "0" },
         ]);
       } catch (error) {
         console.error("Error fetching stats:", error);
@@ -84,9 +66,7 @@ export default function DashboardStats() {
             <stat.icon className={`h-6 w-6 ${stat.color}`} />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              {stat.name}
-            </p>
+            <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
             <p className="text-2xl font-bold text-foreground">{stat.value}</p>
           </div>
         </div>

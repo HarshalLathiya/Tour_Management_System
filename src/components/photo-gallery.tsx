@@ -5,7 +5,6 @@ import { Camera, Upload, Image as ImageIcon, X, Trash2, Heart } from "lucide-rea
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
 import type { TourPhoto } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -24,13 +23,8 @@ export function PhotoGallery({ tourId }: PhotoGalleryProps) {
   }, [tourId]);
 
   const fetchPhotos = async () => {
-    const { data } = await supabase
-      .from("tour_photos")
-      .select("*, profile:profiles(*)")
-      .eq("tour_id", tourId)
-      .order("created_at", { ascending: false });
-    
-    setPhotos(data || []);
+    // Photo gallery endpoint is not yet available on the Express server.
+    setPhotos([]);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -38,23 +32,10 @@ export function PhotoGallery({ tourId }: PhotoGalleryProps) {
     if (!uploadUrl) return;
 
     setIsUploading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      const { error } = await supabase.from("tour_photos").insert({
-        tour_id: tourId,
-        user_id: user.id,
-        photo_url: uploadUrl,
-        caption: caption,
-      });
-
-      if (!error) {
-        setUploadUrl("");
-        setCaption("");
-        fetchPhotos();
-      }
-    }
-    setIsUploading(false);
+    // Photo upload endpoint is not yet available on the Express server.
+    setTimeout(() => {
+      setIsUploading(false);
+    }, 500);
   };
 
   return (
@@ -74,7 +55,10 @@ export function PhotoGallery({ tourId }: PhotoGalleryProps) {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <form onSubmit={handleUpload} className="mb-8 space-y-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+          <form
+            onSubmit={handleUpload}
+            className="mb-8 space-y-4 p-4 rounded-2xl bg-slate-50 border border-slate-100"
+          >
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Input
@@ -93,8 +77,8 @@ export function PhotoGallery({ tourId }: PhotoGalleryProps) {
                 />
               </div>
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isUploading || !uploadUrl}
               className="w-full md:w-auto rounded-xl bg-purple-600 hover:bg-purple-700 text-white"
             >
@@ -119,21 +103,25 @@ export function PhotoGallery({ tourId }: PhotoGalleryProps) {
                     transition={{ delay: index * 0.05 }}
                     className="group relative rounded-2xl overflow-hidden bg-slate-100 shadow-md hover:shadow-xl transition-all duration-300"
                   >
-                    <img 
-                      src={photo.photo_url} 
+                    <img
+                      src={photo.photo_url}
                       alt={photo.caption || "Tour photo"}
                       className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                       {photo.caption && (
-                        <p className="text-white text-sm font-medium mb-1 line-clamp-2">{photo.caption}</p>
+                        <p className="text-white text-sm font-medium mb-1 line-clamp-2">
+                          {photo.caption}
+                        </p>
                       )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] text-white font-bold">
                             {photo.profile?.full_name?.charAt(0) || "U"}
                           </div>
-                          <span className="text-white/80 text-xs">{photo.profile?.full_name || "Member"}</span>
+                          <span className="text-white/80 text-xs">
+                            {photo.profile?.full_name || "Member"}
+                          </span>
                         </div>
                         <div className="flex gap-2">
                           <button className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors">

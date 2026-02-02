@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
@@ -14,11 +13,10 @@ export default function UpdatePasswordPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -27,19 +25,31 @@ export default function UpdatePasswordPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/update-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + (localStorage.getItem("token") || ""),
+        },
+        body: JSON.stringify({ password }),
+      });
 
-    if (error) {
-      setError(error.message);
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || "Failed to update password");
+        setLoading(false);
+      } else {
+        setSuccess(true);
+        setLoading(false);
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 3000);
+      }
+    } catch (err) {
+      console.error("Error updating password:", err);
+      setError("An unexpected error occurred. Please try again.");
       setLoading(false);
-    } else {
-      setSuccess(true);
-      setLoading(false);
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 3000);
     }
   };
 
@@ -65,16 +75,11 @@ export default function UpdatePasswordPage() {
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-3xl blur-xl opacity-50"></div>
             <div className="relative rounded-3xl bg-white border-2 border-blue-100 p-8 shadow-xl shadow-blue-100/50">
-              
               {!success ? (
                 <>
                   <div className="pt-8 text-center mb-8">
-                    <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                      Set New Password
-                    </h2>
-                    <p className="text-slate-600">
-                      Please enter your new password below
-                    </p>
+                    <h2 className="text-3xl font-bold text-slate-900 mb-2">Set New Password</h2>
+                    <p className="text-slate-600">Please enter your new password below</p>
                   </div>
 
                   {error && (
@@ -86,7 +91,10 @@ export default function UpdatePasswordPage() {
                   <form className="space-y-6" onSubmit={handleUpdate}>
                     <div className="space-y-4">
                       <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="password"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           New Password
                         </label>
                         <div className="relative">
@@ -117,7 +125,10 @@ export default function UpdatePasswordPage() {
                       </div>
 
                       <div>
-                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="confirmPassword"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           Confirm Password
                         </label>
                         <div className="relative">
@@ -142,7 +153,9 @@ export default function UpdatePasswordPage() {
                       disabled={loading}
                       className="group relative w-full inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? "Updating..." : (
+                      {loading ? (
+                        "Updating..."
+                      ) : (
                         <>
                           Update Password
                           <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -158,11 +171,10 @@ export default function UpdatePasswordPage() {
                       <CheckCircle2 className="h-12 w-12 text-green-600" />
                     </div>
                   </div>
-                  <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                    Password Updated!
-                  </h2>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-4">Password Updated!</h2>
                   <p className="text-slate-600 mb-8">
-                    Your password has been successfully reset. You will be redirected to the dashboard in a few seconds.
+                    Your password has been successfully reset. You will be redirected to the
+                    dashboard in a few seconds.
                   </p>
                   <Link
                     href="/dashboard"

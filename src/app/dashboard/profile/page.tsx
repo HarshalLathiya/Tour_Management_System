@@ -1,24 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { ProfileClient } from "./profile-client";
+import type { Profile } from "@/types";
 
-export default async function ProfilePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function ProfilePage() {
+  // Profile data will be fetched client-side by ProfileClient.
+  // Passing an empty placeholder that conforms to the Profile shape.
+  const emptyProfile = {} as Profile;
 
-  if (!user) {
-    redirect("/auth/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) {
-    return <div>Profile not found</div>;
-  }
-
-  return <ProfileClient profile={profile} />;
+  return <ProfileClient profile={emptyProfile} />;
 }

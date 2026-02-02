@@ -13,7 +13,6 @@ import {
   LogOut,
   MapPin,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 const sidebarLinks = [
@@ -65,14 +64,13 @@ export default function Sidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    document.cookie = "token=; max-age=0; path=/";
+    router.push("/auth/login");
   };
 
-  const filteredLinks = sidebarLinks.filter((link) =>
-    link.roles.includes(userRole),
-  );
+  const filteredLinks = sidebarLinks.filter((link) => link.roles.includes(userRole));
 
   return (
     <div className="flex h-full w-64 flex-col bg-slate-900 text-slate-300">
@@ -90,16 +88,10 @@ export default function Sidebar({ userRole }: { userRole: string }) {
               key={link.name}
               href={link.href}
               className={`flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-slate-800 hover:text-white"
+                isActive ? "bg-blue-600 text-white" : "hover:bg-slate-800 hover:text-white"
               }`}
             >
-              <link.icon
-                className={`h-5 w-5 ${
-                  isActive ? "text-white" : "text-slate-400"
-                }`}
-              />
+              <link.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
               <span>{link.name}</span>
             </Link>
           );

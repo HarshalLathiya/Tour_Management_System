@@ -30,7 +30,7 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
           className="mb-8 flex items-center justify-between"
         >
           <div>
-            <Link 
+            <Link
               href="/dashboard"
               className="inline-flex items-center text-sm text-slate-500 hover:text-blue-600 transition-colors mb-4 group"
             >
@@ -61,7 +61,9 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
                     </div>
                     <div className="overflow-hidden">
                       <p className="text-xs text-slate-500">Email Address</p>
-                      <p className="text-sm font-medium text-slate-900 truncate">{initialProfile.email}</p>
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {initialProfile.email}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -70,7 +72,9 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500">Role</p>
-                      <p className="text-sm font-medium text-slate-900 capitalize">{initialProfile.role.replace('_', ' ')}</p>
+                      <p className="text-sm font-medium text-slate-900 capitalize">
+                        {initialProfile.role.replace("_", " ")}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -95,7 +99,8 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
                   Safety Tip
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Keep your document vault updated. This information is only accessible to tour leaders in case of an emergency.
+                  Keep your document vault updated. This information is only accessible to tour
+                  leaders in case of an emergency.
                 </p>
               </CardContent>
             </Card>
@@ -108,7 +113,7 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
             className="md:col-span-2 space-y-6"
           >
             <DocumentVault profile={initialProfile} onUpdate={handleUpdate} />
-            
+
             <Card className="rounded-3xl border-2 border-white shadow-xl shadow-slate-100">
               <CardHeader>
                 <CardTitle>Emergency Contact</CardTitle>
@@ -118,11 +123,15 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500">Contact Name</p>
-                    <p className="font-medium text-slate-900">{initialProfile.emergency_contact_name || 'Not provided'}</p>
+                    <p className="font-medium text-slate-900">
+                      {initialProfile.emergency_contact_name || "Not provided"}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500">Contact Phone</p>
-                    <p className="font-medium text-slate-900">{initialProfile.emergency_contact_phone || 'Not provided'}</p>
+                    <p className="font-medium text-slate-900">
+                      {initialProfile.emergency_contact_phone || "Not provided"}
+                    </p>
                   </div>
                 </div>
               </CardContent>

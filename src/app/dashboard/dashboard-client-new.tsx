@@ -26,13 +26,7 @@ import {
   History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Organization, Tour } from "@/types";
 
 interface DashboardClientProps {
@@ -57,36 +51,16 @@ const statusIcons = {
   cancelled: <AlertTriangle className="h-4 w-4" />,
 };
 
-export function DashboardClient({
-  organizations,
-  tours,
-  userRole,
-}: DashboardClientProps) {
+export function DashboardClient({ organizations, tours, userRole }: DashboardClientProps) {
   // Render different dashboards based on user role
   if (userRole === "org_admin" || userRole === "super_admin") {
     return (
-      <OrganizationAdminDashboard
-        organizations={organizations}
-        tours={tours}
-        userRole={userRole}
-      />
+      <OrganizationAdminDashboard organizations={organizations} tours={tours} userRole={userRole} />
     );
   } else if (userRole === "tour_leader") {
-    return (
-      <LeaderDashboard
-        organizations={organizations}
-        tours={tours}
-        userRole={userRole}
-      />
-    );
+    return <LeaderDashboard organizations={organizations} tours={tours} userRole={userRole} />;
   } else if (userRole === "participant") {
-    return (
-      <ParticipantDashboard
-        organizations={organizations}
-        tours={tours}
-        userRole={userRole}
-      />
-    );
+    return <ParticipantDashboard organizations={organizations} tours={tours} userRole={userRole} />;
   }
 
   // Default fallback (should not happen with proper auth)
@@ -94,11 +68,7 @@ export function DashboardClient({
 }
 
 // Organization Admin Dashboard Component
-function OrganizationAdminDashboard({
-  organizations,
-  tours,
-  userRole,
-}: DashboardClientProps) {
+function OrganizationAdminDashboard({ organizations, tours, userRole }: DashboardClientProps) {
   const stats = [
     {
       label: "Total Revenue",
@@ -142,16 +112,10 @@ function OrganizationAdminDashboard({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-white p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Organization Admin Dashboard
-            </h1>
+            <h1 className="text-3xl font-bold text-slate-900">Organization Admin Dashboard</h1>
             <p className="text-slate-600 mt-2">
               Manage tours, users, and monitor system performance.
             </p>
@@ -196,13 +160,9 @@ function OrganizationAdminDashboard({
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-slate-500 font-medium mb-2">
-                        {stat.label}
-                      </p>
+                      <p className="text-sm text-slate-500 font-medium mb-2">{stat.label}</p>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold text-slate-900">
-                          {stat.value}
-                        </p>
+                        <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
                         <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${
                             stat.trend === "up"
@@ -248,16 +208,10 @@ function OrganizationAdminDashboard({
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-xl">Recent Tours</CardTitle>
-                    <CardDescription>
-                      Your latest tour activities
-                    </CardDescription>
+                    <CardDescription>Your latest tour activities</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl border-slate-300"
-                    >
+                    <Button variant="outline" size="sm" className="rounded-xl border-slate-300">
                       <Filter className="h-4 w-4 mr-2" />
                       Filter
                     </Button>
@@ -278,9 +232,7 @@ function OrganizationAdminDashboard({
                       <div className="rounded-full bg-gradient-to-br from-blue-500 to-blue-600 p-4 mb-4">
                         <MapPin className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        No tours yet
-                      </h3>
+                      <h3 className="text-lg font-semibold text-slate-900">No tours yet</h3>
                       <p className="mt-2 text-sm text-slate-600">
                         Create your first tour to get started
                       </p>
@@ -307,19 +259,12 @@ function OrganizationAdminDashboard({
                                 <MapPin className="h-5 w-5 text-white" />
                               </div>
                               <div>
-                                <p className="font-semibold text-slate-900">
-                                  {tour.name}
-                                </p>
+                                <p className="font-semibold text-slate-900">{tour.name}</p>
                                 <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-sm text-slate-500">{tour.destination}</span>
+                                  <span className="text-xs text-slate-400">•</span>
                                   <span className="text-sm text-slate-500">
-                                    {tour.destination}
-                                  </span>
-                                  <span className="text-xs text-slate-400">
-                                    •
-                                  </span>
-                                  <span className="text-sm text-slate-500">
-                                    {tour.organizations?.name ||
-                                      "No Organization"}
+                                    {tour.organizations?.name || "No Organization"}
                                   </span>
                                 </div>
                               </div>
@@ -327,19 +272,12 @@ function OrganizationAdminDashboard({
                             <div className="flex items-center gap-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${
-                                  statusColors[
-                                    tour.status as keyof typeof statusColors
-                                  ]
+                                  statusColors[tour.status as keyof typeof statusColors]
                                 }`}
                               >
-                                {
-                                  statusIcons[
-                                    tour.status as keyof typeof statusIcons
-                                  ]
-                                }
+                                {statusIcons[tour.status as keyof typeof statusIcons]}
                                 <span>
-                                  {tour.status.charAt(0).toUpperCase() +
-                                    tour.status.slice(1)}
+                                  {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
                                 </span>
                               </span>
                               <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -377,32 +315,28 @@ function OrganizationAdminDashboard({
                     {
                       href: "/dashboard/attendance",
                       icon: ClipboardCheck,
-                      iconColor:
-                        "bg-gradient-to-br from-emerald-500 to-teal-500",
+                      iconColor: "bg-gradient-to-br from-emerald-500 to-teal-500",
                       title: "Take Attendance",
                       description: "Mark attendance for current tour",
                     },
                     {
                       href: "/dashboard/announcements",
                       icon: Bell,
-                      iconColor:
-                        "bg-gradient-to-br from-violet-500 to-purple-500",
+                      iconColor: "bg-gradient-to-br from-violet-500 to-purple-500",
                       title: "Send Announcement",
                       description: "Notify all participants",
                     },
                     {
                       href: "/dashboard/safety",
                       icon: AlertTriangle,
-                      iconColor:
-                        "bg-gradient-to-br from-amber-500 to-orange-500",
+                      iconColor: "bg-gradient-to-br from-amber-500 to-orange-500",
                       title: "Report Incident",
                       description: "Log safety concerns or emergencies",
                     },
                     {
                       href: "/dashboard/audit-logs",
                       icon: History,
-                      iconColor:
-                        "bg-gradient-to-br from-slate-600 to-slate-800",
+                      iconColor: "bg-gradient-to-br from-slate-600 to-slate-800",
                       title: "System Audit Logs",
                       description: "Track all administrative changes",
                     },
@@ -416,18 +350,12 @@ function OrganizationAdminDashboard({
                         href={action.href}
                         className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50"
                       >
-                        <div
-                          className={`rounded-xl p-3 text-white ${action.iconColor}`}
-                        >
+                        <div className={`rounded-xl p-3 text-white ${action.iconColor}`}>
                           <action.icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-slate-900">
-                            {action.title}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            {action.description}
-                          </p>
+                          <p className="font-semibold text-slate-900">{action.title}</p>
+                          <p className="text-sm text-slate-600">{action.description}</p>
                         </div>
                         <ChevronRight className="h-5 w-5 text-slate-400" />
                       </Link>
@@ -467,12 +395,8 @@ function OrganizationAdminDashboard({
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="font-semibold text-slate-900">
-                              {tour.name}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {tour.destination}
-                            </p>
+                            <p className="font-semibold text-slate-900">{tour.name}</p>
+                            <p className="text-sm text-slate-600">{tour.destination}</p>
                           </div>
                           <span className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-xs font-medium text-white">
                             Active
@@ -523,12 +447,8 @@ function OrganizationAdminDashboard({
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="font-semibold text-slate-900">
-                              {tour.name}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {tour.destination}
-                            </p>
+                            <p className="font-semibold text-slate-900">{tour.name}</p>
+                            <p className="text-sm text-slate-600">{tour.destination}</p>
                           </div>
                           <span className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-2 py-1 text-xs font-medium text-white">
                             Planned
@@ -566,9 +486,7 @@ function OrganizationAdminDashboard({
                     <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Safety Status
-                    </h3>
+                    <h3 className="font-semibold text-slate-900">Safety Status</h3>
                     <p className="text-sm text-slate-600">All systems normal</p>
                   </div>
                 </div>
@@ -581,9 +499,7 @@ function OrganizationAdminDashboard({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">Participants</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      All safe
-                    </span>
+                    <span className="text-sm font-medium text-slate-900">All safe</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">Last check</span>
@@ -607,11 +523,7 @@ function OrganizationAdminDashboard({
 }
 
 // Participant Dashboard Component
-function ParticipantDashboard({
-  organizations,
-  tours,
-  userRole,
-}: DashboardClientProps) {
+function ParticipantDashboard({ organizations, tours, userRole }: DashboardClientProps) {
   const stats = [
     {
       label: "My Tours",
@@ -650,19 +562,11 @@ function ParticipantDashboard({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-white p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Participant Dashboard
-            </h1>
-            <p className="text-slate-600 mt-2">
-              View your enrolled tours and track your progress.
-            </p>
+            <h1 className="text-3xl font-bold text-slate-900">Participant Dashboard</h1>
+            <p className="text-slate-600 mt-2">View your enrolled tours and track your progress.</p>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -696,13 +600,9 @@ function ParticipantDashboard({
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-slate-500 font-medium mb-2">
-                        {stat.label}
-                      </p>
+                      <p className="text-sm text-slate-500 font-medium mb-2">{stat.label}</p>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold text-slate-900">
-                          {stat.value}
-                        </p>
+                        <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
                         <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${
                             stat.trend === "up"
@@ -736,10 +636,7 @@ function ParticipantDashboard({
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             <Card className="rounded-3xl border-2 border-white hover:border-blue-100 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-xl">My Tours</CardTitle>
@@ -751,9 +648,7 @@ function ParticipantDashboard({
                     <div className="rounded-full bg-gradient-to-br from-blue-500 to-blue-600 p-4 mb-4">
                       <MapPin className="h-8 w-8 text-white" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      No tours enrolled
-                    </h3>
+                    <h3 className="text-lg font-semibold text-slate-900">No tours enrolled</h3>
                     <p className="mt-2 text-sm text-slate-600">
                       You haven't enrolled in any tours yet
                     </p>
@@ -775,32 +670,21 @@ function ParticipantDashboard({
                               <MapPin className="h-5 w-5 text-white" />
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-900">
-                                {tour.name}
-                              </p>
+                              <p className="font-semibold text-slate-900">{tour.name}</p>
                               <div className="flex items-center gap-3 mt-1">
-                                <span className="text-sm text-slate-500">
-                                  {tour.destination}
-                                </span>
+                                <span className="text-sm text-slate-500">{tour.destination}</span>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${
-                                statusColors[
-                                  tour.status as keyof typeof statusColors
-                                ]
+                                statusColors[tour.status as keyof typeof statusColors]
                               }`}
                             >
-                              {
-                                statusIcons[
-                                  tour.status as keyof typeof statusIcons
-                                ]
-                              }
+                              {statusIcons[tour.status as keyof typeof statusIcons]}
                               <span>
-                                {tour.status.charAt(0).toUpperCase() +
-                                  tour.status.slice(1)}
+                                {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
                               </span>
                             </span>
                             <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -829,9 +713,7 @@ function ParticipantDashboard({
                     <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Safety Information
-                    </h3>
+                    <h3 className="font-semibold text-slate-900">Safety Information</h3>
                     <p className="text-sm text-slate-600">Stay informed</p>
                   </div>
                 </div>
@@ -850,11 +732,7 @@ function ParticipantDashboard({
 }
 
 // Leader Dashboard Component
-function LeaderDashboard({
-  organizations,
-  tours,
-  userRole,
-}: DashboardClientProps) {
+function LeaderDashboard({ organizations, tours, userRole }: DashboardClientProps) {
   const stats = [
     {
       label: "My Active Tours",
@@ -866,10 +744,7 @@ function LeaderDashboard({
     },
     {
       label: "Total Participants",
-      value: tours.reduce(
-        (sum, tour) => sum + (tour.participants?.length || 0),
-        0,
-      ),
+      value: tours.reduce((sum, tour) => sum + (tour.participants?.length || 0), 0),
       icon: Users,
       color: "from-emerald-500 to-teal-500",
       change: "Managed",
@@ -898,16 +773,10 @@ function LeaderDashboard({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-white p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Tour Leader Dashboard
-            </h1>
+            <h1 className="text-3xl font-bold text-slate-900">Tour Leader Dashboard</h1>
             <p className="text-slate-600 mt-2">
               Manage your assigned tours and ensure participant safety.
             </p>
@@ -946,13 +815,9 @@ function LeaderDashboard({
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-slate-500 font-medium mb-2">
-                        {stat.label}
-                      </p>
+                      <p className="text-sm text-slate-500 font-medium mb-2">{stat.label}</p>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold text-slate-900">
-                          {stat.value}
-                        </p>
+                        <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
                         <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${
                             stat.trend === "up"
@@ -997,9 +862,7 @@ function LeaderDashboard({
               <Card className="rounded-3xl border-2 border-white hover:border-blue-100 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-xl">My Tours</CardTitle>
-                  <CardDescription>
-                    Tours you are currently leading
-                  </CardDescription>
+                  <CardDescription>Tours you are currently leading</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {tours.length === 0 ? (
@@ -1007,9 +870,7 @@ function LeaderDashboard({
                       <div className="rounded-full bg-gradient-to-br from-blue-500 to-blue-600 p-4 mb-4">
                         <MapPin className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        No tours assigned
-                      </h3>
+                      <h3 className="text-lg font-semibold text-slate-900">No tours assigned</h3>
                       <p className="mt-2 text-sm text-slate-600">
                         You haven't been assigned to any tours yet
                       </p>
@@ -1031,19 +892,12 @@ function LeaderDashboard({
                                 <MapPin className="h-5 w-5 text-white" />
                               </div>
                               <div>
-                                <p className="font-semibold text-slate-900">
-                                  {tour.name}
-                                </p>
+                                <p className="font-semibold text-slate-900">{tour.name}</p>
                                 <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-sm text-slate-500">{tour.destination}</span>
+                                  <span className="text-xs text-slate-400">•</span>
                                   <span className="text-sm text-slate-500">
-                                    {tour.destination}
-                                  </span>
-                                  <span className="text-xs text-slate-400">
-                                    •
-                                  </span>
-                                  <span className="text-sm text-slate-500">
-                                    {tour.participants?.length || 0}{" "}
-                                    participants
+                                    {tour.participants?.length || 0} participants
                                   </span>
                                 </div>
                               </div>
@@ -1051,19 +905,12 @@ function LeaderDashboard({
                             <div className="flex items-center gap-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${
-                                  statusColors[
-                                    tour.status as keyof typeof statusColors
-                                  ]
+                                  statusColors[tour.status as keyof typeof statusColors]
                                 }`}
                               >
-                                {
-                                  statusIcons[
-                                    tour.status as keyof typeof statusIcons
-                                  ]
-                                }
+                                {statusIcons[tour.status as keyof typeof statusIcons]}
                                 <span>
-                                  {tour.status.charAt(0).toUpperCase() +
-                                    tour.status.slice(1)}
+                                  {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
                                 </span>
                               </span>
                               <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -1094,24 +941,21 @@ function LeaderDashboard({
                     {
                       href: "/dashboard/attendance",
                       icon: ClipboardCheck,
-                      iconColor:
-                        "bg-gradient-to-br from-emerald-500 to-teal-500",
+                      iconColor: "bg-gradient-to-br from-emerald-500 to-teal-500",
                       title: "Take Attendance",
                       description: "Mark attendance for current tour",
                     },
                     {
                       href: "/dashboard/announcements",
                       icon: Bell,
-                      iconColor:
-                        "bg-gradient-to-br from-violet-500 to-purple-500",
+                      iconColor: "bg-gradient-to-br from-violet-500 to-purple-500",
                       title: "Send Announcement",
                       description: "Notify all participants",
                     },
                     {
                       href: "/dashboard/safety",
                       icon: AlertTriangle,
-                      iconColor:
-                        "bg-gradient-to-br from-amber-500 to-orange-500",
+                      iconColor: "bg-gradient-to-br from-amber-500 to-orange-500",
                       title: "Report Incident",
                       description: "Log safety concerns or emergencies",
                     },
@@ -1125,18 +969,12 @@ function LeaderDashboard({
                         href={action.href}
                         className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50"
                       >
-                        <div
-                          className={`rounded-xl p-3 text-white ${action.iconColor}`}
-                        >
+                        <div className={`rounded-xl p-3 text-white ${action.iconColor}`}>
                           <action.icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-slate-900">
-                            {action.title}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            {action.description}
-                          </p>
+                          <p className="font-semibold text-slate-900">{action.title}</p>
+                          <p className="text-sm text-slate-600">{action.description}</p>
                         </div>
                         <ChevronRight className="h-5 w-5 text-slate-400" />
                       </Link>
@@ -1176,12 +1014,8 @@ function LeaderDashboard({
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="font-semibold text-slate-900">
-                              {tour.name}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {tour.destination}
-                            </p>
+                            <p className="font-semibold text-slate-900">{tour.name}</p>
+                            <p className="text-sm text-slate-600">{tour.destination}</p>
                           </div>
                           <span className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-xs font-medium text-white">
                             Active
@@ -1219,9 +1053,7 @@ function LeaderDashboard({
                     <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Safety Status
-                    </h3>
+                    <h3 className="font-semibold text-slate-900">Safety Status</h3>
                     <p className="text-sm text-slate-600">All systems normal</p>
                   </div>
                 </div>
@@ -1234,9 +1066,7 @@ function LeaderDashboard({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">Participants</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      All safe
-                    </span>
+                    <span className="text-sm font-medium text-slate-900">All safe</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">Last check</span>
