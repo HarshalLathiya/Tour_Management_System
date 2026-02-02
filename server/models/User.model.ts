@@ -67,7 +67,7 @@ export class UserModel extends BaseModel {
     id: number,
     data: { name?: string; email?: string }
   ): Promise<Omit<UserRow, "password"> | null> {
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
 
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;

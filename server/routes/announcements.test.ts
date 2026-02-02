@@ -116,7 +116,7 @@ describe("Announcements API Routes", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBeGreaterThanOrEqual(2);
-      response.body.data.forEach((announcement: any) => {
+      response.body.data.forEach((announcement: { tour_id: number }) => {
         expect(announcement.tour_id).toBe(tourId);
       });
     });

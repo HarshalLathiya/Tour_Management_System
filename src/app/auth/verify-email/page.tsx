@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Mail, CheckCircle, ArrowRight, RefreshCw } from "lucide-react";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const [resendLoading, setResendLoading] = useState(false);
@@ -204,5 +204,15 @@ export default function VerifyEmailPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

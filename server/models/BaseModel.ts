@@ -1,5 +1,5 @@
 import pool from "../db";
-import type { QueryResult } from "pg";
+import type { PoolClient, QueryResult, QueryResultRow } from "pg";
 
 /**
  * Base Model class providing common database operations
@@ -15,16 +15,22 @@ export abstract class BaseModel {
   /**
    * Execute a raw SQL query
    */
-  protected async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+  protected async query<T extends QueryResultRow = QueryResultRow>(
+    text: string,
+    params?: unknown[]
+  ): Promise<QueryResult<T>> {
     return pool.query<T>(text, params);
   }
 
   /**
    * Find all records with optional filters
    */
-  async findAll<T = any>(conditions?: Record<string, any>, orderBy?: string): Promise<T[]> {
+  async findAll<T extends QueryResultRow = QueryResultRow>(
+    conditions?: Record<string, unknown>,
+    orderBy?: string
+  ): Promise<T[]> {
     let query = `SELECT * FROM ${this.tableName}`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (conditions && Object.keys(conditions).length > 0) {
@@ -48,7 +54,9 @@ export abstract class BaseModel {
   /**
    * Find a single record by ID
    */
-  async findById<T = any>(id: number | string): Promise<T | null> {
+  async findById<T extends QueryResultRow = QueryResultRow>(
+    id: number | string
+  ): Promise<T | null> {
     const result = await this.query<T>(`SELECT * FROM ${this.tableName} WHERE id = $1`, [id]);
     return result.rows[0] || null;
   }
@@ -56,13 +64,18 @@ export abstract class BaseModel {
   /**
    * Find a single record by conditions
    */
-  async findOne<T = any>(conditions: Record<string, any>): Promise<T | null> {
+  async findOne<T extends QueryResultRow = QueryResultRow>(
+    conditions: Record<string, unknown>
+  ): Promise<T | null> {
     const keys = Object.keys(conditions);
     const values = Object.values(conditions);
 
     const whereClause = keys.map((key, index) => `${key} = $${index + 1}`).join(" AND ");
 
-    const result = await this.query<T>(`SELECT * FROM ${this.tableName} WHERE ${whereClause}`, values);
+    const result = await this.query<T>(
+      `SELECT * FROM ${this.tableName} WHERE ${whereClause}`,
+      values
+    );
 
     return result.rows[0] || null;
   }
@@ -70,7 +83,9 @@ export abstract class BaseModel {
   /**
    * Create a new record
    */
-  async create<T = any>(data: Record<string, any>): Promise<T> {
+  async create<T extends QueryResultRow = QueryResultRow>(
+    data: Record<string, unknown>
+  ): Promise<T> {
     const keys = Object.keys(data);
     const values = Object.values(data);
 
@@ -88,7 +103,10 @@ export abstract class BaseModel {
   /**
    * Update a record by ID
    */
-  async updateById<T = any>(id: number | string, data: Record<string, any>): Promise<T | null> {
+  async updateById<T extends QueryResultRow = QueryResultRow>(
+    id: number | string,
+    data: Record<string, unknown>
+  ): Promise<T | null> {
     const keys = Object.keys(data);
     const values = Object.values(data);
 
@@ -111,16 +129,18 @@ export abstract class BaseModel {
    * Delete a record by ID
    */
   async deleteById(id: number | string): Promise<boolean> {
-    const result = await this.query(`DELETE FROM ${this.tableName} WHERE id = $1 RETURNING *`, [id]);
+    const result = await this.query(`DELETE FROM ${this.tableName} WHERE id = $1 RETURNING *`, [
+      id,
+    ]);
     return result.rowCount !== null && result.rowCount > 0;
   }
 
   /**
    * Count records with optional conditions
    */
-  async count(conditions?: Record<string, any>): Promise<number> {
+  async count(conditions?: Record<string, unknown>): Promise<number> {
     let query = `SELECT COUNT(*) as count FROM ${this.tableName}`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (conditions && Object.keys(conditions).length > 0) {
@@ -140,7 +160,7 @@ export abstract class BaseModel {
   /**
    * Check if a record exists
    */
-  async exists(conditions: Record<string, any>): Promise<boolean> {
+  async exists(conditions: Record<string, unknown>): Promise<boolean> {
     const count = await this.count(conditions);
     return count > 0;
   }
@@ -148,7 +168,7 @@ export abstract class BaseModel {
   /**
    * Execute a transaction
    */
-  async transaction<T>(callback: (client: any) => Promise<T>): Promise<T> {
+  async transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");

@@ -9,7 +9,7 @@ export class IncidentController {
   async getAll(req: Request, res: Response): Promise<void> {
     const { tour_id, severity, status, incident_type } = req.query;
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (tour_id) filters.tour_id = parseInt(tour_id as string);
     if (severity) filters.severity = severity;
     if (status) filters.status = status;
@@ -21,7 +21,7 @@ export class IncidentController {
   }
 
   async getById(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
 
     const incident = await Incident.findById(id);
@@ -130,7 +130,7 @@ export class IncidentController {
   }
 
   async respond(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     const respondedBy = (req as AuthenticatedRequest).user!.id;
 
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
@@ -158,7 +158,7 @@ export class IncidentController {
   }
 
   async resolve(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     const resolvedBy = (req as AuthenticatedRequest).user!.id;
     const { resolution_notes } = req.body;
 
@@ -191,7 +191,7 @@ export class IncidentController {
   }
 
   async update(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
 
     const updated = await Incident.updateById(id, req.body);
@@ -201,7 +201,7 @@ export class IncidentController {
   }
 
   async delete(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
 
     const deleted = await Incident.deleteById(id);

@@ -15,15 +15,15 @@ function getAuthToken(): string | null {
 /**
  * Make an authenticated API request
  */
-async function apiRequest<T = any>(
+async function apiRequest<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   const token = getAuthToken();
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   if (token) {
@@ -63,24 +63,24 @@ async function apiRequest<T = any>(
  */
 export const api = {
   // GET request
-  get: <T = any>(endpoint: string) => apiRequest<T>(endpoint, { method: "GET" }),
+  get: <T = unknown>(endpoint: string) => apiRequest<T>(endpoint, { method: "GET" }),
 
   // POST request
-  post: <T = any>(endpoint: string, data?: any) =>
+  post: <T = unknown>(endpoint: string, data?: unknown) =>
     apiRequest<T>(endpoint, {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   // PUT request
-  put: <T = any>(endpoint: string, data?: any) =>
+  put: <T = unknown>(endpoint: string, data?: unknown) =>
     apiRequest<T>(endpoint, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
   // DELETE request
-  delete: <T = any>(endpoint: string) => apiRequest<T>(endpoint, { method: "DELETE" }),
+  delete: <T = unknown>(endpoint: string) => apiRequest<T>(endpoint, { method: "DELETE" }),
 };
 
 /**
@@ -88,29 +88,29 @@ export const api = {
  */
 export const tourApi = {
   // Get all tours
-  getAll: () => api.get<any[]>("/tours"),
+  getAll: () => api.get<unknown[]>("/tours"),
 
   // Get tour by ID
-  getById: (id: number) => api.get<any>(`/tours/${id}`),
+  getById: (id: number) => api.get<unknown>(`/tours/${id}`),
 
   // Get my assigned tours (for leaders)
-  getMyAssigned: () => api.get<any[]>("/tours/my-assigned"),
+  getMyAssigned: () => api.get<unknown[]>("/tours/my-assigned"),
 
   // Create tour
-  create: (data: any) => api.post<any>("/tours", data),
+  create: (data: unknown) => api.post<unknown>("/tours", data),
 
   // Update tour
-  update: (id: number, data: any) => api.put<any>(`/tours/${id}`, data),
+  update: (id: number, data: unknown) => api.put<unknown>(`/tours/${id}`, data),
 
   // Delete tour
   delete: (id: number) => api.delete(`/tours/${id}`),
 
   // Assign leader
   assignLeader: (tourId: number, leaderId: number) =>
-    api.put<any>(`/tours/${tourId}/assign-leader`, { leader_id: leaderId }),
+    api.put<unknown>(`/tours/${tourId}/assign-leader`, { leader_id: leaderId }),
 
   // Unassign leader
-  unassignLeader: (tourId: number) => api.delete<any>(`/tours/${tourId}/assign-leader`),
+  unassignLeader: (tourId: number) => api.delete<unknown>(`/tours/${tourId}/assign-leader`),
 };
 
 /**
@@ -118,10 +118,10 @@ export const tourApi = {
  */
 export const userApi = {
   // Get all leaders (users with 'guide' role)
-  getLeaders: () => api.get<any[]>("/auth/leaders"),
+  getLeaders: () => api.get<unknown[]>("/auth/leaders"),
 
   // Get current user profile
-  getProfile: () => api.get<any>("/auth/profile"),
+  getProfile: () => api.get<unknown>("/auth/profile"),
 };
 
 /**
@@ -129,14 +129,14 @@ export const userApi = {
  */
 export const incidentApi = {
   // Get all incidents
-  getAll: () => api.get<any[]>("/incidents"),
+  getAll: () => api.get<unknown[]>("/incidents"),
 
   // Get incident by ID
-  getById: (id: number) => api.get<any>(`/incidents/${id}`),
+  getById: (id: number) => api.get<unknown>(`/incidents/${id}`),
 
   // Trigger SOS alert (one-click emergency)
   triggerSOS: (data: { tour_id: number; location?: string; description?: string }) =>
-    api.post<any>("/incidents/sos", data),
+    api.post<unknown>("/incidents/sos", data),
 
   // Report health issue
   reportHealth: (data: {
@@ -145,20 +145,20 @@ export const incidentApi = {
     description: string;
     location?: string;
     severity?: string;
-  }) => api.post<any>("/incidents/health", data),
+  }) => api.post<unknown>("/incidents/health", data),
 
   // Create general incident
-  create: (data: any) => api.post<any>("/incidents", data),
+  create: (data: unknown) => api.post<unknown>("/incidents", data),
 
   // Respond to incident (mark as in progress)
-  respond: (id: number) => api.put<any>(`/incidents/${id}/respond`, {}),
+  respond: (id: number) => api.put<unknown>(`/incidents/${id}/respond`, {}),
 
   // Resolve incident
   resolve: (id: number, resolutionNotes?: string) =>
-    api.put<any>(`/incidents/${id}/resolve`, { resolution_notes: resolutionNotes }),
+    api.put<unknown>(`/incidents/${id}/resolve`, { resolution_notes: resolutionNotes }),
 
   // Update incident
-  update: (id: number, data: any) => api.put<any>(`/incidents/${id}`, data),
+  update: (id: number, data: unknown) => api.put<unknown>(`/incidents/${id}`, data),
 
   // Delete incident
   delete: (id: number) => api.delete(`/incidents/${id}`),
@@ -170,10 +170,12 @@ export const incidentApi = {
 export const attendanceApi = {
   // Get all attendance records
   getAll: (filters?: { tour_id?: number; user_id?: number; date?: string; status?: string }) =>
-    api.get<any[]>(`/attendance?${new URLSearchParams(filters as any).toString()}`),
+    api.get<unknown[]>(
+      `/attendance?${new URLSearchParams(filters as Record<string, string>).toString()}`
+    ),
 
   // Get attendance by ID
-  getById: (id: number) => api.get<any>(`/attendance/${id}`),
+  getById: (id: number) => api.get<unknown>(`/attendance/${id}`),
 
   // Self check-in with geolocation
   checkIn: (data: {
@@ -185,16 +187,16 @@ export const attendanceApi = {
     place_lng?: number;
     date?: string;
     status?: string;
-  }) => api.post<any>("/attendance/checkin", data),
+  }) => api.post<unknown>("/attendance/checkin", data),
 
   // Create attendance (admin/guide)
-  create: (data: any) => api.post<any>("/attendance", data),
+  create: (data: unknown) => api.post<unknown>("/attendance", data),
 
   // Update attendance
-  update: (id: number, data: any) => api.put<any>(`/attendance/${id}`, data),
+  update: (id: number, data: unknown) => api.put<unknown>(`/attendance/${id}`, data),
 
   // Verify attendance (leader/admin)
-  verify: (id: number) => api.put<any>(`/attendance/${id}/verify`, {}),
+  verify: (id: number) => api.put<unknown>(`/attendance/${id}/verify`, {}),
 
   // Delete attendance
   delete: (id: number) => api.delete(`/attendance/${id}`),

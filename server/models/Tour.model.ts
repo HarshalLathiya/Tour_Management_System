@@ -12,17 +12,14 @@ export class TourModel extends BaseModel {
   /**
    * Get all tours with optional filters
    */
-  async getAllTours(filters?: {
-    status?: string;
-    assignedLeaderId?: number;
-  }): Promise<TourRow[]> {
+  async getAllTours(filters?: { status?: string; assignedLeaderId?: number }): Promise<TourRow[]> {
     let query = `
       SELECT t.*, u.name as leader_name, u.email as leader_email
       FROM tours t
       LEFT JOIN users u ON t.assigned_leader_id = u.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (filters?.status) {
@@ -106,7 +103,7 @@ export class TourModel extends BaseModel {
     }
   ): Promise<TourRow | null> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     Object.entries(data).forEach(([key, value]) => {

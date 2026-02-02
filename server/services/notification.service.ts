@@ -11,7 +11,7 @@ interface Notification {
   type: "SOS" | "HEALTH" | "INCIDENT" | "ATTENDANCE" | "ANNOUNCEMENT";
   title: string;
   message: string;
-  data?: any;
+  data?: unknown;
   timestamp: string;
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 }
@@ -49,7 +49,9 @@ class NotificationService {
       this.removeClient(userId);
     });
 
-    console.log(`[SSE] Client connected: User ${userId} (${role}), Total clients: ${this.clients.size}`);
+    console.log(
+      `[SSE] Client connected: User ${userId} (${role}), Total clients: ${this.clients.size}`
+    );
   }
 
   /**
@@ -170,7 +172,7 @@ class NotificationService {
         healthCategory: data.healthCategory,
       },
       timestamp: new Date().toISOString(),
-      severity: (data.severity as any) || "HIGH",
+      severity: (data.severity as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL") || "HIGH",
     };
 
     this.notifyLeadersAndAdmins(notification);

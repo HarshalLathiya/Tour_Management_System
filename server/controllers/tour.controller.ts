@@ -17,7 +17,7 @@ export class TourController {
       leader_id?: string;
     };
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (status) filters.status = status;
     if (leader_id) filters.assignedLeaderId = parseInt(leader_id);
 
@@ -33,7 +33,7 @@ export class TourController {
    * Get tour by ID
    */
   async getTourById(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
       throw new AppError(400, "Invalid tour ID");
@@ -55,16 +55,8 @@ export class TourController {
    * Create a new tour (Admin only)
    */
   async createTour(req: Request, res: Response): Promise<void> {
-    const {
-      name,
-      description,
-      start_date,
-      end_date,
-      destination,
-      price,
-      status,
-      content,
-    } = req.body;
+    const { name, description, start_date, end_date, destination, price, status, content } =
+      req.body;
 
     // Validate dates
     if (start_date && end_date) {
@@ -98,22 +90,14 @@ export class TourController {
    * Update tour (Admin only)
    */
   async updateTour(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
       throw new AppError(400, "Invalid tour ID");
     }
 
-    const {
-      name,
-      description,
-      start_date,
-      end_date,
-      destination,
-      price,
-      status,
-      content,
-    } = req.body;
+    const { name, description, start_date, end_date, destination, price, status, content } =
+      req.body;
 
     // Validate dates if both provided
     if (start_date && end_date) {
@@ -151,7 +135,7 @@ export class TourController {
    * Delete tour (Admin only)
    */
   async deleteTour(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
       throw new AppError(400, "Invalid tour ID");
@@ -173,7 +157,7 @@ export class TourController {
    * Assign leader to tour (Admin only)
    */
   async assignLeader(req: Request, res: Response): Promise<void> {
-    const tourId = parseInt(req.params.id);
+    const tourId = parseInt(String(req.params.id));
     const { leader_id } = req.body as { leader_id: number };
 
     if (isNaN(tourId)) {
@@ -214,7 +198,7 @@ export class TourController {
    * Unassign leader from tour (Admin only)
    */
   async unassignLeader(req: Request, res: Response): Promise<void> {
-    const tourId = parseInt(req.params.id);
+    const tourId = parseInt(String(req.params.id));
 
     if (isNaN(tourId)) {
       throw new AppError(400, "Invalid tour ID");

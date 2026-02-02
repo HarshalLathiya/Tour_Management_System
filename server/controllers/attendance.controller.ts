@@ -8,7 +8,7 @@ export class AttendanceController {
   async getAll(req: Request, res: Response): Promise<void> {
     const { tour_id, user_id, date, status } = req.query;
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (tour_id) filters.tour_id = parseInt(tour_id as string);
     if (user_id) filters.user_id = parseInt(user_id as string);
     if (date) filters.date = date;
@@ -23,7 +23,7 @@ export class AttendanceController {
   }
 
   async getById(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
 
     const record = await Attendance.findById(id);
@@ -47,12 +47,7 @@ export class AttendanceController {
 
     // Geofence validation if location provided
     if (location_lat && location_lng && place_lat && place_lng) {
-      const { isWithin } = isWithinGeofence(
-        location_lat,
-        location_lng,
-        place_lat,
-        place_lng
-      );
+      const { isWithin } = isWithinGeofence(location_lat, location_lng, place_lat, place_lng);
 
       if (!isWithin) {
         throw new AppError(400, "Location is outside geofence radius");
@@ -73,7 +68,7 @@ export class AttendanceController {
   }
 
   async update(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
 
     const { status } = req.body;
@@ -85,7 +80,7 @@ export class AttendanceController {
   }
 
   async verify(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     const verifiedBy = (req as AuthenticatedRequest).user!.id;
 
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
@@ -97,7 +92,7 @@ export class AttendanceController {
   }
 
   async delete(req: Request, res: Response): Promise<void> {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
 
     const deleted = await Attendance.deleteById(id);
