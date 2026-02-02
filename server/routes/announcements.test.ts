@@ -13,7 +13,7 @@ describe("Announcements API Routes", () => {
     await pool.query("DELETE FROM users WHERE email = $1", ["announce-test@example.com"]);
     const userResult = await pool.query(
       "INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
-      ["announce-test@example.com", "$2a$10$test", "Announce Test", "tour_leader"]
+      ["announce-test@example.com", "$2a$10$test", "Announce Test", "guide"]
     );
     const userId = userResult.rows[0].id;
 
