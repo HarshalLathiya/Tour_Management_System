@@ -1,99 +1,93 @@
 import express from "express";
-import pool from "../db";
 import { authenticateToken, authorizeRoles } from "../middleware/auth";
+import { validate, tourSchemas } from "../middleware/validation";
+import { asyncHandler } from "../middleware/errorHandler";
+import { tourController } from "../controllers/tour.controller";
 
 const router = express.Router();
 
-// Get all tours
-router.get("/", async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      "SELECT * FROM tours ORDER BY created_at DESC",
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error("Error fetching tours:", error);
-    res.status(500).json({ error: "Failed to fetch tours." });
-  }
-});
+/**
+ * Tour Routes - Delegates to TourController
+ * Following MVC pattern: Routes define endpoints, Controllers handle logic
+ */
 
-// Get a single tour by ID
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [rows] = await pool.query("SELECT * FROM tours WHERE id = ?", [id]);
-    if ((rows as any[]).length === 0) {
-      return res.status(404).json({ error: "Tour not found." });
-    }
-    res.json((rows as any[])[0]);
-  } catch (error) {
-    console.error("Error fetching tour:", error);
-    res.status(500).json({ error: "Failed to fetch tour." });
-  }
-});
+// GET /api/tours - Get all tours (with optional filters)
+router.get(
+  "/",
+  asyncHandler((req, res) => tourController.getAllTours(req, res))
+);
 
-// Create a new tour (admin only)
+// GET /api/tours/upcoming - Get upcoming tours
+router.get(
+  "/upcoming",
+  asyncHandler((req, res) => tourController.getUpcomingTours(req, res))
+);
+
+// GET /api/tours/ongoing - Get ongoing tours
+router.get(
+  "/ongoing",
+  asyncHandler((req, res) => tourController.getOngoingTours(req, res))
+);
+
+// GET /api/tours/completed - Get completed tours
+router.get(
+  "/completed",
+  asyncHandler((req, res) => tourController.getCompletedTours(req, res))
+);
+
+// GET /api/tours/my-assigned - Get tours assigned to current leader
+router.get(
+  "/my-assigned",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.getMyAssignedTours(req, res))
+);
+
+// GET /api/tours/:id - Get single tour
+router.get(
+  "/:id",
+  asyncHandler((req, res) => tourController.getTourById(req, res))
+);
+
+// POST /api/tours - Create new tour (Admin only)
 router.post(
   "/",
   authenticateToken,
   authorizeRoles("admin"),
-  async (req, res) => {
-    const { content } = req.body;
-    try {
-      const [result] = await pool.query(
-        "INSERT INTO tours (content) VALUES (?)",
-        [content],
-      );
-      res.status(201).json({ id: (result as any).insertId, content });
-    } catch (error) {
-      console.error("Error creating tour:", error);
-      res.status(500).json({ error: "Failed to create tour." });
-    }
-  },
+  validate(tourSchemas.create),
+  asyncHandler((req, res) => tourController.createTour(req, res))
 );
 
-// Update a tour (admin only)
+// PUT /api/tours/:id - Update tour (Admin only)
 router.put(
   "/:id",
   authenticateToken,
   authorizeRoles("admin"),
-  async (req, res) => {
-    const { id } = req.params;
-    const { content } = req.body;
-    try {
-      const [result] = await pool.query(
-        "UPDATE tours SET content = ? WHERE id = ?",
-        [content, id],
-      );
-      if ((result as any).affectedRows === 0) {
-        return res.status(404).json({ error: "Tour not found." });
-      }
-      res.json({ id, content });
-    } catch (error) {
-      console.error("Error updating tour:", error);
-      res.status(500).json({ error: "Failed to update tour." });
-    }
-  },
+  validate(tourSchemas.update),
+  asyncHandler((req, res) => tourController.updateTour(req, res))
 );
 
-// Delete a tour (admin only)
+// PUT /api/tours/:id/assign-leader - Assign leader to tour (Admin only)
+router.put(
+  "/:id/assign-leader",
+  authenticateToken,
+  authorizeRoles("admin"),
+  asyncHandler((req, res) => tourController.assignLeader(req, res))
+);
+
+// DELETE /api/tours/:id/assign-leader - Unassign leader from tour (Admin only)
+router.delete(
+  "/:id/assign-leader",
+  authenticateToken,
+  authorizeRoles("admin"),
+  asyncHandler((req, res) => tourController.unassignLeader(req, res))
+);
+
+// DELETE /api/tours/:id - Delete tour (Admin only)
 router.delete(
   "/:id",
   authenticateToken,
   authorizeRoles("admin"),
-  async (req, res) => {
-    const { id } = req.params;
-    try {
-      const [result] = await pool.query("DELETE FROM tours WHERE id = ?", [id]);
-      if ((result as any).affectedRows === 0) {
-        return res.status(404).json({ error: "Tour not found." });
-      }
-      res.json({ message: "Tour deleted successfully." });
-    } catch (error) {
-      console.error("Error deleting tour:", error);
-      res.status(500).json({ error: "Failed to delete tour." });
-    }
-  },
+  asyncHandler((req, res) => tourController.deleteTour(req, res))
 );
 
 export default router;

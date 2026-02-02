@@ -16,28 +16,8 @@ export default function VerifyEmailPage() {
 
     setResendLoading(true);
     setResendMessage(null);
-
-    try {
-      const { supabase } = await import("@/lib/supabase");
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email,
-      });
-
-      if (error) {
-        if (error.message.toLowerCase().includes("rate limit")) {
-          setResendMessage("Email rate limit exceeded. Please wait 15-30 minutes for the Supabase cooldown to clear, or try again later.");
-        } else {
-          setResendMessage("Failed to resend email. Please try again.");
-        }
-      } else {
-        setResendMessage("Verification email sent! Please check your inbox.");
-      }
-    } catch (error) {
-      setResendMessage("An error occurred. Please try again.");
-    } finally {
-      setResendLoading(false);
-    }
+    setResendMessage("Email verification is not configured. Please contact support.");
+    setResendLoading(false);
   };
 
   return (
@@ -85,9 +65,7 @@ export default function VerifyEmailPage() {
                 <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-200">
                   <Mail className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                  Check Your Email
-                </h2>
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">Check Your Email</h2>
                 <p className="text-slate-600">
                   We've sent a verification link to your email address
                 </p>
@@ -114,8 +92,8 @@ export default function VerifyEmailPage() {
               <div className="space-y-4 mb-8">
                 <div className="text-center">
                   <p className="text-slate-600 text-sm leading-relaxed">
-                    Click the verification link in your email to activate your
-                    account. You can then sign in to start using TourSync.
+                    Click the verification link in your email to activate your account. You can then
+                    sign in to start using TourSync.
                   </p>
                 </div>
 
@@ -144,9 +122,7 @@ export default function VerifyEmailPage() {
 
                   {resendMessage && (
                     <div className="mt-3 rounded-lg bg-green-50 border border-green-200 p-3">
-                      <p className="text-sm text-green-800 text-center">
-                        {resendMessage}
-                      </p>
+                      <p className="text-sm text-green-800 text-center">{resendMessage}</p>
                     </div>
                   )}
                 </div>
@@ -202,9 +178,7 @@ export default function VerifyEmailPage() {
               </span>
             </div>
 
-            <p className="text-sm text-slate-500">
-              © 2026 TourSync Inc. All rights reserved.
-            </p>
+            <p className="text-sm text-slate-500">© 2026 TourSync Inc. All rights reserved.</p>
 
             <nav className="flex gap-6 mt-4 sm:mt-0">
               <Link

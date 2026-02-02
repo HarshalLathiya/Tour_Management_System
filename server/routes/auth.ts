@@ -1,190 +1,63 @@
 import express from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import pool from "../db";
+import { authenticateToken } from "../middleware/auth";
+import { validate, authSchemas } from "../middleware/validation";
+import { asyncHandler } from "../middleware/errorHandler";
+import { authController } from "../controllers/auth.controller";
 
 const router = express.Router();
 
-// Register endpoint
-router.post("/register", async (req, res) => {
-  try {
-    const { email, password, name, role = "tourist" } = req.body;
+/**
+ * Auth Routes - Delegates to AuthController
+ * Following MVC pattern: Routes define endpoints, Controllers handle logic
+ */
 
-    // Validate input
-    if (!email || !password || !name) {
-      return res
-        .status(400)
-        .json({ error: "Email, password, and name are required" });
-    }
+// POST /api/auth/register - Register new user
+router.post(
+  "/register",
+  validate(authSchemas.register),
+  asyncHandler((req, res) => authController.register(req, res))
+);
 
-    // Check if user already exists
-    const [existingUsers] = await pool.query(
-      "SELECT id FROM users WHERE email = ?",
-      [email],
-    );
-    if ((existingUsers as any[]).length > 0) {
-      return res.status(409).json({ error: "User already exists" });
-    }
+// POST /api/auth/login - Login user
+router.post(
+  "/login",
+  validate(authSchemas.login),
+  asyncHandler((req, res) => authController.login(req, res))
+);
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+// POST /api/auth/refresh - Refresh access token
+router.post(
+  "/refresh",
+  validate(authSchemas.refresh),
+  asyncHandler((req, res) => authController.refresh(req, res))
+);
 
-    // Create user
-    const [result] = await pool.query(
-      "INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)",
-      [email, hashedPassword, name, role],
-    );
+// GET /api/auth/profile - Get current user profile
+router.get(
+  "/profile",
+  authenticateToken,
+  asyncHandler((req, res) => authController.getProfile(req, res))
+);
 
-    const userId = (result as any).insertId;
+// PUT /api/auth/profile - Update user profile
+router.put(
+  "/profile",
+  authenticateToken,
+  asyncHandler((req, res) => authController.updateProfile(req, res))
+);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: userId, email, role },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "24h" },
-    );
+// PUT /api/auth/change-password - Change password
+router.put(
+  "/change-password",
+  authenticateToken,
+  asyncHandler((req, res) => authController.changePassword(req, res))
+);
 
-    res.status(201).json({
-      message: "User registered successfully",
-      token,
-      user: { id: userId, email, name, role },
-    });
-  } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ error: "Failed to register user" });
-  }
-});
-
-// Login endpoint
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-
-    // Find user
-    const [users] = await pool.query("SELECT * FROM users WHERE email = ?", [
-      email,
-    ]);
-    const user = (users as any[])[0];
-
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    // Check password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "24h" },
-    );
-
-    // Generate refresh token
-    const refreshToken = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-      { expiresIn: "7d" },
-    );
-
-    res.json({
-      message: "Login successful",
-      token,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ error: "Failed to login" });
-  }
-});
-
-// Refresh token endpoint
-router.post("/refresh", async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(401).json({ error: "Refresh token required" });
-    }
-
-    jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-      async (err: any, decoded: any) => {
-        if (err) {
-          return res.status(403).json({ error: "Invalid refresh token" });
-        }
-
-        // Get user details
-        const [users] = await pool.query(
-          "SELECT id, email, name, role FROM users WHERE id = ?",
-          [decoded.id],
-        );
-        const user = (users as any[])[0];
-
-        if (!user) {
-          return res.status(404).json({ error: "User not found" });
-        }
-
-        // Generate new access token
-        const newToken = jwt.sign(
-          { id: user.id, email: user.email, role: user.role },
-          process.env.JWT_SECRET || "your-secret-key",
-          { expiresIn: "24h" },
-        );
-
-        res.json({
-          token: newToken,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          },
-        });
-      },
-    );
-  } catch (error) {
-    console.error("Refresh token error:", error);
-    res.status(500).json({ error: "Failed to refresh token" });
-  }
-});
-
-// Get current user profile
-router.get("/profile", async (req, res) => {
-  try {
-    // This will be protected by authenticateToken middleware
-    const userId = (req as any).user.id;
-
-    const [users] = await pool.query(
-      "SELECT id, email, name, role, created_at FROM users WHERE id = ?",
-      [userId],
-    );
-    const user = (users as any[])[0];
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.json({ user });
-  } catch (error) {
-    console.error("Profile fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch profile" });
-  }
-});
+// GET /api/auth/leaders - Get all leaders (guide role)
+router.get(
+  "/leaders",
+  authenticateToken,
+  asyncHandler((req, res) => authController.getLeaders(req, res))
+);
 
 export default router;

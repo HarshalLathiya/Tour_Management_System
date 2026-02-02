@@ -1,105 +1,107 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Calendar,
   MapPin,
-  Users,
-  DollarSign,
   Clock,
-  CheckCircle,
   AlertCircle,
   Plus,
   ChevronRight,
-  ArrowLeft,
-  Camera,
-  FileText,
-  Shield,
   Hotel,
   Edit,
   Trash2,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { BackButton } from "@/components/BackButton";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { AccommodationManager } from "@/components/accommodation-manager";
-import { createClient } from "@/lib/supabase/client";
+import { LeaderAssignment } from "@/components/LeaderAssignment";
+import { SOSButton } from "@/components/SOSButton";
+import { tourApi } from "@/lib/api";
+
+interface TourData {
+  id: number;
+  name: string;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  destination: string | null;
+  price: number | null;
+  status: string;
+  assigned_leader_id: number | null;
+  leader_name?: string | null;
+  leader_email?: string | null;
+}
+
+interface ItineraryItem {
+  id: string;
+  day_number: number;
+  location_name: string;
+  activity_details: string;
+}
 
 export default function TourDetailsPage() {
-  const { id } = useParams();
-  const [tour, setTour] = useState<any>(null);
-  const [itinerary, setItinerary] = useState<any[]>([]);
+  const router = useRouter();
+  const { id: rawId } = useParams();
+  const tourId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const [tour, setTour] = useState<TourData | null>(null);
+  const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("itinerary");
+  const [activeTab, setActiveTab] = useState("overview");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
-  const supabase = createClient();
+  const [editForm, setEditForm] = useState<Partial<TourData>>({});
+
+  const fetchTourData = async () => {
+    setLoading(true);
+    try {
+      const result = await tourApi.getById(parseInt(tourId));
+
+      if (result.success && result.data) {
+        setTour(result.data);
+        setEditForm(result.data);
+      } else {
+        console.error("Failed to fetch tour:", result.error);
+      }
+
+      // Decode JWT token to get user role
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          setUserRole(payload.role || null);
+        } catch {
+          setUserRole(null);
+        }
+      }
+
+      // Itinerary endpoint not yet available; initialize as empty
+      setItinerary([]);
+    } catch (error) {
+      console.error("Error fetching tour data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Fetch user profile to get role
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        setUserRole(profile?.role || null);
-      }
-
-      // Fetch tour basic info
-      const { data: tourData, error: tourError } = await supabase
-        .from("tours")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (tourError) {
-        console.error(tourError);
-        return;
-      }
-      setTour(tourData);
-      setEditForm(tourData); // Initialize edit form with current tour data
-
-      // Fetch itinerary
-      const { data: itineraryData } = await supabase
-        .from("itineraries")
-        .select("*")
-        .eq("tour_id", id)
-        .order("day_number", { ascending: true })
-        .order("sequence_order", { ascending: true });
-
-      setItinerary(itineraryData || []);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, [id]);
-
-  if (loading)
-    return <div className="p-8 text-center">Loading tour details...</div>;
-  if (!tour) return <div className="p-8 text-center">Tour not found.</div>;
+    fetchTourData();
+  }, [tourId]);
 
   const handleEditTour = async () => {
     try {
-      const { error } = await supabase
-        .from("tours")
-        .update(editForm)
-        .eq("id", id);
+      const result = await tourApi.update(parseInt(tourId), editForm);
 
-      if (error) {
-        console.error("Error updating tour:", error);
-        alert("Failed to update tour. Please try again.");
-      } else {
-        setTour(editForm);
+      if (result.success) {
+        setTour((prev) => (prev ? { ...prev, ...editForm } : prev));
         setIsEditing(false);
         alert("Tour updated successfully.");
+      } else {
+        console.error("Error updating tour:", result.error);
+        alert(`Failed to update tour: ${result.error}`);
       }
     } catch (error) {
       console.error("Error updating tour:", error);
@@ -108,29 +110,30 @@ export default function TourDetailsPage() {
   };
 
   const handleDeleteTour = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this tour? This action cannot be undone.",
-      )
-    ) {
+    if (!confirm("Are you sure you want to delete this tour? This action cannot be undone.")) {
       return;
     }
 
     try {
-      const { error } = await supabase.from("tours").delete().eq("id", id);
+      const result = await tourApi.delete(parseInt(tourId));
 
-      if (error) {
-        console.error("Error deleting tour:", error);
-        alert("Failed to delete tour. Please try again.");
-      } else {
+      if (result.success) {
         alert("Tour deleted successfully.");
-        window.location.href = "/dashboard/tours";
+        router.push("/dashboard/tours");
+      } else {
+        console.error("Error deleting tour:", result.error);
+        alert(`Failed to delete tour: ${result.error}`);
       }
     } catch (error) {
       console.error("Error deleting tour:", error);
       alert("Failed to delete tour. Please try again.");
     }
   };
+
+  if (loading) return <div className="p-8 text-center">Loading tour details...</div>;
+  if (!tour) return <div className="p-8 text-center">Tour not found.</div>;
+
+  const isAdmin = userRole === "admin";
 
   return (
     <div className="space-y-6">
@@ -143,37 +146,31 @@ export default function TourDetailsPage() {
                 <input
                   type="text"
                   value={editForm.name || ""}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, name: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                   className="text-2xl font-bold text-slate-800 border rounded px-2 py-1"
                   placeholder="Tour Name"
                 />
                 <input
                   type="text"
                   value={editForm.destination || ""}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, destination: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, destination: e.target.value })}
                   className="text-slate-500 border rounded px-2 py-1"
                   placeholder="Destination"
                 />
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-bold text-slate-800">
-                  {tour.name}
-                </h2>
+                <h2 className="text-2xl font-bold text-slate-800">{tour.name}</h2>
                 <p className="text-slate-500 flex items-center">
-                  <MapPin className="h-4 w-4 mr-1" /> {tour.destination} •
+                  <MapPin className="h-4 w-4 mr-1" /> {tour.destination || "No destination"} •
                   <Calendar className="h-4 w-4 ml-2 mr-1" />{" "}
-                  {new Date(tour.start_date).toLocaleDateString()}
+                  {tour.start_date ? new Date(tour.start_date).toLocaleDateString() : "No date"}
                 </p>
               </>
             )}
           </div>
         </div>
-        {userRole === "org_admin" && (
+        {isAdmin && (
           <div className="flex space-x-2">
             {isEditing ? (
               <>
@@ -219,40 +216,98 @@ export default function TourDetailsPage() {
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {[
-            "itinerary",
-            "accommodation",
-            "attendance",
-            "budget",
-            "safety",
-            "gallery",
-            "documents",
-          ].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`
+            { id: "overview", label: "Overview" },
+            { id: "leader", label: "Leader", icon: User, adminOnly: true },
+            { id: "itinerary", label: "Itinerary" },
+            { id: "accommodation", label: "Accommodation", icon: Hotel },
+            { id: "attendance", label: "Attendance" },
+            { id: "budget", label: "Budget" },
+            { id: "safety", label: "Safety" },
+            { id: "gallery", label: "Gallery" },
+            { id: "documents", label: "Documents" },
+          ]
+            .filter((tab) => !tab.adminOnly || isAdmin)
+            .map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
                   whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
                   ${
-                    activeTab === tab
+                    activeTab === tab.id
                       ? "border-blue-500 text-blue-600"
                       : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                   }
                 `}
-            >
-              {tab === "accommodation" ? (
-                <span className="flex items-center">
-                  <Hotel className="h-4 w-4 mr-1.5" /> Accommodation
-                </span>
-              ) : (
-                tab.charAt(0).toUpperCase() + tab.slice(1)
-              )}
-            </button>
-          ))}
+              >
+                {tab.icon ? (
+                  <span className="flex items-center">
+                    <tab.icon className="h-4 w-4 mr-1.5" /> {tab.label}
+                  </span>
+                ) : (
+                  tab.label
+                )}
+              </button>
+            ))}
         </nav>
       </div>
 
       {/* Tab Content */}
       <div className="py-4">
+        {activeTab === "overview" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+              <h3 className="text-lg font-semibold mb-4">Tour Information</h3>
+              <dl className="space-y-3">
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Status</dt>
+                  <dd className="font-medium capitalize">{tour.status}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Start Date</dt>
+                  <dd className="font-medium">
+                    {tour.start_date ? new Date(tour.start_date).toLocaleDateString() : "Not set"}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">End Date</dt>
+                  <dd className="font-medium">
+                    {tour.end_date ? new Date(tour.end_date).toLocaleDateString() : "Not set"}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Price per Person</dt>
+                  <dd className="font-medium">${tour.price?.toFixed(2) || "0.00"}</dd>
+                </div>
+                {tour.leader_name && (
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500">Assigned Leader</dt>
+                    <dd className="font-medium">{tour.leader_name}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+            {tour.description && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                <h3 className="text-lg font-semibold mb-2">Description</h3>
+                <p className="text-slate-600">{tour.description}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "leader" && isAdmin && (
+          <div className="max-w-2xl">
+            <LeaderAssignment
+              tourId={tour.id}
+              currentLeaderId={tour.assigned_leader_id}
+              currentLeaderName={tour.leader_name}
+              currentLeaderEmail={tour.leader_email}
+              onAssignmentChange={fetchTourData}
+            />
+          </div>
+        )}
+
         {activeTab === "itinerary" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -279,13 +334,9 @@ export default function TourDetailsPage() {
                         <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded">
                           Day {item.day_number}
                         </span>
-                        <h4 className="font-bold text-slate-800">
-                          {item.location_name}
-                        </h4>
+                        <h4 className="font-bold text-slate-800">{item.location_name}</h4>
                       </div>
-                      <p className="text-sm text-slate-500 mt-1">
-                        {item.activity_details}
-                      </p>
+                      <p className="text-sm text-slate-500 mt-1">{item.activity_details}</p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                   </div>
@@ -295,18 +346,14 @@ export default function TourDetailsPage() {
           </div>
         )}
 
-        {activeTab === "accommodation" && (
-          <AccommodationManager tourId={id as string} />
-        )}
+        {activeTab === "accommodation" && <AccommodationManager tourId={tourId} />}
 
         {activeTab === "attendance" && (
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
             <h3 className="text-lg font-semibold mb-4">Quick Attendance</h3>
-            <p className="text-slate-500 text-sm mb-6">
-              Track presence for today's locations.
-            </p>
+            <p className="text-slate-500 text-sm mb-6">Track presence for today's locations.</p>
             <Link
-              href={`/dashboard/attendance?tourId=${id}`}
+              href={`/dashboard/attendance?tourId=${tourId}`}
               className="text-blue-600 font-medium hover:underline"
             >
               Go to Full Attendance Module →
@@ -317,33 +364,12 @@ export default function TourDetailsPage() {
         {activeTab === "budget" && (
           <div className="grid gap-6 md:grid-cols-2">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-              <h3 className="text-lg font-semibold mb-4 text-slate-800">
-                Budget Summary
-              </h3>
+              <h3 className="text-lg font-semibold mb-4 text-slate-800">Budget Summary</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="text-slate-500">Total Funds</span>
+                  <span className="text-slate-500">Price per Person</span>
                   <span className="font-bold text-slate-900">
-                    $
-                    {(
-                      tour.per_person_fee * (tour.max_participants || 1)
-                    ).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="text-slate-500">Buffer Amount</span>
-                  <span className="font-bold text-slate-900">
-                    ${tour.buffer_amount?.toFixed(2) || "0.00"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-blue-600 pt-2">
-                  <span className="font-semibold">Available Budget</span>
-                  <span className="text-xl font-bold">
-                    $
-                    {(
-                      tour.per_person_fee * (tour.max_participants || 1) +
-                      (tour.buffer_amount || 0)
-                    ).toFixed(2)}
+                    ${tour.price?.toFixed(2) || "0.00"}
                   </span>
                 </div>
               </div>
@@ -367,13 +393,19 @@ export default function TourDetailsPage() {
               Quick access to SOS and incident reporting.
             </p>
             <div className="grid grid-cols-2 gap-4">
-              <button className="bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-red-700 transition-colors">
-                TRIGGER SOS
-              </button>
+              <SOSButton tourId={tour.id} />
               <button className="bg-white text-red-600 border border-red-200 font-bold py-3 rounded-lg hover:bg-red-50 transition-colors">
                 REPORT INCIDENT
               </button>
             </div>
+          </div>
+        )}
+
+        {activeTab === "gallery" && <PhotoGallery tourId={tourId} />}
+
+        {activeTab === "documents" && (
+          <div className="bg-white rounded-xl p-8 text-center border-2 border-dashed border-slate-200">
+            <p className="text-slate-500">Document vault feature coming soon.</p>
           </div>
         )}
       </div>

@@ -46,8 +46,7 @@ export function ToursClient({ tours }: ToursClientProps) {
     const matchesSearch =
       tour.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.destination.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || tour.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || tour.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -57,10 +56,8 @@ export function ToursClient({ tours }: ToursClientProps) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
-                <Button className="text-sm">
-                  Dashboard
-                </Button>
-              </Link>
+              <Button className="text-sm">Dashboard</Button>
+            </Link>
             <span className="text-muted-foreground">/</span>
             <h1 className="text-xl font-semibold text-foreground">Tours</h1>
           </div>
@@ -146,8 +143,7 @@ export function ToursClient({ tours }: ToursClientProps) {
                                 statusColors[tour.status]
                               }`}
                             >
-                              {tour.status.charAt(0).toUpperCase() +
-                                tour.status.slice(1)}
+                              {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
                             </span>
                             <button className="rounded p-1 opacity-0 transition-opacity hover:bg-slate-100 group-hover:opacity-100">
                               <MoreHorizontal className="h-4 w-4 text-slate-500" />

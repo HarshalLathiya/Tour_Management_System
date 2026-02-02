@@ -1,39 +1,44 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
-import { Bell, User } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
+import { Bell, User } from "lucide-react";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+interface DecodedProfile {
+  id: string;
+  email: string;
+  role: string;
+  full_name: string;
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [profile, setProfile] = useState<DecodedProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/auth/login');
+    const getUser = () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+      if (!token) {
+        router.push("/auth/login");
         return;
       }
 
-      setUser(session.user);
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setProfile({
+          id: payload.id || "",
+          email: payload.email || "",
+          role: payload.role || "",
+          full_name: payload.full_name || payload.email || "",
+        });
+      } catch {
+        router.push("/auth/login");
+        return;
+      }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      setProfile(profileData);
       setLoading(false);
     };
 
@@ -50,13 +55,17 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar userRole={profile?.role} />
+      <Sidebar userRole={profile?.role || ""} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center justify-between border-b bg-white px-8 shadow-sm">
           <h1 className="text-xl font-semibold text-slate-800">
-            {profile?.role === 'tour_leader' ? 'Leader Dashboard' : 
-             profile?.role === 'org_admin' ? 'Organization Admin' : 
-             profile?.role === 'super_admin' ? 'Platform Admin' : 'Participant Dashboard'}
+            {profile?.role === "tour_leader"
+              ? "Leader Dashboard"
+              : profile?.role === "org_admin"
+                ? "Organization Admin"
+                : profile?.role === "super_admin"
+                  ? "Platform Admin"
+                  : "Participant Dashboard"}
           </h1>
           <div className="flex items-center space-x-4">
             <button className="rounded-full p-2 text-slate-500 hover:bg-slate-100 transition-colors">
@@ -70,9 +79,7 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-8">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>
     </div>
   );

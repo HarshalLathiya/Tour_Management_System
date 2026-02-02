@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { MapPin, Mail, ArrowRight, ArrowLeft, CheckCircle2, Key, ShieldAlert } from "lucide-react";
 import { adminResetPassword } from "./actions";
@@ -13,7 +12,6 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const supabase = createClient();
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,21 +35,11 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/api/auth/callback?next=/auth/update-password`,
-    });
-
-    if (error) {
-      if (error.message.includes("rate limit")) {
-        setError("Email rate limit exceeded. If you just set up a custom SMTP provider, please wait 15-30 minutes for the Supabase cooldown to clear, or try a different email address.");
-      } else {
-        setError(error.message);
-      }
-      setLoading(false);
-    } else {
-      setSuccess(true);
-      setLoading(false);
-    }
+    // Email-based password reset is not available with the current auth setup.
+    // Prompt the user to use the Direct Reset option instead.
+    setError("Email password reset is not available. Please use Direct Reset below.");
+    setMode("admin");
+    setLoading(false);
   };
 
   return (
@@ -76,7 +64,6 @@ export default function ForgotPasswordPage() {
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-3xl blur-xl opacity-50"></div>
             <div className="relative rounded-3xl bg-white border-2 border-blue-100 p-8 shadow-xl shadow-blue-100/50">
-              
               {!success ? (
                 <>
                   <div className="pt-8 text-center mb-8">
@@ -84,7 +71,7 @@ export default function ForgotPasswordPage() {
                       {mode === "admin" ? "Direct Reset" : "Forgot Password?"}
                     </h2>
                     <p className="text-slate-600">
-                      {mode === "admin" 
+                      {mode === "admin"
                         ? "Temporary admin tool: Reset password immediately without email."
                         : "Enter your email and we'll send you a link to reset your password"}
                     </p>
@@ -97,7 +84,7 @@ export default function ForgotPasswordPage() {
                         <p className="text-sm font-medium text-red-800">{error}</p>
                       </div>
                       {error.includes("rate limit") && mode === "standard" && (
-                        <button 
+                        <button
                           onClick={() => setMode("admin")}
                           className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-700 underline flex items-center"
                         >
@@ -110,7 +97,10 @@ export default function ForgotPasswordPage() {
 
                   <form className="space-y-6" onSubmit={handleReset}>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-slate-700 mb-2"
+                      >
                         Email Address
                       </label>
                       <div className="relative">
@@ -131,7 +121,10 @@ export default function ForgotPasswordPage() {
 
                     {mode === "admin" && (
                       <div>
-                        <label htmlFor="pass" className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="pass"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           New Password
                         </label>
                         <div className="relative">
@@ -156,7 +149,13 @@ export default function ForgotPasswordPage() {
                       disabled={loading}
                       className="group relative w-full inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? (mode === "admin" ? "Resetting..." : "Sending link...") : (
+                      {loading ? (
+                        mode === "admin" ? (
+                          "Resetting..."
+                        ) : (
+                          "Sending link..."
+                        )
+                      ) : (
                         <>
                           {mode === "admin" ? "Reset Password Now" : "Send Reset Link"}
                           <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -198,7 +197,7 @@ export default function ForgotPasswordPage() {
                     {mode === "admin" ? "Password Reset!" : "Check your email"}
                   </h2>
                   <p className="text-slate-600 mb-8">
-                    {mode === "admin" 
+                    {mode === "admin"
                       ? "Your password has been updated successfully. You can now log in with your new password."
                       : `We've sent a password reset link to ${email}.`}
                   </p>

@@ -6,8 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "TourSync - Global Tour Management System",
-  description:
-    "A comprehensive platform for tour execution, safety, and attendance tracking.",
+  description: "A comprehensive platform for tour execution, safety, and attendance tracking.",
 };
 
 export default function RootLayout({
