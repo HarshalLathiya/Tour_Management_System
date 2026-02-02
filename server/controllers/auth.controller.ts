@@ -77,7 +77,7 @@ export class AuthController {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       throw new AppError(401, "Invalid credentials");
     }
@@ -211,7 +211,7 @@ export class AuthController {
     }
 
     // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isValidPassword) {
       throw new AppError(401, "Current password is incorrect");
     }

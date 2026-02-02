@@ -7,7 +7,7 @@ export type UserRole = "admin" | "guide" | "tourist";
 export interface UserRow {
   id: number;
   email: string;
-  password: string;
+  password_hash: string;
   name: string;
   role: UserRole;
   created_at: Date;

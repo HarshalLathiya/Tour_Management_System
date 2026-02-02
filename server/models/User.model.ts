@@ -19,8 +19,8 @@ export class UserModel extends BaseModel {
   /**
    * Find user by ID (without password)
    */
-  async findByIdSafe(id: number): Promise<Omit<UserRow, "password"> | null> {
-    const result = await this.query<Omit<UserRow, "password">>(
+  async findByIdSafe(id: number): Promise<Omit<UserRow, "password_hash"> | null> {
+    const result = await this.query<Omit<UserRow, "password_hash">>(
       "SELECT id, email, name, role, created_at FROM users WHERE id = $1",
       [id]
     );
@@ -46,7 +46,7 @@ export class UserModel extends BaseModel {
     const { email, password, name, role = "tourist" } = data;
 
     const result = await this.query<{ id: number }>(
-      "INSERT INTO users (email, password, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
+      "INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
       [email, password, name, role]
     );
 
@@ -66,7 +66,7 @@ export class UserModel extends BaseModel {
   async updateProfile(
     id: number,
     data: { name?: string; email?: string }
-  ): Promise<Omit<UserRow, "password"> | null> {
+  ): Promise<Omit<UserRow, "password_hash"> | null> {
     const updateData: Record<string, unknown> = {};
 
     if (data.name !== undefined) updateData.name = data.name;
@@ -76,7 +76,7 @@ export class UserModel extends BaseModel {
       return null;
     }
 
-    const result = await this.query<Omit<UserRow, "password">>(
+    const result = await this.query<Omit<UserRow, "password_hash">>(
       `UPDATE users
        SET ${Object.keys(updateData)
          .map((key, idx) => `${key} = $${idx + 1}`)
@@ -93,7 +93,7 @@ export class UserModel extends BaseModel {
    * Update user password
    */
   async updatePassword(id: number, hashedPassword: string): Promise<boolean> {
-    const result = await this.query("UPDATE users SET password = $1 WHERE id = $2", [
+    const result = await this.query("UPDATE users SET password_hash = $1 WHERE id = $2", [
       hashedPassword,
       id,
     ]);
@@ -103,8 +103,8 @@ export class UserModel extends BaseModel {
   /**
    * Get all users with a specific role
    */
-  async findByRole(role: string): Promise<Omit<UserRow, "password">[]> {
-    const result = await this.query<Omit<UserRow, "password">>(
+  async findByRole(role: string): Promise<Omit<UserRow, "password_hash">[]> {
+    const result = await this.query<Omit<UserRow, "password_hash">>(
       "SELECT id, email, name, role, created_at FROM users WHERE role = $1 ORDER BY name ASC",
       [role]
     );
@@ -114,7 +114,7 @@ export class UserModel extends BaseModel {
   /**
    * Get all leaders (users with 'guide' role)
    */
-  async getAllLeaders(): Promise<Omit<UserRow, "password">[]> {
+  async getAllLeaders(): Promise<Omit<UserRow, "password_hash">[]> {
     return this.findByRole("guide");
   }
 
