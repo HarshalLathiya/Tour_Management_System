@@ -13,14 +13,11 @@ import {
   Check,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { tourApi, announcementApi, api, tokenManager } from "@/lib/api";
+import type { TourData, AnnouncementData } from "@/lib/api";
 import type { Tour } from "@/types";
 
-interface AnnouncementWithMeta {
-  id: string;
-  tour_id: string;
-  title: string;
-  content: string;
-  created_at: string;
+interface AnnouncementWithMeta extends AnnouncementData {
   profiles?: { full_name: string };
   announcement_reads?: { user_id: number }[];
 }
@@ -32,8 +29,8 @@ interface UserProfile {
 }
 
 export default function AnnouncementsPage() {
-  const [tours, setTours] = useState<Tour[]>([]);
-  const [selectedTourId, setSelectedTourId] = useState<string>("");
+  const [tours, setTours] = useState<TourData[]>([]);
+  const [selectedTourId, setSelectedTourId] = useState<number>(0);
   const [announcements, setAnnouncements] = useState<AnnouncementWithMeta[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,16 +39,18 @@ export default function AnnouncementsPage() {
 
   useEffect(() => {
     const fetchInitial = async () => {
-      // For now, mock a user profile since we are moving away from Supabase Auth in this session
-      setProfile({ id: 1, full_name: "Admin User", role: "ORG_ADMIN" });
+      // Get user from token
+      const decoded = tokenManager.decodeToken();
+      if (decoded) {
+        setProfile({ id: decoded.id, full_name: decoded.email, role: decoded.role });
+      }
 
       try {
-        const response = await fetch("http://localhost:5000/api/tours");
-        if (response.ok) {
-          const tourData = await response.json();
-          setTours(tourData || []);
-          if (tourData && tourData.length > 0) {
-            setSelectedTourId(tourData[0].id);
+        const result = await tourApi.getAll();
+        if (result.success && result.data) {
+          setTours(result.data);
+          if (result.data.length > 0) {
+            setSelectedTourId(result.data[0].id);
           }
         }
       } catch (error) {
@@ -67,12 +66,11 @@ export default function AnnouncementsPage() {
     const fetchAnnouncements = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/announcements?tour_id=${selectedTourId}`
+        const result = await api.get<AnnouncementWithMeta[]>(
+          `/announcements?tour_id=${selectedTourId}`
         );
-        if (response.ok) {
-          const data = await response.json();
-          setAnnouncements(data || []);
+        if (result.success && result.data) {
+          setAnnouncements(result.data);
         }
       } catch (error) {
         console.error("Error fetching announcements:", error);
@@ -90,20 +88,19 @@ export default function AnnouncementsPage() {
     setPosting(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tour_id: selectedTourId,
-          title: newAnn.title || "Tour Update",
-          content: newAnn.content,
-        }),
+      const result = await announcementApi.create({
+        tour_id: selectedTourId,
+        title: newAnn.title || "Tour Update",
+        content: newAnn.content,
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (result.success && result.data) {
         setAnnouncements([
-          { ...data, profiles: { full_name: profile?.full_name }, announcement_reads: [] },
+          {
+            ...result.data,
+            profiles: { full_name: profile?.full_name || "" },
+            announcement_reads: [],
+          },
           ...announcements,
         ]);
         setNewAnn({ title: "", content: "" });
@@ -115,14 +112,10 @@ export default function AnnouncementsPage() {
     }
   };
 
-  const markAsRead = async (annId: string) => {
+  const markAsRead = async (annId: number) => {
     if (!profile) return;
     try {
-      await fetch(`http://localhost:5000/api/announcements/${annId}/read`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: profile.id }),
-      });
+      await api.post(`/announcements/${annId}/read`, { user_id: profile.id });
       setAnnouncements(
         announcements.map((ann) => {
           if (ann.id === annId) {
@@ -148,8 +141,8 @@ export default function AnnouncementsPage() {
         </div>
         <select
           value={selectedTourId}
-          onChange={(e) => setSelectedTourId(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+          onChange={(e) => setSelectedTourId(parseInt(e.target.value))}
+          className="input"
         >
           {tours.map((t) => (
             <option key={t.id} value={t.id}>
@@ -165,7 +158,7 @@ export default function AnnouncementsPage() {
           {(profile?.role === "TOUR_LEADER" || profile?.role === "ORG_ADMIN") && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 border-b flex items-center space-x-2">
-                <Send className="h-4 w-4 text-blue-600" />
+                <Send className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                   New Broadcast
                 </h3>
@@ -174,21 +167,21 @@ export default function AnnouncementsPage() {
                 <input
                   type="text"
                   placeholder="Subject (e.g. Assembly Reminder)"
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
+                  className="input font-semibold"
                   value={newAnn.title}
                   onChange={(e) => setNewAnn({ ...newAnn, title: e.target.value })}
                 />
                 <textarea
                   required
                   placeholder="Type your message to all participants..."
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm min-h-[100px]"
+                  className="input min-h-[100px]"
                   value={newAnn.content}
                   onChange={(e) => setNewAnn({ ...newAnn, content: e.target.value })}
                 />
                 <div className="flex justify-end">
                   <button
                     disabled={posting || !newAnn.content}
-                    className="bg-blue-600 text-white font-bold py-2 px-6 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center"
+                    className="btn-primary disabled:opacity-50"
                   >
                     {posting ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -219,7 +212,7 @@ export default function AnnouncementsPage() {
                 return (
                   <div
                     key={ann.id}
-                    className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 hover:border-blue-200 transition-all"
+                    className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 hover:border-primary-200 transition-all"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center space-x-3">
@@ -237,7 +230,7 @@ export default function AnnouncementsPage() {
                       {!hasRead && profile?.role === "PARTICIPANT" && (
                         <button
                           onClick={() => markAsRead(ann.id)}
-                          className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"
+                          className="text-xs font-bold text-primary bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100"
                         >
                           Mark as Read
                         </button>
@@ -269,9 +262,9 @@ export default function AnnouncementsPage() {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
             <h3 className="text-lg font-bold text-slate-800 mb-4">Quick Stats</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-                <span className="text-sm font-bold text-blue-700">Total Broadcasts</span>
-                <span className="text-xl font-black text-blue-800">{announcements.length}</span>
+              <div className="flex items-center justify-between p-3 bg-primary-50 rounded-xl">
+                <span className="text-sm font-bold text-primary-700">Total Broadcasts</span>
+                <span className="text-xl font-black text-primary-800">{announcements.length}</span>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
                 Announcements are real-time. Participants receive push notifications and must

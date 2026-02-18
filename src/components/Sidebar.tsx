@@ -13,71 +13,69 @@ import {
   LogOut,
   MapPin,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const sidebarLinks = [
   {
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["super_admin", "org_admin", "tour_leader", "participant"],
+    roles: ["admin", "guide", "tourist"],
   },
   {
     name: "My Tours",
     href: "/dashboard/tours",
     icon: Map,
-    roles: ["super_admin", "org_admin", "tour_leader", "participant"],
+    roles: ["admin", "guide", "tourist"],
   },
   {
     name: "Attendance",
     href: "/dashboard/attendance",
     icon: Users,
-    roles: ["super_admin", "org_admin", "tour_leader"],
+    roles: ["admin", "guide"],
   },
   {
     name: "Safety & SOS",
     href: "/dashboard/safety",
     icon: ShieldAlert,
-    roles: ["super_admin", "org_admin", "tour_leader", "participant"],
+    roles: ["admin", "guide", "tourist"],
   },
   {
     name: "Budget",
     href: "/dashboard/budget",
     icon: Wallet,
-    roles: ["super_admin", "org_admin"],
+    roles: ["admin"],
   },
   {
     name: "Announcements",
     href: "/dashboard/announcements",
     icon: Bell,
-    roles: ["super_admin", "org_admin", "tour_leader", "participant"],
+    roles: ["admin", "guide", "tourist"],
   },
   {
     name: "Audit Logs",
     href: "/dashboard/audit-logs",
     icon: Settings,
-    roles: ["super_admin", "org_admin"],
+    roles: ["admin"],
   },
 ];
 
-export default function Sidebar({ userRole }: { userRole: string }) {
+export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    document.cookie = "token=; max-age=0; path=/";
-    router.push("/auth/login");
-  };
-
-  const filteredLinks = sidebarLinks.filter((link) => link.roles.includes(userRole));
+  const filteredLinks = sidebarLinks.filter((link) =>
+    user?.role ? link.roles.includes(user.role) : false
+  );
 
   return (
-    <div className="flex h-full w-64 flex-col bg-slate-900 text-slate-300">
-      <div className="flex h-16 items-center px-6">
-        <Link href="/dashboard" className="flex items-center space-x-2">
-          <MapPin className="h-6 w-6 text-blue-500" />
-          <span className="text-xl font-bold text-white">TourSync</span>
+    <div className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
+      <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
+        <Link href="/dashboard" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center transition-transform group-hover:scale-105">
+            <MapPin className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-xl font-bold text-sidebar-foreground">TourSync</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
@@ -87,20 +85,22 @@ export default function Sidebar({ userRole }: { userRole: string }) {
             <Link
               key={link.name}
               href={link.href}
-              className={`flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive ? "bg-blue-600 text-white" : "hover:bg-slate-800 hover:text-white"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               }`}
             >
-              <link.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
+              <link.icon className="h-5 w-5" />
               <span>{link.name}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="border-t border-slate-800 p-4">
+      <div className="border-t border-sidebar-border p-4">
         <button
-          onClick={handleLogout}
-          className="flex w-full items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          onClick={logout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
         >
           <LogOut className="h-5 w-5" />
           <span>Logout</span>

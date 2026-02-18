@@ -16,11 +16,13 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { tourApi, api } from "@/lib/api";
+import type { TourData } from "@/lib/api";
 import type { Tour } from "@/types";
 
 interface BudgetExpense {
-  id: string;
-  tour_id: string;
+  id: number;
+  tour_id: number;
   category: string;
   description: string;
   amount: string;
@@ -28,9 +30,9 @@ interface BudgetExpense {
 }
 
 export default function BudgetPage() {
-  const [tours, setTours] = useState<Tour[]>([]);
-  const [selectedTourId, setSelectedTourId] = useState<string>("");
-  const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
+  const [tours, setTours] = useState<TourData[]>([]);
+  const [selectedTourId, setSelectedTourId] = useState<number>(0);
+  const [selectedTour, setSelectedTour] = useState<TourData | null>(null);
   const [expenses, setExpenses] = useState<BudgetExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -43,12 +45,11 @@ export default function BudgetPage() {
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/tours");
-        if (response.ok) {
-          const data = await response.json();
-          setTours(data || []);
-          if (data && data.length > 0) {
-            setSelectedTourId(data[0].id);
+        const result = await tourApi.getAll();
+        if (result.success && result.data) {
+          setTours(result.data);
+          if (result.data.length > 0) {
+            setSelectedTourId(result.data[0].id);
           }
         }
       } catch (error) {
@@ -70,12 +71,9 @@ export default function BudgetPage() {
 
       try {
         // Fetch expenses
-        const response = await fetch(
-          `http://localhost:5000/api/expenses?tour_id=${selectedTourId}`
-        );
-        if (response.ok) {
-          const expenseData = await response.json();
-          setExpenses(expenseData || []);
+        const result = await api.get<BudgetExpense[]>(`/expenses?tour_id=${selectedTourId}`);
+        if (result.success && result.data) {
+          setExpenses(result.data);
         }
       } catch (error) {
         console.error("Error fetching expenses:", error);
@@ -91,20 +89,15 @@ export default function BudgetPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tour_id: selectedTourId,
-          amount: parseFloat(newExpense.amount),
-          category: newExpense.category,
-          description: newExpense.description,
-        }),
+      const result = await api.post<BudgetExpense>("/expenses", {
+        tour_id: selectedTourId,
+        amount: parseFloat(newExpense.amount),
+        category: newExpense.category,
+        description: newExpense.description,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setExpenses([data, ...expenses]);
+      if (result.success && result.data) {
+        setExpenses([result.data, ...expenses]);
         setIsAddingExpense(false);
         setNewExpense({ amount: "", category: "MISC", description: "" });
       }
@@ -114,8 +107,7 @@ export default function BudgetPage() {
   };
 
   const totalFunds = selectedTour
-    ? selectedTour.per_person_fee * (selectedTour.max_participants || 1) +
-      (selectedTour.buffer_amount || 0)
+    ? parseFloat(selectedTour.price || "0") * (selectedTour.participant_count || 1)
     : 0;
   const totalSpent = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
   const remaining = totalFunds - totalSpent;
@@ -136,8 +128,8 @@ export default function BudgetPage() {
         <div className="flex gap-2">
           <select
             value={selectedTourId}
-            onChange={(e) => setSelectedTourId(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+            onChange={(e) => setSelectedTourId(parseInt(e.target.value))}
+            className="input"
           >
             {tours.map((t) => (
               <option key={t.id} value={t.id}>
@@ -145,10 +137,7 @@ export default function BudgetPage() {
               </option>
             ))}
           </select>
-          <button
-            onClick={() => setIsAddingExpense(true)}
-            className="flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-lg hover:bg-blue-700 transition-all"
-          >
+          <button onClick={() => setIsAddingExpense(true)} className="btn-primary">
             <Plus className="mr-2 h-4 w-4" /> Add Expense
           </button>
         </div>
@@ -156,7 +145,7 @@ export default function BudgetPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
         <>
@@ -164,8 +153,8 @@ export default function BudgetPage() {
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-slate-400 uppercase">Total Budget</p>
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Wallet className="h-4 w-4 text-blue-600" />
+                <div className="p-2 bg-primary-50 rounded-lg">
+                  <Wallet className="h-4 w-4 text-primary" />
                 </div>
               </div>
               <p className="text-3xl font-black text-slate-800">${totalFunds.toLocaleString()}</p>
@@ -173,9 +162,8 @@ export default function BudgetPage() {
                 <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
                 Base: $
                 {(
-                  (selectedTour?.per_person_fee ?? 0) * (selectedTour?.max_participants || 1)
-                ).toLocaleString()}{" "}
-                + Buffer
+                  parseFloat(selectedTour?.price || "0") * (selectedTour?.participant_count || 1)
+                ).toLocaleString()}
               </p>
             </div>
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-2">
@@ -230,7 +218,7 @@ export default function BudgetPage() {
                           <div
                             className={`h-full transition-all ${
                               cat === "TRANSPORT"
-                                ? "bg-blue-500"
+                                ? "bg-primary"
                                 : cat === "ACCOMMODATION"
                                   ? "bg-purple-500"
                                   : cat === "FOOD"
@@ -268,7 +256,7 @@ export default function BudgetPage() {
                           <div
                             className={`p-2 rounded-xl ${
                               expense.category === "TRANSPORT"
-                                ? "bg-blue-50 text-blue-600"
+                                ? "bg-primary-50 text-primary-600"
                                 : expense.category === "ACCOMMODATION"
                                   ? "bg-purple-50 text-purple-600"
                                   : expense.category === "FOOD"
@@ -314,7 +302,7 @@ export default function BudgetPage() {
                   type="number"
                   required
                   step="0.01"
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="input"
                   value={newExpense.amount}
                   onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
                   placeholder="0.00"
@@ -323,7 +311,7 @@ export default function BudgetPage() {
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
                 <select
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  className="input"
                   value={newExpense.category}
                   onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
                 >
@@ -337,7 +325,7 @@ export default function BudgetPage() {
                 <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
                 <textarea
                   required
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+                  className="input min-h-[100px]"
                   value={newExpense.description}
                   onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
                   placeholder="What was this expense for?"
@@ -351,10 +339,7 @@ export default function BudgetPage() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all"
-                >
+                <button type="submit" className="flex-1 btn-primary">
                   Save Expense
                 </button>
               </div>

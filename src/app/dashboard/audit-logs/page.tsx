@@ -13,6 +13,7 @@ import {
   Eye,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { api } from "@/lib/api";
 
 import type { AuditLog } from "@/types";
 
@@ -33,12 +34,10 @@ export default function AuditLogsPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/audit-logs");
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data || []);
+      const result = await api.get<AuditLogWithProfile[]>("/audit-logs");
+      if (result.success && result.data) {
+        setLogs(result.data);
       } else {
-        // Audit logs endpoint may not exist yet; show empty list.
         setLogs([]);
       }
     } catch {
@@ -60,7 +59,7 @@ export default function AuditLogsPage() {
         <div>
           <BackButton />
           <h2 className="text-2xl font-bold text-slate-800 flex items-center mt-2">
-            <History className="mr-2 h-6 w-6 text-blue-600" />
+            <History className="mr-2 h-6 w-6 text-primary" />
             System Audit Logs
           </h2>
           <p className="text-slate-500">
@@ -77,7 +76,7 @@ export default function AuditLogsPage() {
               <input
                 type="text"
                 placeholder="Search by action, entity or user..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="input pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -118,7 +117,7 @@ export default function AuditLogsPage() {
                     filteredLogs.map((log) => (
                       <tr
                         key={log.id}
-                        className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedLog?.id === log.id ? "bg-blue-50/50" : ""}`}
+                        className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedLog?.id === log.id ? "bg-primary-50/50" : ""}`}
                         onClick={() => setSelectedLog(log)}
                       >
                         <td className="px-6 py-4">
@@ -143,7 +142,7 @@ export default function AuditLogsPage() {
                           {new Date(log.created_at).toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Eye className="h-4 w-4 text-blue-500 inline-block" />
+                          <Eye className="h-4 w-4 text-primary-500 inline-block" />
                         </td>
                       </tr>
                     ))
@@ -157,7 +156,7 @@ export default function AuditLogsPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm min-h-[400px]">
             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
-              <Activity className="mr-2 h-5 w-5 text-blue-600" />
+              <Activity className="mr-2 h-5 w-5 text-primary" />
               Log Details
             </h3>
 
@@ -187,8 +186,8 @@ export default function AuditLogsPage() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                <div className="p-4 bg-primary-50 rounded-xl border border-primary-100">
+                  <p className="text-xs text-primary-700 leading-relaxed font-medium">
                     This action was performed by{" "}
                     <strong>{selectedLog.profiles?.full_name || "the system"}</strong> on
                     <strong> {new Date(selectedLog.created_at).toLocaleString()}</strong>.

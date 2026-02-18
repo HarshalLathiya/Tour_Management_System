@@ -1,85 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { Bell, User } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { LoadingPage } from "@/components/features";
 
-interface DecodedProfile {
-  id: string;
-  email: string;
-  role: string;
-  full_name: string;
-}
+const getRoleLabel = (role?: string) => {
+  switch (role) {
+    case "admin":
+      return "Administrator";
+    case "guide":
+      return "Tour Leader";
+    case "tourist":
+      return "Participant";
+    default:
+      return "Dashboard";
+  }
+};
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<DecodedProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    const getUser = () => {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setProfile({
-          id: payload.id || "",
-          email: payload.email || "",
-          role: payload.role || "",
-          full_name: payload.full_name || payload.email || "",
-        });
-      } catch {
-        router.push("/auth/login");
-        return;
-      }
-
-      setLoading(false);
-    };
-
-    getUser();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingPage />;
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar userRole={profile?.role || ""} />
+    <div className="flex h-screen bg-background overflow-hidden">
+      <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center justify-between border-b bg-white px-8 shadow-sm">
-          <h1 className="text-xl font-semibold text-slate-800">
-            {profile?.role === "tour_leader"
-              ? "Leader Dashboard"
-              : profile?.role === "org_admin"
-                ? "Organization Admin"
-                : profile?.role === "super_admin"
-                  ? "Platform Admin"
-                  : "Participant Dashboard"}
-          </h1>
-          <div className="flex items-center space-x-4">
-            <button className="rounded-full p-2 text-slate-500 hover:bg-slate-100 transition-colors">
+        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-8">
+          <h1 className="text-xl font-semibold text-foreground">{getRoleLabel(user?.role)}</h1>
+          <div className="flex items-center gap-4">
+            <button className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
               <Bell className="h-5 w-5" />
             </button>
-            <div className="flex items-center space-x-2 rounded-full bg-slate-100 px-3 py-1.5 hover:bg-slate-200 cursor-pointer transition-colors">
-              <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                <User className="h-5 w-5" />
+            <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 hover:bg-muted/80 cursor-pointer transition-colors">
+              <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center text-white">
+                <User className="h-4 w-4" />
               </div>
-              <span className="text-sm font-medium text-slate-700">{profile?.full_name}</span>
+              <span className="text-sm font-medium text-foreground">
+                {user?.name || user?.email}
+              </span>
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-8 bg-muted/30">{children}</main>
       </div>
     </div>
   );

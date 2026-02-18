@@ -1,203 +1,408 @@
 /**
- * API Service - Helper functions for making authenticated API requests
+ * API Client
+ * Centralized API service with type-safe methods
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+import { config } from "@/config";
 
-/**
- * Get auth token from localStorage
- */
-function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
-/**
- * Make an authenticated API request
- */
-async function apiRequest<T = unknown>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<{ success: boolean; data?: T; error?: string }> {
-  const token = getAuthToken();
+// Tour types matching backend
+export interface TourData {
+  id: number;
+  name: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  destination?: string;
+  price?: string;
+  status: "planned" | "ongoing" | "completed" | "cancelled";
+  content?: string;
+  created_by?: number;
+  created_at: string;
+  assigned_leader_id?: number;
+  leader_assigned_at?: string;
+  participant_count?: number;
+  leader_name?: string;
+  leader_email?: string;
+}
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
-  };
+export interface UserData {
+  id: number;
+  email: string;
+  name: string;
+  role: "admin" | "guide" | "tourist";
+  created_at: string;
+}
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+export interface IncidentData {
+  id: number;
+  tour_id: number;
+  reported_by?: number;
+  title: string;
+  description?: string;
+  location?: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  status: "OPEN" | "RESOLVED";
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface AttendanceData {
+  id: number;
+  user_id: number;
+  tour_id: number;
+  date: string;
+  status: "present" | "absent" | "late";
+  checkpoint_id?: number;
+  verified_by?: number;
+  verification_time?: string;
+  location_lat?: number;
+  location_lng?: number;
+  created_at: string;
+}
+
+export interface AnnouncementData {
+  id: number;
+  title: string;
+  content: string;
+  tour_id?: number;
+  created_at: string;
+}
+
+// ============================================================================
+// Token Management
+// ============================================================================
+
+class TokenManager {
+  private static instance: TokenManager;
+
+  private constructor() {}
+
+  static getInstance(): TokenManager {
+    if (!TokenManager.instance) {
+      TokenManager.instance = new TokenManager();
+    }
+    return TokenManager.instance;
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+  getToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(config.auth.tokenKey);
+  }
 
-    const data = await response.json();
+  setToken(token: string): void {
+    if (typeof window === "undefined") return;
 
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || `Request failed with status ${response.status}`,
-      };
+    // Store in localStorage for API calls
+    localStorage.setItem(config.auth.tokenKey, token);
+
+    // Store in cookie for middleware (with security flags)
+    const secure = window.location.protocol === "https:";
+    document.cookie = `${config.auth.tokenKey}=${token}; path=/; max-age=${config.auth.tokenExpiry}; SameSite=Lax${secure ? "; Secure" : ""}`;
+  }
+
+  removeToken(): void {
+    if (typeof window === "undefined") return;
+
+    localStorage.removeItem(config.auth.tokenKey);
+    localStorage.removeItem(config.auth.userKey);
+    document.cookie = `${config.auth.tokenKey}=; path=/; max-age=0`;
+  }
+
+  getUser<T = UserData>(): T | null {
+    if (typeof window === "undefined") return null;
+    const user = localStorage.getItem(config.auth.userKey);
+    return user ? JSON.parse(user) : null;
+  }
+
+  setUser(user: UserData): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(config.auth.userKey, JSON.stringify(user));
+  }
+
+  decodeToken(): { id: number; email: string; role: string; exp: number } | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload;
+    } catch {
+      return null;
+    }
+  }
+
+  isTokenExpired(): boolean {
+    const decoded = this.decodeToken();
+    if (!decoded) return true;
+    return decoded.exp * 1000 < Date.now();
+  }
+}
+
+export const tokenManager = TokenManager.getInstance();
+
+// ============================================================================
+// API Client
+// ============================================================================
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    const token = tokenManager.getToken();
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(options.headers as Record<string, string>),
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
-    return {
-      success: true,
-      data: data.data || data,
-    };
-  } catch (error) {
-    console.error("API request failed:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Network error",
-    };
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle 401 - token expired/invalid
+        if (response.status === 401) {
+          tokenManager.removeToken();
+          if (typeof window !== "undefined" && !window.location.pathname.includes("/auth")) {
+            window.location.href = "/auth/login";
+          }
+        }
+
+        return {
+          success: false,
+          error: data.error || data.message || `Request failed with status ${response.status}`,
+        };
+      }
+
+      return {
+        success: true,
+        data: data.data ?? data,
+        message: data.message,
+      };
+    } catch (error) {
+      console.error("API request failed:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Network error",
+      };
+    }
+  }
+
+  // HTTP Methods
+  get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "GET" });
+  }
+
+  post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  patch<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PATCH",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "DELETE" });
   }
 }
 
+// Create API client instance
+const apiClient = new ApiClient(`${config.api.baseUrl}/api`);
+
+// ============================================================================
+// API Services
+// ============================================================================
+
 /**
- * API Methods
+ * Authentication API
  */
-export const api = {
-  // GET request
-  get: <T = unknown>(endpoint: string) => apiRequest<T>(endpoint, { method: "GET" }),
+export const authApi = {
+  login: (email: string, password: string) =>
+    apiClient.post<{ token: string; user: UserData }>("/auth/login", { email, password }),
 
-  // POST request
-  post: <T = unknown>(endpoint: string, data?: unknown) =>
-    apiRequest<T>(endpoint, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+  register: (data: { email: string; password: string; name: string; role: string }) =>
+    apiClient.post<{ token: string; user: UserData }>("/auth/register", data),
 
-  // PUT request
-  put: <T = unknown>(endpoint: string, data?: unknown) =>
-    apiRequest<T>(endpoint, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
+  getProfile: () => apiClient.get<UserData>("/auth/profile"),
 
-  // DELETE request
-  delete: <T = unknown>(endpoint: string) => apiRequest<T>(endpoint, { method: "DELETE" }),
+  getLeaders: () => apiClient.get<UserData[]>("/auth/leaders"),
 };
 
 /**
- * Tour API Methods
+ * Tours API
  */
 export const tourApi = {
-  // Get all tours
-  getAll: () => api.get<unknown[]>("/tours"),
+  getAll: (filters?: { status?: string; leader_id?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.leader_id) params.append("leader_id", String(filters.leader_id));
+    const query = params.toString();
+    return apiClient.get<TourData[]>(`/tours${query ? `?${query}` : ""}`);
+  },
 
-  // Get tour by ID
-  getById: (id: number) => api.get<unknown>(`/tours/${id}`),
+  getById: (id: number) => apiClient.get<TourData>(`/tours/${id}`),
 
-  // Get my assigned tours (for leaders)
-  getMyAssigned: () => api.get<unknown[]>("/tours/my-assigned"),
+  getUpcoming: () => apiClient.get<TourData[]>("/tours/upcoming"),
 
-  // Create tour
-  create: (data: unknown) => api.post<unknown>("/tours", data),
+  getOngoing: () => apiClient.get<TourData[]>("/tours/ongoing"),
 
-  // Update tour
-  update: (id: number, data: unknown) => api.put<unknown>(`/tours/${id}`, data),
+  getCompleted: () => apiClient.get<TourData[]>("/tours/completed"),
 
-  // Delete tour
-  delete: (id: number) => api.delete(`/tours/${id}`),
+  getMyAssigned: () => apiClient.get<TourData[]>("/tours/my-assigned"),
 
-  // Assign leader
+  create: (data: Partial<TourData>) => apiClient.post<TourData>("/tours", data),
+
+  update: (id: number, data: Partial<TourData>) => apiClient.put<TourData>(`/tours/${id}`, data),
+
+  delete: (id: number) => apiClient.delete(`/tours/${id}`),
+
   assignLeader: (tourId: number, leaderId: number) =>
-    api.put<unknown>(`/tours/${tourId}/assign-leader`, { leader_id: leaderId }),
+    apiClient.put<TourData>(`/tours/${tourId}/assign-leader`, { leader_id: leaderId }),
 
-  // Unassign leader
-  unassignLeader: (tourId: number) => api.delete<unknown>(`/tours/${tourId}/assign-leader`),
+  unassignLeader: (tourId: number) => apiClient.delete<TourData>(`/tours/${tourId}/assign-leader`),
 };
 
 /**
- * User API Methods
- */
-export const userApi = {
-  // Get all leaders (users with 'guide' role)
-  getLeaders: () => api.get<unknown[]>("/auth/leaders"),
-
-  // Get current user profile
-  getProfile: () => api.get<unknown>("/auth/profile"),
-};
-
-/**
- * Incident API Methods
+ * Incidents API
  */
 export const incidentApi = {
-  // Get all incidents
-  getAll: () => api.get<unknown[]>("/incidents"),
+  getAll: (tourId?: number) => {
+    const query = tourId ? `?tour_id=${tourId}` : "";
+    return apiClient.get<IncidentData[]>(`/incidents${query}`);
+  },
 
-  // Get incident by ID
-  getById: (id: number) => api.get<unknown>(`/incidents/${id}`),
+  getById: (id: number) => apiClient.get<IncidentData>(`/incidents/${id}`),
 
-  // Trigger SOS alert (one-click emergency)
+  create: (data: Partial<IncidentData>) => apiClient.post<IncidentData>("/incidents", data),
+
   triggerSOS: (data: { tour_id: number; location?: string; description?: string }) =>
-    api.post<unknown>("/incidents/sos", data),
+    apiClient.post<IncidentData>("/incidents/sos", data),
 
-  // Report health issue
   reportHealth: (data: {
     tour_id: number;
     health_category: string;
     description: string;
     location?: string;
     severity?: string;
-  }) => api.post<unknown>("/incidents/health", data),
+  }) => apiClient.post<IncidentData>("/incidents/health", data),
 
-  // Create general incident
-  create: (data: unknown) => api.post<unknown>("/incidents", data),
+  respond: (id: number) => apiClient.put<IncidentData>(`/incidents/${id}/respond`, {}),
 
-  // Respond to incident (mark as in progress)
-  respond: (id: number) => api.put<unknown>(`/incidents/${id}/respond`, {}),
-
-  // Resolve incident
   resolve: (id: number, resolutionNotes?: string) =>
-    api.put<unknown>(`/incidents/${id}/resolve`, { resolution_notes: resolutionNotes }),
+    apiClient.put<IncidentData>(`/incidents/${id}/resolve`, { resolution_notes: resolutionNotes }),
 
-  // Update incident
-  update: (id: number, data: unknown) => api.put<unknown>(`/incidents/${id}`, data),
+  update: (id: number, data: Partial<IncidentData>) =>
+    apiClient.patch<IncidentData>(`/incidents/${id}`, data),
 
-  // Delete incident
-  delete: (id: number) => api.delete(`/incidents/${id}`),
+  delete: (id: number) => apiClient.delete(`/incidents/${id}`),
 };
 
 /**
- * Attendance API Methods
+ * Attendance API
  */
 export const attendanceApi = {
-  // Get all attendance records
-  getAll: (filters?: { tour_id?: number; user_id?: number; date?: string; status?: string }) =>
-    api.get<unknown[]>(
-      `/attendance?${new URLSearchParams(filters as Record<string, string>).toString()}`
-    ),
+  getAll: (filters?: { tour_id?: number; user_id?: number; date?: string; status?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.tour_id) params.append("tour_id", String(filters.tour_id));
+    if (filters?.user_id) params.append("user_id", String(filters.user_id));
+    if (filters?.date) params.append("date", filters.date);
+    if (filters?.status) params.append("status", filters.status);
+    const query = params.toString();
+    return apiClient.get<AttendanceData[]>(`/attendance${query ? `?${query}` : ""}`);
+  },
 
-  // Get attendance by ID
-  getById: (id: number) => api.get<unknown>(`/attendance/${id}`),
+  getById: (id: number) => apiClient.get<AttendanceData>(`/attendance/${id}`),
 
-  // Self check-in with geolocation
   checkIn: (data: {
     tour_id: number;
     checkpoint_id?: number;
     location_lat: number;
     location_lng: number;
-    place_lat?: number;
-    place_lng?: number;
     date?: string;
     status?: string;
-  }) => api.post<unknown>("/attendance/checkin", data),
+  }) => apiClient.post<AttendanceData>("/attendance/checkin", data),
 
-  // Create attendance (admin/guide)
-  create: (data: unknown) => api.post<unknown>("/attendance", data),
+  create: (data: Partial<AttendanceData>) => apiClient.post<AttendanceData>("/attendance", data),
 
-  // Update attendance
-  update: (id: number, data: unknown) => api.put<unknown>(`/attendance/${id}`, data),
+  update: (id: number, data: Partial<AttendanceData>) =>
+    apiClient.put<AttendanceData>(`/attendance/${id}`, data),
 
-  // Verify attendance (leader/admin)
-  verify: (id: number) => api.put<unknown>(`/attendance/${id}/verify`, {}),
+  verify: (id: number) => apiClient.put<AttendanceData>(`/attendance/${id}/verify`, {}),
 
-  // Delete attendance
-  delete: (id: number) => api.delete(`/attendance/${id}`),
+  delete: (id: number) => apiClient.delete(`/attendance/${id}`),
 };
+
+/**
+ * Announcements API
+ */
+export const announcementApi = {
+  getAll: (tourId?: number) => {
+    const query = tourId ? `?tour_id=${tourId}` : "";
+    return apiClient.get<AnnouncementData[]>(`/announcements${query}`);
+  },
+
+  getById: (id: number) => apiClient.get<AnnouncementData>(`/announcements/${id}`),
+
+  create: (data: Partial<AnnouncementData>) =>
+    apiClient.post<AnnouncementData>("/announcements", data),
+
+  update: (id: number, data: Partial<AnnouncementData>) =>
+    apiClient.put<AnnouncementData>(`/announcements/${id}`, data),
+
+  delete: (id: number) => apiClient.delete(`/announcements/${id}`),
+};
+
+/**
+ * Users API
+ */
+export const userApi = {
+  getLeaders: () => authApi.getLeaders(),
+  getProfile: () => authApi.getProfile(),
+};
+
+// Legacy exports for backward compatibility
+export const api = {
+  get: <T>(endpoint: string) => apiClient.get<T>(endpoint),
+  post: <T>(endpoint: string, data?: unknown) => apiClient.post<T>(endpoint, data),
+  put: <T>(endpoint: string, data?: unknown) => apiClient.put<T>(endpoint, data),
+  delete: <T>(endpoint: string) => apiClient.delete<T>(endpoint),
+};
+
+// Export the token manager and API client
+export { apiClient };

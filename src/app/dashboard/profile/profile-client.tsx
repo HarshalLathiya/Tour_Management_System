@@ -21,7 +21,7 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-white p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary-50/20 to-background p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <motion.div
@@ -32,7 +32,7 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
           <div>
             <Link
               href="/dashboard"
-              className="inline-flex items-center text-sm text-slate-500 hover:text-blue-600 transition-colors mb-4 group"
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4 group"
             >
               <ArrowLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
               Back to Dashboard
@@ -40,7 +40,7 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
             <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
             <p className="text-slate-600">Manage your personal information and documents</p>
           </div>
-          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-200">
             <User className="h-10 w-10" />
           </div>
         </motion.div>
@@ -56,8 +56,8 @@ export function ProfileClient({ profile: initialProfile }: ProfileClientProps) {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <Mail className="h-4 w-4 text-blue-600" />
+                    <div className="p-2 bg-primary-50 rounded-lg">
+                      <Mail className="h-4 w-4 text-primary-600" />
                     </div>
                     <div className="overflow-hidden">
                       <p className="text-xs text-slate-500">Email Address</p>

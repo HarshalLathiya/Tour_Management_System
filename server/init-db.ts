@@ -199,8 +199,21 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, enti
 
 async function initDB() {
   try {
+    // Show connection info
+    const connInfo = await pool.query("SELECT current_database() as db, current_user as user");
+    console.log(`Connecting to: ${connInfo.rows[0].db} as ${connInfo.rows[0].user}`);
+
+    // Execute schema
     await pool.query(schema);
-    console.warn("Database initialized successfully!");
+
+    // Verify tables created
+    const tables = await pool.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"
+    );
+    console.log(`\nDatabase initialized successfully! (${tables.rows.length} tables created)`);
+    console.log("Tables:");
+    tables.rows.forEach((row) => console.log(`  - ${row.table_name}`));
+
     await pool.end();
     process.exit(0);
   } catch (error) {

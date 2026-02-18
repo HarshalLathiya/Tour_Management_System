@@ -15,15 +15,15 @@ import {
   AlertCircle,
   Users,
 } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
-import type { Tour } from "@/types";
+import { tourApi, incidentApi, type TourData } from "@/lib/api";
+import { PageHeader, LoadingCard, ErrorMessage } from "@/components/features";
 
 interface SafetyIncident {
-  id: string;
-  tour_id: string;
+  id: number;
+  tour_id: number;
   title: string;
   description?: string;
-  severity: string;
+  severity?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   status: string;
   location?: string;
   created_at: string;
@@ -44,15 +44,18 @@ interface SafetyParticipant {
 }
 
 export default function SafetyPage() {
-  const [tours, setTours] = useState<Tour[]>([]);
-  const [selectedTourId, setSelectedTourId] = useState<string>("");
+  const [tours, setTours] = useState<TourData[]>([]);
+  const [selectedTourId, setSelectedTourId] = useState<number | null>(null);
   const [incidents, setIncidents] = useState<SafetyIncident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [participants, setParticipants] = useState<SafetyParticipant[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isReporting, setIsReporting] = useState(false);
   const [reportForm, setReportForm] = useState({ title: "", description: "", location: "" });
-  const [reportingSeverity, setReportingSeverity] = useState("LOW");
+  const [reportingSeverity, setReportingSeverity] = useState<
+    "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | undefined
+  >("LOW");
 
   const filteredParticipants = participants.filter((p) =>
     p.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -60,17 +63,14 @@ export default function SafetyPage() {
 
   useEffect(() => {
     const fetchTours = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/tours");
-        if (response.ok) {
-          const data = await response.json();
-          setTours(data || []);
-          if (data && data.length > 0) {
-            setSelectedTourId(data[0].id);
-          }
+      const result = await tourApi.getAll();
+      if (result.success && result.data) {
+        setTours(result.data);
+        if (result.data.length > 0) {
+          setSelectedTourId(result.data[0].id);
         }
-      } catch (error) {
-        console.error("Error fetching tours:", error);
+      } else {
+        setError(result.error || "Failed to load tours");
       }
     };
     fetchTours();
@@ -81,102 +81,67 @@ export default function SafetyPage() {
 
     const fetchSafetyData = async () => {
       setLoading(true);
-      try {
-        // Fetch Incidents
-        const incidentResponse = await fetch(
-          `http://localhost:5000/api/incidents?tour_id=${selectedTourId}`
-        );
-        if (incidentResponse.ok) {
-          const incidentData = await incidentResponse.json();
-          setIncidents(incidentData || []);
-        }
+      setError(null);
 
-        // Fetch Participants (Mocked or using participants endpoint)
-        const participantResponse = await fetch(
-          `http://localhost:5000/api/tours/${selectedTourId}/participants`
-        );
-        if (participantResponse.ok) {
-          const partData = await participantResponse.json();
-          setParticipants(partData || []);
-        }
-      } catch (error) {
-        console.error("Error fetching safety data:", error);
-      } finally {
-        setLoading(false);
+      const result = await incidentApi.getAll(selectedTourId);
+      if (result.success && result.data) {
+        setIncidents(result.data);
+      } else {
+        setError(result.error || "Failed to load incidents");
       }
+
+      setLoading(false);
     };
 
     fetchSafetyData();
   }, [selectedTourId]);
 
   const triggerSOS = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/incidents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tour_id: selectedTourId,
-          reported_by: 1, // Mocked user id
-          title: "URGENT SOS TRIGGERED",
-          description: "Automatic SOS alert triggered by user.",
-          severity: "CRITICAL",
-          status: "OPEN",
-        }),
-      });
+    if (!selectedTourId) return;
 
-      if (response.ok) {
-        const data = await response.json();
-        setIncidents([data, ...incidents]);
-        alert("CRITICAL SOS ALERT SENT TO ALL COORDINATORS!");
-      }
-    } catch (error) {
-      console.error("Error triggering SOS:", error);
+    const result = await incidentApi.create({
+      tour_id: selectedTourId,
+      title: "URGENT SOS TRIGGERED",
+      description: "Automatic SOS alert triggered by user.",
+      severity: "CRITICAL",
+    });
+
+    if (result.success && result.data) {
+      setIncidents([result.data, ...incidents]);
+      alert("CRITICAL SOS ALERT SENT TO ALL COORDINATORS!");
+    } else {
+      alert(result.error || "Failed to trigger SOS");
     }
   };
 
   const handleReportIncident = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const response = await fetch("http://localhost:5000/api/incidents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tour_id: selectedTourId,
-          reported_by: 1, // Mocked user id
-          title: reportForm.title,
-          description: reportForm.description,
-          location: reportForm.location,
-          severity: reportingSeverity,
-          status: "OPEN",
-        }),
-      });
+    if (!selectedTourId) return;
 
-      if (response.ok) {
-        const data = await response.json();
-        setIncidents([data, ...incidents]);
-        setIsReporting(false);
-        setReportForm({ title: "", description: "", location: "" });
-      }
-    } catch (error) {
-      console.error("Error reporting incident:", error);
+    const result = await incidentApi.create({
+      tour_id: selectedTourId,
+      title: reportForm.title,
+      description: reportForm.description,
+      location: reportForm.location,
+      severity: reportingSeverity,
+    });
+
+    if (result.success && result.data) {
+      setIncidents([result.data, ...incidents]);
+      setIsReporting(false);
+      setReportForm({ title: "", description: "", location: "" });
+    } else {
+      setError(result.error || "Failed to report incident");
     }
   };
 
-  const resolveIncident = async (id: string) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/incidents/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "RESOLVED" }),
-      });
+  const resolveIncident = async (id: number) => {
+    const result = await incidentApi.update(id, { status: "RESOLVED" });
 
-      if (response.ok) {
-        setIncidents(
-          incidents.map((inc) => (inc.id === id ? { ...inc, status: "RESOLVED" } : inc))
-        );
-      }
-    } catch (error) {
-      console.error("Error resolving incident:", error);
+    if (result.success) {
+      setIncidents(incidents.map((inc) => (inc.id === id ? { ...inc, status: "RESOLVED" } : inc)));
+    } else {
+      setError(result.error || "Failed to resolve incident");
     }
   };
 
@@ -189,9 +154,9 @@ export default function SafetyPage() {
         </div>
         <div className="flex gap-2">
           <select
-            value={selectedTourId}
-            onChange={(e) => setSelectedTourId(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+            value={selectedTourId ?? ""}
+            onChange={(e) => setSelectedTourId(parseInt(e.target.value))}
+            className="input px-3 py-2 text-sm shadow-sm"
           >
             {tours.map((t) => (
               <option key={t.id} value={t.id}>
@@ -215,7 +180,7 @@ export default function SafetyPage() {
               <h3 className="text-lg font-bold text-slate-800">Incident Log</h3>
               <button
                 onClick={() => setIsReporting(true)}
-                className="text-sm font-bold text-blue-600 flex items-center hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all"
+                className="text-sm font-bold text-primary flex items-center hover:bg-primary-50 px-3 py-1.5 rounded-lg transition-all"
               >
                 <Plus className="h-4 w-4 mr-1" /> New Log
               </button>
@@ -245,7 +210,7 @@ export default function SafetyPage() {
                             ? "bg-orange-100 text-orange-600"
                             : incident.severity === "MEDIUM"
                               ? "bg-yellow-100 text-yellow-600"
-                              : "bg-blue-100 text-blue-600"
+                              : "bg-primary-100 text-primary-600"
                       }`}
                     >
                       <AlertTriangle className="h-6 w-6" />
@@ -305,7 +270,7 @@ export default function SafetyPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm overflow-hidden">
             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-              <Users className="h-5 w-5 mr-2 text-blue-600" />
+              <Users className="h-5 w-5 mr-2 text-primary" />
               Participant Health Registry
             </h3>
             <div className="relative mb-4">
@@ -313,7 +278,7 @@ export default function SafetyPage() {
               <input
                 type="text"
                 placeholder="Search health notes..."
-                className="w-full pl-10 pr-4 py-2 text-sm border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                className="input pl-10 text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -334,7 +299,7 @@ export default function SafetyPage() {
                           <a
                             href={p.profiles.medical_info_url}
                             target="_blank"
-                            className="text-blue-600 hover:underline text-[10px] font-bold"
+                            className="text-primary hover:underline text-[10px] font-bold"
                           >
                             DOCS
                           </a>
@@ -409,7 +374,7 @@ export default function SafetyPage() {
               Quickly find hospitals, clinics, and pharmacies near your current itinerary stop.
             </p>
             <button className="w-full py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all flex items-center justify-center">
-              <MapPin className="h-4 w-4 mr-2 text-blue-600" /> Open Map View
+              <MapPin className="h-4 w-4 mr-2 text-primary" /> Open Map View
             </button>
           </div>
         </div>
@@ -439,7 +404,7 @@ export default function SafetyPage() {
                   </label>
                   <input
                     required
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="input"
                     value={reportForm.title}
                     onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })}
                     placeholder="Brief summary..."
@@ -448,9 +413,11 @@ export default function SafetyPage() {
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Severity</label>
                   <select
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    className="input"
                     value={reportingSeverity}
-                    onChange={(e) => setReportingSeverity(e.target.value)}
+                    onChange={(e) =>
+                      setReportingSeverity(e.target.value as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL")
+                    }
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -460,7 +427,7 @@ export default function SafetyPage() {
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Location</label>
                   <input
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="input"
                     value={reportForm.location}
                     onChange={(e) => setReportForm({ ...reportForm, location: e.target.value })}
                     placeholder="Where?"
@@ -471,7 +438,7 @@ export default function SafetyPage() {
                 <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
                 <textarea
                   required
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px]"
+                  className="input min-h-[120px]"
                   value={reportForm.description}
                   onChange={(e) => setReportForm({ ...reportForm, description: e.target.value })}
                   placeholder="Detailed description of what happened..."

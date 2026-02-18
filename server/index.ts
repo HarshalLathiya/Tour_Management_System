@@ -1,4 +1,13 @@
-import { pathToFileURL } from "url";
+import { pathToFileURL, fileURLToPath } from "url";
+import path from "path";
+import dotenv from "dotenv";
+
+// Load environment variables first
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth";

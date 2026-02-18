@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { config as appConfig } from "@/config";
 
 export async function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
+  const token = req.cookies.get(appConfig.auth.tokenKey)?.value;
 
   // Redirect authenticated users away from auth pages
   if (

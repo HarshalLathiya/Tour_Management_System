@@ -61,7 +61,7 @@ export default function TourDetailsPage() {
       const result = await tourApi.getById(parseInt(tourId));
 
       if (result.success && result.data) {
-        const tourData = result.data as TourData;
+        const tourData = result.data as unknown as TourData;
         setTour(tourData);
         setEditForm(tourData);
       } else {
@@ -94,7 +94,10 @@ export default function TourDetailsPage() {
 
   const handleEditTour = async () => {
     try {
-      const result = await tourApi.update(parseInt(tourId), editForm);
+      const result = await tourApi.update(
+        parseInt(tourId),
+        editForm as unknown as Parameters<typeof tourApi.update>[1]
+      );
 
       if (result.success) {
         setTour((prev) => (prev ? { ...prev, ...editForm } : prev));
@@ -175,10 +178,7 @@ export default function TourDetailsPage() {
           <div className="flex space-x-2">
             {isEditing ? (
               <>
-                <button
-                  onClick={handleEditTour}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                >
+                <button onClick={handleEditTour} className="btn-primary">
                   Save Changes
                 </button>
                 <button
@@ -236,7 +236,7 @@ export default function TourDetailsPage() {
                   whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
                   ${
                     activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
+                      ? "border-primary text-primary"
                       : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                   }
                 `}
@@ -278,7 +278,7 @@ export default function TourDetailsPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Price per Person</dt>
-                  <dd className="font-medium">${tour.price?.toFixed(2) || "0.00"}</dd>
+                  <dd className="font-medium">${tour.price ? tour.price.toFixed(2) : "0.00"}</dd>
                 </div>
                 {tour.leader_name && (
                   <div className="flex justify-between">
@@ -313,7 +313,7 @@ export default function TourDetailsPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Itinerary Items</h3>
-              <button className="flex items-center text-sm bg-blue-600 text-white px-3 py-1.5 rounded-md">
+              <button className="flex items-center text-sm btn-primary">
                 <Plus className="h-4 w-4 mr-1" /> Add Location
               </button>
             </div>
@@ -332,7 +332,7 @@ export default function TourDetailsPage() {
                   >
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded">
+                        <span className="bg-primary-100 text-primary-700 text-xs font-bold px-2 py-0.5 rounded">
                           Day {item.day_number}
                         </span>
                         <h4 className="font-bold text-slate-800">{item.location_name}</h4>
@@ -355,7 +355,7 @@ export default function TourDetailsPage() {
             <p className="text-slate-500 text-sm mb-6">Track presence for today's locations.</p>
             <Link
               href={`/dashboard/attendance?tourId=${tourId}`}
-              className="text-blue-600 font-medium hover:underline"
+              className="text-primary-600 font-medium hover:underline"
             >
               Go to Full Attendance Module →
             </Link>
@@ -370,7 +370,7 @@ export default function TourDetailsPage() {
                 <div className="flex justify-between items-center pb-2 border-b">
                   <span className="text-slate-500">Price per Person</span>
                   <span className="font-bold text-slate-900">
-                    ${tour.price?.toFixed(2) || "0.00"}
+                    ${tour.price ? tour.price.toFixed(2) : "0.00"}
                   </span>
                 </div>
               </div>

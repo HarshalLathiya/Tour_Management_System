@@ -158,8 +158,6 @@ export default function CheckInPage() {
         checkpoint_id: selectedLocationId,
         location_lat: location.lat,
         location_lng: location.lng,
-        place_lat: selectedLocation?.latitude,
-        place_lng: selectedLocation?.longitude,
         date: new Date().toISOString().split("T")[0],
         status: "PRESENT",
       });

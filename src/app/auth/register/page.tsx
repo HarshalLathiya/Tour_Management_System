@@ -4,18 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, User, Mail, Lock, Eye, EyeOff, Building, Users, ChevronRight } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { useAuth } from "@/context/AuthContext";
+import { ErrorMessage } from "@/components/features";
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState("tourist");
+  const router = useRouter();
+  const { register } = useAuth();
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+    role: "tourist",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const getRoleDescription = (roleValue: string) => {
     switch (roleValue) {
@@ -33,54 +37,38 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name: fullName, role }),
-      });
+    const result = await register(formData);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Registration failed");
-        setLoading(false);
-        return;
-      }
-
-      // Store token
-      document.cookie = `token=${data.token}; path=/; max-age=86400`;
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      router.push("/dashboard");
-    } catch {
-      setError("Network error. Please try again.");
+    if (!result.success) {
+      setError(result.error || "Registration failed");
       setLoading(false);
+      return;
     }
+
+    router.push("/dashboard");
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-white via-blue-50/30 to-white">
-      <header className="sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center border-b border-blue-100/80 bg-white/95 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background via-primary-50/30 to-background">
+      <header className="sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center border-b border-primary-100/80 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto flex items-center justify-between">
           <Link className="flex items-center justify-center group" href="/">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-200">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-600 shadow-md shadow-primary-200">
               <MapPin className="h-5 w-5 text-white" />
             </div>
-            <span className="ml-3 font-bold text-2xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+            <span className="ml-3 font-bold text-2xl bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
               TourSync
             </span>
           </Link>
           <nav className="flex items-center gap-6">
             <Link
-              className="text-sm font-medium text-slate-700 hover:text-blue-600 transition-all duration-200"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-200"
               href="/"
             >
               Home
             </Link>
             <Link
-              className="text-sm font-medium text-slate-700 hover:text-blue-600 transition-all duration-200"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-all duration-200"
               href="/auth/login"
             >
               Login
@@ -92,39 +80,35 @@ export default function RegisterPage() {
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-3xl blur-xl opacity-50"></div>
-            <div className="relative rounded-3xl bg-white border-2 border-blue-100 p-8 shadow-xl shadow-blue-100/50">
+            <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 to-primary-600/10 rounded-3xl blur-xl opacity-50"></div>
+            <div className="relative rounded-3xl bg-card border-2 border-primary-100 p-8 shadow-xl shadow-primary-100/50">
               <div className="pt-8 text-center mb-8">
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Create Your Account</h2>
-                <p className="text-slate-600">Start managing tours in minutes</p>
+                <h2 className="text-3xl font-bold text-foreground mb-2">Create Your Account</h2>
+                <p className="text-muted-foreground">Start managing tours in minutes</p>
               </div>
 
-              {error && (
-                <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4">
-                  <p className="text-sm font-medium text-red-800">{error}</p>
-                </div>
-              )}
+              {error && <ErrorMessage message={error} className="mb-6" />}
 
               <form className="space-y-6" onSubmit={handleRegister}>
                 <div className="space-y-5">
                   <div>
                     <label
                       htmlFor="fullName"
-                      className="block text-sm font-medium text-slate-700 mb-2"
+                      className="block text-sm font-medium text-foreground mb-2"
                     >
-                      Full Name
+                      Full Name<span className="text-destructive ml-1">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-slate-400" />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                        <User className="h-5 w-5" />
                       </div>
                       <input
                         id="fullName"
                         type="text"
                         required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        value={formData.name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        className="input pl-10"
                         placeholder="Enter Your Name"
                       />
                     </div>
@@ -133,21 +117,23 @@ export default function RegisterPage() {
                   <div>
                     <label
                       htmlFor="email"
-                      className="block text-sm font-medium text-slate-700 mb-2"
+                      className="block text-sm font-medium text-foreground mb-2"
                     >
-                      Email Address
+                      Email Address<span className="text-destructive ml-1">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-5 w-5 text-slate-400" />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                        <Mail className="h-5 w-5" />
                       </div>
                       <input
                         id="email"
                         type="email"
                         required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, email: e.target.value }))
+                        }
+                        className="input pl-10"
                         placeholder="you@example.com"
                       />
                     </div>
@@ -156,43 +142,45 @@ export default function RegisterPage() {
                   <div>
                     <label
                       htmlFor="password"
-                      className="block text-sm font-medium text-slate-700 mb-2"
+                      className="block text-sm font-medium text-foreground mb-2"
                     >
-                      Password
+                      Password<span className="text-destructive ml-1">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-slate-400" />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                        <Lock className="h-5 w-5" />
                       </div>
                       <input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="block w-full pl-10 pr-12 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        value={formData.password}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, password: e.target.value }))
+                        }
+                        className="input pl-10 pr-12"
                         placeholder="Create a strong password"
                       />
                       <button
                         type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-5 w-5 text-slate-400 hover:text-slate-600" />
+                          <EyeOff className="h-5 w-5" />
                         ) : (
-                          <Eye className="h-5 w-5 text-slate-400 hover:text-slate-600" />
+                          <Eye className="h-5 w-5" />
                         )}
                       </button>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       Use 8+ characters with a mix of letters, numbers & symbols
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-4">
-                      I am a...
+                    <label className="block text-sm font-medium text-foreground mb-4">
+                      I am a...<span className="text-destructive ml-1">*</span>
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
@@ -211,27 +199,29 @@ export default function RegisterPage() {
                         <div
                           key={option.value}
                           className={`cursor-pointer rounded-xl border-2 p-4 text-center transition-all duration-200 ${
-                            role === option.value
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                            formData.role === option.value
+                              ? "border-primary bg-primary-50"
+                              : "border-border hover:border-primary/30 hover:bg-muted"
                           }`}
-                          onClick={() => setRole(option.value)}
+                          onClick={() => setFormData((prev) => ({ ...prev, role: option.value }))}
                         >
                           <div
                             className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full ${
-                              role === option.value
-                                ? "bg-blue-100 text-blue-600"
-                                : "bg-slate-100 text-slate-600"
+                              formData.role === option.value
+                                ? "bg-primary-100 text-primary-700"
+                                : "bg-muted text-muted-foreground"
                             }`}
                           >
                             {option.icon}
                           </div>
-                          <div className="font-medium text-slate-900">{option.label}</div>
+                          <div className="font-medium text-foreground">{option.label}</div>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 rounded-lg bg-blue-50 p-3">
-                      <p className="text-sm text-blue-800">{getRoleDescription(role)}</p>
+                    <div className="mt-3 rounded-lg bg-primary-50 p-3">
+                      <p className="text-sm text-primary-800">
+                        {getRoleDescription(formData.role)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -241,15 +231,15 @@ export default function RegisterPage() {
                     id="terms"
                     type="checkbox"
                     required
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
-                  <label htmlFor="terms" className="ml-2 block text-sm text-slate-700">
+                  <label htmlFor="terms" className="ml-2 block text-sm text-foreground">
                     I agree to the{" "}
-                    <Link href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link href="#" className="font-medium text-primary hover:text-primary-600">
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link href="#" className="font-medium text-primary hover:text-primary-600">
                       Privacy Policy
                     </Link>
                   </label>
@@ -258,11 +248,11 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative w-full inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg"
+                  className="btn-primary w-full py-4 text-base group rounded-full hover:scale-105 transition-all duration-300 disabled:hover:scale-100"
                 >
                   {loading ? (
                     <>
-                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                      <div className="spinner mr-3"></div>
                       Creating Account...
                     </>
                   ) : (
@@ -274,14 +264,11 @@ export default function RegisterPage() {
                 </button>
               </form>
 
-              <div className="mt-8 pt-6 border-t border-slate-200">
+              <div className="mt-8 pt-6 border-t border-border">
                 <div className="text-center">
-                  <p className="text-slate-600">
+                  <p className="text-muted-foreground">
                     Already have an account?{" "}
-                    <Link
-                      href="/auth/login"
-                      className="font-semibold text-blue-600 hover:text-blue-500 hover:underline transition-colors"
-                    >
+                    <Link href="/auth/login" className="font-semibold text-primary hover:underline">
                       Sign in here
                     </Link>
                   </p>
@@ -292,18 +279,20 @@ export default function RegisterPage() {
         </div>
       </main>
 
-      <footer className="py-6 w-full border-t border-blue-100 bg-white">
+      <footer className="py-6 w-full border-t border-primary-100 bg-background">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between">
             <div className="flex items-center mb-4 sm:mb-0">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-600">
                 <MapPin className="h-4 w-4 text-white" />
               </div>
-              <span className="ml-2 font-bold text-xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+              <span className="ml-2 font-bold text-xl bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
                 TourSync
               </span>
             </div>
-            <p className="text-sm text-slate-500">&copy; 2026 TourSync Inc. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">
+              &copy; 2026 TourSync Inc. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

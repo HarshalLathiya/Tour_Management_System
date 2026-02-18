@@ -14,6 +14,9 @@ const up = `
   END;
   $$ LANGUAGE plpgsql;
 
+  -- Drop trigger if exists before creating (idempotent)
+  DROP TRIGGER IF EXISTS attendance_immutability_trigger ON attendance;
+
   -- Trigger to enforce immutability on UPDATE
   CREATE TRIGGER attendance_immutability_trigger
     BEFORE UPDATE ON attendance
@@ -32,6 +35,9 @@ const up = `
     RETURN OLD;
   END;
   $$ LANGUAGE plpgsql;
+
+  -- Drop trigger if exists before creating (idempotent)
+  DROP TRIGGER IF EXISTS attendance_delete_immutability_trigger ON attendance;
 
   -- Trigger to prevent deletion after 24 hours
   CREATE TRIGGER attendance_delete_immutability_trigger

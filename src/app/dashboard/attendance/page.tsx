@@ -18,15 +18,18 @@ import {
 import { BackButton } from "@/components/BackButton";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { tourApi, attendanceApi, api } from "@/lib/api";
+import type { TourData } from "@/lib/api";
 import type { Tour, ItineraryDay } from "@/types";
 
 interface Participant {
-  id: string;
+  id: number;
   full_name: string;
   email: string;
 }
 
 interface AttendanceEntry {
+  user_id: number;
   status: string;
   marked_at?: string;
 }
@@ -35,14 +38,16 @@ function AttendanceContent() {
   const searchParams = useSearchParams();
   const initialTourId = searchParams.get("tourId");
 
-  const [tours, setTours] = useState<Tour[]>([]);
-  const [selectedTourId, setSelectedTourId] = useState<string>(initialTourId || "");
+  const [tours, setTours] = useState<TourData[]>([]);
+  const [selectedTourId, setSelectedTourId] = useState<number>(
+    initialTourId ? parseInt(initialTourId) : 0
+  );
   const [itineraries, setItineraries] = useState<ItineraryDay[]>([]);
-  const [selectedItineraryId, setSelectedItineraryId] = useState<string>("");
+  const [selectedItineraryId, setSelectedItineraryId] = useState<number>(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [attendance, setAttendance] = useState<Record<string, AttendanceEntry>>({});
+  const [attendance, setAttendance] = useState<Record<number, AttendanceEntry>>({});
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState<string | null>(null);
+  const [marking, setMarking] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAutoChecking, setIsAutoChecking] = useState(false);
@@ -51,12 +56,11 @@ function AttendanceContent() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/tours");
-        if (response.ok) {
-          const tourData = await response.json();
-          setTours(tourData || []);
-          if (!selectedTourId && tourData && tourData.length > 0) {
-            setSelectedTourId(tourData[0].id);
+        const result = await tourApi.getAll();
+        if (result.success && result.data) {
+          setTours(result.data);
+          if (!selectedTourId && result.data.length > 0) {
+            setSelectedTourId(result.data[0].id);
           }
         }
       } catch (error) {
@@ -72,23 +76,19 @@ function AttendanceContent() {
     const fetchTourDetails = async () => {
       setLoading(true);
       try {
-        // Fetch participants (Assuming there's an endpoint for this)
-        const participantResponse = await fetch(
-          `http://localhost:5000/api/tours/${selectedTourId}/participants`
+        // Fetch participants
+        const participantResult = await api.get<Participant[]>(
+          `/tours/${selectedTourId}/participants`
         );
-        if (participantResponse.ok) {
-          const participantData = await participantResponse.json();
-          setParticipants(participantData || []);
+        if (participantResult.success && participantResult.data) {
+          setParticipants(participantResult.data);
         }
 
         // Fetch attendance for the current selection
-        const attendanceResponse = await fetch(
-          `http://localhost:5000/api/attendance?tour_id=${selectedTourId}`
-        );
-        if (attendanceResponse.ok) {
-          const attendanceData = await attendanceResponse.json();
-          const attendanceMap: Record<string, AttendanceEntry> = {};
-          attendanceData?.forEach((record: AttendanceEntry & { user_id: string }) => {
+        const attendanceResult = await attendanceApi.getAll({ tour_id: selectedTourId });
+        if (attendanceResult.success && attendanceResult.data) {
+          const attendanceMap: Record<number, AttendanceEntry> = {};
+          attendanceResult.data.forEach((record) => {
             attendanceMap[record.user_id] = record;
           });
           setAttendance(attendanceMap);
@@ -103,24 +103,20 @@ function AttendanceContent() {
     fetchTourDetails();
   }, [selectedTourId]);
 
-  const markAttendance = async (userId: string, status: string) => {
+  const markAttendance = async (userId: number, status: string) => {
     setMarking(userId);
     try {
-      const response = await fetch("http://localhost:5000/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          tour_id: selectedTourId,
-          date: new Date().toISOString().split("T")[0],
-          status: status.toLowerCase(),
-        }),
+      const result = await attendanceApi.create({
+        user_id: userId,
+        tour_id: selectedTourId,
+        date: new Date().toISOString().split("T")[0],
+        status: status.toLowerCase() as "present" | "absent" | "late",
       });
 
-      if (response.ok) {
+      if (result.success) {
         setAttendance((prev) => ({
           ...prev,
-          [userId]: { status, marked_at: new Date().toISOString() },
+          [userId]: { user_id: userId, status, marked_at: new Date().toISOString() },
         }));
       }
     } catch (error) {
@@ -170,8 +166,8 @@ function AttendanceContent() {
         <div className="flex flex-wrap gap-2">
           <select
             value={selectedTourId}
-            onChange={(e) => setSelectedTourId(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+            onChange={(e) => setSelectedTourId(parseInt(e.target.value))}
+            className="input"
           >
             {tours.map((t) => (
               <option key={t.id} value={t.id}>
@@ -181,8 +177,8 @@ function AttendanceContent() {
           </select>
           <select
             value={selectedItineraryId}
-            onChange={(e) => setSelectedItineraryId(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+            onChange={(e) => setSelectedItineraryId(parseInt(e.target.value))}
+            className="input"
           >
             {itineraries.length === 0 ? (
               <option value="">No locations added</option>
@@ -210,9 +206,9 @@ function AttendanceContent() {
           <p className="text-xs font-bold text-red-600 uppercase">Absent</p>
           <p className="text-2xl font-bold text-red-700">{stats.absent}</p>
         </div>
-        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm">
-          <p className="text-xs font-bold text-blue-600 uppercase">Pending</p>
-          <p className="text-2xl font-bold text-blue-700">
+        <div className="bg-primary-50 p-4 rounded-xl border border-primary-100 shadow-sm">
+          <p className="text-xs font-bold text-primary-600 uppercase">Pending</p>
+          <p className="text-2xl font-bold text-primary-700">
             {stats.total - (stats.present + stats.absent + stats.permission)}
           </p>
         </div>
@@ -225,7 +221,7 @@ function AttendanceContent() {
             <input
               type="text"
               placeholder="Search by name..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="input pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -237,7 +233,7 @@ function AttendanceContent() {
               className={`flex items-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 isAutoChecking
                   ? "bg-slate-100 text-slate-400"
-                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200"
+                  : "btn-primary shadow-lg shadow-primary-200"
               }`}
             >
               {isAutoChecking ? (
@@ -304,7 +300,7 @@ function AttendanceContent() {
                         <button
                           disabled={marking === p.id}
                           onClick={() => markAttendance(p.id, "LEFT_WITH_PERMISSION")}
-                          className={`p-2 rounded-lg transition-all ${status === "LEFT_WITH_PERMISSION" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 hover:bg-blue-100 hover:text-blue-600"}`}
+                          className={`p-2 rounded-lg transition-all ${status === "LEFT_WITH_PERMISSION" ? "bg-primary text-white" : "bg-slate-100 text-slate-400 hover:bg-primary-100 hover:text-primary-600"}`}
                         >
                           <Clock className="h-5 w-5" />
                         </button>
@@ -318,7 +314,7 @@ function AttendanceContent() {
                             : status === "ABSENT"
                               ? "bg-red-100 text-red-700"
                               : status === "LEFT_WITH_PERMISSION"
-                                ? "bg-blue-100 text-blue-700"
+                                ? "bg-primary-100 text-primary-700"
                                 : "bg-slate-100 text-slate-400"
                         }`}
                       >

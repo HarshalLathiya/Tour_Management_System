@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { tourApi } from "@/lib/api";
 
 export default function NewTourPage() {
   const router = useRouter();
@@ -174,45 +175,18 @@ export default function NewTourPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/tours", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          tour_code: formData.tourCode,
-          tour_type: formData.tourType,
-          description: formData.description,
-          start_date: formData.startDate,
-          end_date: formData.endDate,
-          duration: formData.duration,
-          max_participants: parseInt(formData.maxParticipants) || 0,
-          min_participants: parseInt(formData.minParticipants) || 0,
-          category_tags: formData.categoryTags,
-          tour_rules: formData.tourRules,
-          medical_requirements: formData.medicalRequirements,
-          starting_point: formData.startingPoint,
-          destination: formData.destination,
-          intermediate_stops: formData.intermediateStops,
-          itinerary: formData.itinerary,
-          accommodation: formData.accommodation,
-          transportation: formData.transportation,
-          total_budget: parseFloat(formData.totalBudget) || 0,
-          budget_breakdown: formData.budgetBreakdown,
-          participant_fee: parseFloat(formData.participantFee) || 0,
-          additional_charges: formData.additionalCharges,
-          payment_options: formData.paymentOptions,
-          primary_leader: formData.primaryLeader,
-          assistant_leaders: formData.assistantLeaders,
-          participants: formData.participants,
-          status: formData.status,
-          publish_date: formData.publishDate,
-          registration_close_date: formData.registrationCloseDate,
-        }),
+      const result = await tourApi.create({
+        name: formData.name,
+        description: formData.description,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        destination: formData.destination,
+        price: formData.participantFee,
+        status: formData.status as "planned" | "ongoing" | "completed" | "cancelled",
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to create tour");
+      if (!result.success) {
+        toast.error(result.error || "Failed to create tour");
         return;
       }
 
@@ -253,7 +227,7 @@ export default function NewTourPage() {
               <div key={index} className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                    index <= currentStep ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
+                    index <= currentStep ? "bg-primary text-white" : "bg-slate-200 text-slate-600"
                   }`}
                 >
                   {index + 1}
@@ -268,7 +242,7 @@ export default function NewTourPage() {
                 {index < steps.length - 1 && (
                   <div
                     className={`ml-4 h-0.5 w-16 ${
-                      index < currentStep ? "bg-blue-600" : "bg-slate-200"
+                      index < currentStep ? "bg-primary" : "bg-slate-200"
                     }`}
                   />
                 )}
@@ -283,7 +257,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <MapPin className="h-5 w-5 text-primary" />
                   Basic Tour Information
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -522,7 +496,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <Calendar className="h-5 w-5 text-primary" />
                   Itinerary & Schedule
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -1114,7 +1088,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
+                  <DollarSign className="h-5 w-5 text-primary" />
                   Budget & Fees
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -1372,7 +1346,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <UserCheck className="h-5 w-5 text-blue-600" />
+                  <UserCheck className="h-5 w-5 text-primary" />
                   Assign Leaders & Participants
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -1459,7 +1433,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <Eye className="h-5 w-5 text-blue-600" />
+                  <Eye className="h-5 w-5 text-primary" />
                   Review & Publish
                 </CardTitle>
                 <CardDescription className="text-slate-600">
