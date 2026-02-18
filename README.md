@@ -6,15 +6,15 @@ A full-stack tour management platform for educational institutions and organizat
 
 ## Tech Stack
 
-| Layer         | Technology                                                       |
-| ------------- | ---------------------------------------------------------------- |
-| Frontend      | Next.js 15 (App Router), TypeScript, Tailwind CSS, Framer Motion |
-| Backend       | Express.js (TypeScript), running on port 5000                    |
-| Database      | PostgreSQL 17 via Docker                                         |
-| Auth          | Custom JWT (access + refresh tokens)                             |
-| UI Components | Radix UI, Lucide React, Sonner                                   |
-| Testing       | Vitest, React Testing Library                                    |
-| Linting       | ESLint 9 (flat config), Prettier, Husky + lint-staged            |
+| Layer         | Technology                                                           |
+| ------------- | -------------------------------------------------------------------- |
+| Frontend      | Next.js 14.2.4 (App Router), TypeScript, Tailwind CSS, Framer Motion |
+| Backend       | Express.js (TypeScript), running on port 3001                        |
+| Database      | PostgreSQL (latest) via Docker                                       |
+| Auth          | Custom JWT (access + refresh tokens)                                 |
+| UI Components | Radix UI, Lucide React, Sonner                                       |
+| Testing       | Vitest, React Testing Library                                        |
+| Linting       | ESLint 9 (flat config), Prettier, Husky + lint-staged                |
 
 ---
 
@@ -41,7 +41,31 @@ cd Tour_Management_System
 npm install
 ```
 
-### 3. Start the PostgreSQL Database
+### 3. Configure Environment Variables
+
+The `.env` file should already exist at the project root. If not, create it:
+
+```env
+# PostgreSQL (Docker defaults — change in production)
+POSTGRES_HOST=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=tour_management_system
+POSTGRES_PORT=5433
+
+# JWT secrets — use long random strings in production
+JWT_SECRET=your_jwt_secret_at_least_32_characters
+JWT_REFRESH_SECRET=your_refresh_secret_at_least_32_characters
+
+# Server
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+```
+
+> **Security**: Never commit `.env` to version control. It is listed in `.gitignore`.
+
+### 4. Start the PostgreSQL Database
 
 The database runs inside a Docker container. No local PostgreSQL installation is needed.
 
@@ -49,10 +73,10 @@ The database runs inside a Docker container. No local PostgreSQL installation is
 docker compose up -d
 ```
 
-This starts a PostgreSQL 17 container with:
+This starts a PostgreSQL container with:
 
 - **Host**: `localhost`
-- **Port**: `5432`
+- **Port**: `5433` (mapped from container's 5432)
 - **User**: `postgres`
 - **Password**: `postgres`
 - **Database**: `tour_management_system`
@@ -67,23 +91,20 @@ docker compose ps
 
 You should see `tms-postgres` with status `healthy`.
 
-### 4. Initialize the Database Schema
+### 5. Initialize the Database Schema
 
-This creates all 16 tables and 14 indexes:
+This creates all 16 tables and indexes:
 
 ```bash
 npx tsx server/init-db.ts
 ```
 
-### 5. Run Database Migrations
+### 6. Run Database Migrations
 
 After initializing the schema, run migrations to add additional features:
 
 ```bash
-# Run all pending migrations
-npm run migrate
-
-# Or run migrations individually
+# Run migrations individually
 npx tsx server/migrations/001_add_leader_assignment.ts
 npx tsx server/migrations/002_add_sos_emergency_fields.ts
 npx tsx server/migrations/003_add_attendance_immutability_trigger.ts
@@ -103,38 +124,54 @@ npx tsx server/migrations/001_add_leader_assignment.ts down
 
 See the [Database Migrations](#database-migrations) section below for detailed documentation.
 
-### 6. Configure Environment Variables
+### 7. Seed the Database (Optional)
 
-Copy the example file and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-The `.env` file should contain:
-
-```env
-# PostgreSQL (Docker defaults — change in production)
-POSTGRES_HOST=localhost
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=tour_management_system
-POSTGRES_PORT=5432
-
-# JWT secrets — use long random strings in production
-JWT_SECRET=your_jwt_secret_at_least_32_characters
-JWT_REFRESH_SECRET=your_refresh_secret_at_least_32_characters
-```
-
-> **Security**: Never commit `.env` to version control. It is listed in `.gitignore`. Use `.env.example` as a template.
-
-### 7. Start the Backend Server
+Populate the database with sample data for development and testing:
 
 ```bash
-npx tsx server/index.ts
+npm run db:seed
 ```
 
-The Express API starts on `http://localhost:5000`. Available routes:
+This creates:
+
+| Data                     | Count                                          |
+| ------------------------ | ---------------------------------------------- |
+| Users                    | 10 (2 admins, 3 guides, 5 tourists)            |
+| Tours                    | 10 (planned / ongoing / completed / cancelled) |
+| States / Cities / Places | 5 / 12 / 15                                    |
+| Announcements            | 10                                             |
+| Budgets & Expenses       | 10 / 20                                        |
+| Attendance records       | 16                                             |
+| Incidents                | 3                                              |
+| Safety protocols         | 5                                              |
+
+> **Warning**: Running `db:seed` clears all existing data before inserting. Do not run in production.
+
+**Test credentials** (all use password `password123`):
+
+| Role    | Email                   |
+| ------- | ----------------------- |
+| Admin   | `admin@toursync.com`    |
+| Guide   | `guide1@toursync.com`   |
+| Tourist | `tourist1@toursync.com` |
+
+---
+
+### 8. Start the Backend Server
+
+**Development (with auto-reload):**
+
+```bash
+npm run server:dev
+```
+
+**Single run:**
+
+```bash
+npm run server:start
+```
+
+The Express API starts on `http://localhost:3001`. Available routes:
 
 | Route                        | Description                                             |
 | ---------------------------- | ------------------------------------------------------- |
@@ -165,6 +202,28 @@ The Next.js app starts on `http://localhost:3000`.
 
 ---
 
+## Available Scripts
+
+| Script                  | Description                                      |
+| ----------------------- | ------------------------------------------------ |
+| `npm run dev`           | Start frontend dev server (port 3000)            |
+| `npm run server:dev`    | Start backend with auto-reload (port 3001)       |
+| `npm run server:start`  | Start backend single run (port 3001)             |
+| `npm run db:init`       | Initialize database schema (creates all tables)  |
+| `npm run db:seed`       | Seed database with sample data (clears existing) |
+| `npm run build`         | Build Next.js for production                     |
+| `npm start`             | Start production frontend                        |
+| `npm test`              | Run tests (watch mode)                           |
+| `npm run test:coverage` | Run tests with coverage report                   |
+| `npm run lint`          | Run ESLint                                       |
+| `npm run lint:fix`      | Auto-fix ESLint errors                           |
+| `npm run format`        | Format all files with Prettier                   |
+| `npm run format:check`  | Check formatting (no changes)                    |
+| `npm run type-check`    | TypeScript type check (no emit)                  |
+| `npm run prepush`       | Run all checks before pushing                    |
+
+---
+
 ## Project Structure
 
 ```
@@ -174,20 +233,29 @@ Tour_Management_System/
 │   │   ├── auth/               # Login, register, password reset
 │   │   └── dashboard/          # Protected dashboard pages
 │   ├── components/             # Reusable UI components
-│   ├── lib/                    # Utility functions
+│   │   ├── ui/                 # Radix UI base components
+│   │   └── features/           # Feature-specific components
+│   ├── context/                # React context (AuthContext)
+│   ├── lib/                    # API client and utilities
+│   ├── config/                 # App configuration
 │   ├── types/                  # Shared TypeScript types
 │   └── middleware.ts           # Next.js auth middleware (cookie check)
 ├── server/                     # Express backend
 │   ├── index.ts                # Server entry point
 │   ├── db.ts                   # pg connection pool
 │   ├── init-db.ts              # Schema creation script
-│   ├── routes/                 # Route handlers (auth, tours, locations)
-│   ├── middleware/             # Auth, validation, error handling
+│   ├── routes/                 # Route handlers
+│   ├── middleware/             # Auth, validation, rate limiting, error handling
+│   ├── models/                 # Database models
+│   ├── controllers/            # Route controllers
+│   ├── services/               # Business logic services
+│   ├── utils/                  # Utility functions (geofencing, etc.)
+│   ├── migrations/             # Database migration scripts
 │   └── types/                  # Server-side type definitions
+├── .github/workflows/          # GitHub Actions CI/CD
 ├── docker-compose.yml          # PostgreSQL container config
-├── .env.example                # Environment variable template
-├── eslint.config.js            # ESLint 9 flat config
 ├── vitest.config.ts            # Vitest test config
+├── eslint.config.js            # ESLint 9 flat config
 └── package.json
 ```
 
@@ -211,7 +279,7 @@ Tour_Management_System/
 # Run all tests once
 npm test
 
-# Run tests in watch mode
+# Run tests with UI
 npm run test:ui
 
 # Generate coverage report
@@ -479,81 +547,7 @@ CREATE TRIGGER attendance_immutability_trigger
 
 ### Running Migrations
 
-#### Method 1: Using Docker (Recommended for CI/CD)
-
-If your PostgreSQL is in Docker and you encounter connection issues from the host:
-
-```bash
-# Run migration directly in Docker container
-docker exec tms-postgres psql -U postgres -d tour_management_system -c "$(cat server/migrations/001_add_leader_assignment.ts | grep -A 100 'const up =')"
-```
-
-Or use the pre-formatted commands:
-
-```bash
-# Migration 001
-docker exec tms-postgres psql -U postgres -d tour_management_system -c "
-  ALTER TABLE tours ADD COLUMN IF NOT EXISTS assigned_leader_id INT REFERENCES users(id) ON DELETE SET NULL;
-  ALTER TABLE tours ADD COLUMN IF NOT EXISTS leader_assigned_at TIMESTAMP;
-  ALTER TABLE tours ADD COLUMN IF NOT EXISTS participant_count INT DEFAULT 0;
-  CREATE INDEX IF NOT EXISTS idx_tours_leader ON tours(assigned_leader_id);
-"
-
-# Migration 002
-docker exec tms-postgres psql -U postgres -d tour_management_system -c "
-  ALTER TABLE incidents
-  ADD COLUMN IF NOT EXISTS incident_type VARCHAR(20) DEFAULT 'GENERAL'
-    CHECK (incident_type IN ('SOS', 'HEALTH', 'GENERAL'));
-  ALTER TABLE incidents
-  ADD COLUMN IF NOT EXISTS health_category VARCHAR(20)
-    CHECK (health_category IN ('INJURY', 'ILLNESS', 'LOST', 'EMERGENCY', 'OTHER'));
-  ALTER TABLE incidents DROP CONSTRAINT IF EXISTS incidents_status_check;
-  ALTER TABLE incidents ADD CONSTRAINT incidents_status_check
-    CHECK (status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED'));
-  ALTER TABLE incidents ADD COLUMN IF NOT EXISTS responded_by INT REFERENCES users(id) ON DELETE SET NULL;
-  ALTER TABLE incidents ADD COLUMN IF NOT EXISTS response_time TIMESTAMP;
-  ALTER TABLE incidents ADD COLUMN IF NOT EXISTS resolution_notes TEXT;
-  CREATE INDEX IF NOT EXISTS idx_incidents_type ON incidents(incident_type);
-  CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
-"
-
-# Migration 003 (Attendance Triggers)
-docker exec tms-postgres psql -U postgres -d tour_management_system -c "
-  CREATE OR REPLACE FUNCTION prevent_attendance_update_after_24h()
-  RETURNS TRIGGER AS \$\$
-  BEGIN
-    IF (CURRENT_TIMESTAMP - OLD.created_at) > INTERVAL '24 hours' THEN
-      RAISE EXCEPTION 'Cannot modify attendance record after 24 hours. Record created at: %', OLD.created_at;
-    END IF;
-    RETURN NEW;
-  END;
-  \$\$ LANGUAGE plpgsql;
-
-  CREATE TRIGGER attendance_immutability_trigger
-    BEFORE UPDATE ON attendance
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_attendance_update_after_24h();
-
-  CREATE OR REPLACE FUNCTION prevent_attendance_delete_after_24h()
-  RETURNS TRIGGER AS \$\$
-  BEGIN
-    IF (CURRENT_TIMESTAMP - OLD.created_at) > INTERVAL '24 hours' THEN
-      RAISE EXCEPTION 'Cannot delete attendance record after 24 hours. Record created at: %', OLD.created_at;
-    END IF;
-    RETURN OLD;
-  END;
-  \$\$ LANGUAGE plpgsql;
-
-  CREATE TRIGGER attendance_delete_immutability_trigger
-    BEFORE DELETE ON attendance
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_attendance_delete_after_24h();
-"
-```
-
-#### Method 2: Using Node.js/TypeScript
-
-If you have direct PostgreSQL access from your host:
+#### Method 1: Using Node.js/TypeScript (Recommended)
 
 ```bash
 # Run migration
@@ -563,6 +557,18 @@ npx tsx server/migrations/001_add_leader_assignment.ts
 npx tsx server/migrations/001_add_leader_assignment.ts down
 ```
 
+#### Method 2: Using Docker directly
+
+```bash
+# Migration 001
+docker exec tms-postgres psql -U postgres -d tour_management_system -c "
+  ALTER TABLE tours ADD COLUMN IF NOT EXISTS assigned_leader_id INT REFERENCES users(id) ON DELETE SET NULL;
+  ALTER TABLE tours ADD COLUMN IF NOT EXISTS leader_assigned_at TIMESTAMP;
+  ALTER TABLE tours ADD COLUMN IF NOT EXISTS participant_count INT DEFAULT 0;
+  CREATE INDEX IF NOT EXISTS idx_tours_leader ON tours(assigned_leader_id);
+"
+```
+
 #### Method 3: Using psql CLI
 
 ```bash
@@ -570,8 +576,6 @@ npx tsx server/migrations/001_add_leader_assignment.ts down
 docker exec -it tms-postgres psql -U postgres -d tour_management_system
 
 # Inside psql, paste the SQL from the migration file
-# Or execute from file:
-\i /path/to/migration.sql
 ```
 
 ---
@@ -584,65 +588,13 @@ docker exec -it tms-postgres psql -U postgres -d tour_management_system
 touch server/migrations/004_your_migration_name.ts
 ```
 
-2. **Use the template structure**:
-
-```typescript
-import pool from "../db";
-
-const up = `
-  -- Your SQL statements here
-  ALTER TABLE your_table ADD COLUMN new_column VARCHAR(255);
-`;
-
-const down = `
-  -- Reverse the changes
-  ALTER TABLE your_table DROP COLUMN new_column;
-`;
-
-async function runMigration() {
-  console.log("Running migration: 004_your_migration_name");
-  try {
-    await pool.query(up);
-    console.log("✓ Migration completed successfully");
-    await pool.end();
-    process.exit(0);
-  } catch (error) {
-    console.error("✗ Migration failed:", error);
-    await pool.end();
-    process.exit(1);
-  }
-}
-
-async function rollbackMigration() {
-  console.log("Rolling back migration: 004_your_migration_name");
-  try {
-    await pool.query(down);
-    console.log("✓ Rollback completed successfully");
-    await pool.end();
-    process.exit(0);
-  } catch (error) {
-    console.error("✗ Rollback failed:", error);
-    await pool.end();
-    process.exit(1);
-  }
-}
-
-const action = process.argv[2];
-if (action === "down") {
-  rollbackMigration();
-} else {
-  runMigration();
-}
-
-export { up, down };
-```
+2. **Use the template structure** shown in the Migration Architecture section above.
 
 3. **Best Practices**:
    - Use `IF NOT EXISTS` / `IF EXISTS` for idempotency
    - Always provide both `up` and `down` migrations
    - Test rollback before committing
    - Use transactions for complex migrations
-   - Document the purpose and changes in comments
    - Number migrations sequentially (001, 002, 003...)
 
 ---
@@ -654,13 +606,6 @@ After running migrations, verify the changes:
 ```bash
 # Check table structure
 docker exec tms-postgres psql -U postgres -d tour_management_system -c "\d tours"
-
-# Check for specific columns
-docker exec tms-postgres psql -U postgres -d tour_management_system -c "
-  SELECT column_name, data_type, is_nullable
-  FROM information_schema.columns
-  WHERE table_name = 'tours' AND column_name = 'assigned_leader_id';
-"
 
 # Check indexes
 docker exec tms-postgres psql -U postgres -d tour_management_system -c "
@@ -679,13 +624,13 @@ docker exec tms-postgres psql -U postgres -d tour_management_system -c "
 
 ---
 
-### Troubleshooting
+## Troubleshooting
 
 **Connection Refused Error:**
 
 - Ensure Docker container is running: `docker compose ps`
-- Check if PostgreSQL is bound to correct port: `docker compose logs tms-postgres`
-- Verify `.env` has correct `POSTGRES_HOST` (use `localhost` for local Docker)
+- Check if PostgreSQL is bound to correct port (5433): `docker compose logs tms-postgres`
+- Verify `.env` has `POSTGRES_PORT=5433`
 
 **Migration Already Applied:**
 
