@@ -1,68 +1,30 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
 import { DashboardClient } from "./dashboard-client";
+import { tourApi, type TourData } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { LoadingCard } from "@/components/features";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const [tours, setTours] = useState<TourData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get user role
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  let userRole = null;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    userRole = profile?.role || null;
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await tourApi.getAll();
+      if (result.success && result.data) {
+        setTours(result.data);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <LoadingCard />;
   }
 
-  // Fetch Organizations
-  const { data: organizations } = await supabase
-    .from("organizations")
-    .select("*");
-
-  // Fetch Tours based on user role
-  let toursQuery = supabase.from("tours").select("*, organizations(name)");
-
-  if (userRole === "tour_leader" && user) {
-    // For tour leaders, only show tours they are leading
-    toursQuery = supabase
-      .from("tour_leaders")
-      .select(
-        `
-        tours:tour_id (
-          *,
-          organizations(name)
-        )
-      `,
-      )
-      .eq("user_id", user.id);
-  }
-
-  const { data: toursData } = await toursQuery;
-
-  // Extract tours from nested structure for leaders
-  let tours = toursData;
-  if (userRole === "tour_leader") {
-    tours = toursData?.map((item) => item.tours).filter(Boolean) || [];
-  }
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Overview</h2>
-        <p className="text-muted-foreground">
-          Welcome to TourSync. Here's what's happening today.
-        </p>
-      </div>
-
-      <DashboardClient
-        organizations={organizations || []}
-        tours={tours || []}
-        userRole={userRole}
-      />
-    </div>
-  );
+  return <DashboardClient tours={tours} userRole={user?.role || null} />;
 }

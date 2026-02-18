@@ -32,7 +32,7 @@ interface ToursClientProps {
 
 const statusColors = {
   draft: "bg-slate-100 text-slate-700 border-slate-200",
-  planned: "bg-blue-100 text-blue-700 border-blue-200",
+  planned: "bg-primary-100 text-primary-700 border-primary-200",
   active: "bg-emerald-100 text-emerald-700 border-emerald-200",
   completed: "bg-purple-100 text-purple-700 border-purple-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
@@ -46,8 +46,7 @@ export function ToursClient({ tours }: ToursClientProps) {
     const matchesSearch =
       tour.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.destination.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || tour.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || tour.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -57,10 +56,8 @@ export function ToursClient({ tours }: ToursClientProps) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
-                <Button className="text-sm">
-                  Dashboard
-                </Button>
-              </Link>
+              <Button className="text-sm">Dashboard</Button>
+            </Link>
             <span className="text-muted-foreground">/</span>
             <h1 className="text-xl font-semibold text-foreground">Tours</h1>
           </div>
@@ -146,8 +143,7 @@ export function ToursClient({ tours }: ToursClientProps) {
                                 statusColors[tour.status]
                               }`}
                             >
-                              {tour.status.charAt(0).toUpperCase() +
-                                tour.status.slice(1)}
+                              {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
                             </span>
                             <button className="rounded p-1 opacity-0 transition-opacity hover:bg-slate-100 group-hover:opacity-100">
                               <MoreHorizontal className="h-4 w-4 text-slate-500" />
@@ -182,7 +178,7 @@ export function ToursClient({ tours }: ToursClientProps) {
                         )}
 
                         <div className="mt-4 flex items-center justify-between border-t pt-4">
-                          <span className="text-sm font-medium text-blue-600">
+                          <span className="text-sm font-medium text-primary">
                             ${Number(tour.per_person_fee).toFixed(2)}/person
                           </span>
                           <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />

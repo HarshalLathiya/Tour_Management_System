@@ -1,54 +1,27 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { config as appConfig } from "@/config";
 
 export async function middleware(req: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
+  const token = req.cookies.get(appConfig.auth.tokenKey)?.value;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // If session exists, redirect authenticated users away from auth pages
+  // Redirect authenticated users away from auth pages
   if (
-    session &&
+    token &&
     (req.nextUrl.pathname.startsWith("/auth/login") ||
       req.nextUrl.pathname.startsWith("/auth/register"))
   ) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // If no session, redirect to login for protected routes
-  if (!session && req.nextUrl.pathname.startsWith("/dashboard")) {
+  // Redirect unauthenticated users away from dashboard
+  if (!token && req.nextUrl.pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

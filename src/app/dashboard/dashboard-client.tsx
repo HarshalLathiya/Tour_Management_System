@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -17,90 +18,83 @@ import {
   TrendingUp,
   Clock,
   Shield,
-  BarChart3,
-  MoreVertical,
-  Download,
-  Eye,
-  Edit,
-  Trash2,
   History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Organization, Tour } from "@/types";
 
+interface DashboardTour {
+  id: number | string;
+  name: string;
+  description?: string;
+  destination?: string;
+  start_date?: string;
+  end_date?: string;
+  status: string;
+  price?: string;
+  participant_count?: number;
+  leader_name?: string;
+  leader_email?: string;
+}
+
 interface DashboardClientProps {
-  organizations: Organization[];
-  tours: (Tour & { organizations: { name: string } | null })[];
+  tours: DashboardTour[];
   userRole: string | null;
 }
 
-const statusColors = {
-  draft: "bg-slate-100 text-slate-700",
-  planned: "bg-blue-100 text-blue-700",
-  active: "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
-  completed: "bg-gradient-to-r from-purple-500 to-indigo-500 text-white",
-  cancelled: "bg-gradient-to-r from-red-500 to-rose-500 text-white",
+const statusColors: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground",
+  planned: "bg-primary-100 text-primary-700",
+  active: "bg-success text-success-foreground",
+  ongoing: "bg-success text-success-foreground",
+  completed: "bg-secondary text-secondary-foreground",
+  cancelled: "bg-destructive text-destructive-foreground",
 };
 
-const statusIcons = {
+const statusIcons: Record<string, React.ReactNode> = {
   draft: <Clock className="h-4 w-4" />,
   planned: <Calendar className="h-4 w-4" />,
   active: <MapPin className="h-4 w-4" />,
+  ongoing: <MapPin className="h-4 w-4" />,
   completed: <ClipboardCheck className="h-4 w-4" />,
   cancelled: <AlertTriangle className="h-4 w-4" />,
 };
 
-export function DashboardClient({
-  organizations,
-  tours,
-  userRole,
-}: DashboardClientProps) {
-  // Admin-specific stats for org_admin and super_admin
-  const isAdmin = userRole === "org_admin" || userRole === "super_admin";
+export function DashboardClient({ tours, userRole }: DashboardClientProps) {
+  const isAdmin = userRole === "admin";
 
   const stats = isAdmin
     ? [
         {
           label: "Total Revenue",
-          value: `$${(tours.reduce((sum, tour) => sum + (tour.participants?.length || 0), 0) * 150).toLocaleString()}`,
+          value: `$${(tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0) * 150).toLocaleString()}`,
           icon: DollarSign,
           color: "from-emerald-500 to-teal-500",
-          change: "+8%",
-          trend: "up",
+          change: null,
+          trend: "neutral",
         },
         {
           label: "Active Tours",
-          value: tours.filter((t) => t.status === "active").length,
+          value: tours.filter((t) => t.status === "active" || t.status === "ongoing").length,
           icon: MapPin,
-          color: "from-blue-500 to-cyan-500",
-          change: "+12%",
-          trend: "up",
+          color: "from-primary-500 to-primary-600",
+          change: null,
+          trend: "neutral",
         },
         {
-          label: "Total Users",
-          value:
-            organizations.length * 15 +
-            tours.reduce(
-              (sum, tour) => sum + (tour.participants?.length || 0),
-              0,
-            ),
+          label: "Total Participants",
+          value: tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0),
           icon: Users,
-          color: "from-violet-500 to-purple-500",
-          change: "+15",
-          trend: "up",
+          color: "from-accent-500 to-accent-600",
+          change: null,
+          trend: "neutral",
         },
         {
           label: "System Health",
           value: "98%",
           icon: Shield,
-          color: "from-amber-500 to-orange-500",
+          color: "from-warning to-warning/90",
           change: "Healthy",
           trend: "neutral",
         },
@@ -108,52 +102,47 @@ export function DashboardClient({
     : [
         {
           label: "Active Tours",
-          value: tours.filter((t) => t.status === "active").length,
+          value: tours.filter((t) => t.status === "active" || t.status === "ongoing").length,
           icon: MapPin,
-          color: "from-blue-500 to-cyan-500",
-          change: "+12%",
-          trend: "up",
+          color: "from-primary-500 to-primary-600",
+          change: null,
+          trend: "neutral",
         },
         {
-          label: "Total Organizations",
-          value: organizations.length,
-          icon: Users,
+          label: "Total Tours",
+          value: tours.length,
+          icon: Calendar,
           color: "from-emerald-500 to-teal-500",
-          change: "+2",
-          trend: "up",
+          change: null,
+          trend: "neutral",
         },
         {
           label: "Upcoming Tours",
           value: tours.filter((t) => t.status === "planned").length,
           icon: Calendar,
-          color: "from-violet-500 to-purple-500",
-          change: "3",
+          color: "from-accent-500 to-accent-600",
+          change: null,
           trend: "neutral",
         },
         {
           label: "Total Participants",
-          value: tours.reduce(
-            (sum, tour) => sum + (tour.participants?.length || 0),
-            0,
-          ),
+          value: tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0),
           icon: Users,
-          color: "from-amber-500 to-orange-500",
-          change: "+24",
-          trend: "up",
+          color: "from-warning to-warning/90",
+          change: null,
+          trend: "neutral",
         },
       ];
 
-  const activeTours = tours.filter((t) => t.status === "active").slice(0, 3);
+  const activeTours = tours
+    .filter((t) => t.status === "active" || t.status === "ongoing")
+    .slice(0, 3);
   const upcomingTours = tours.filter((t) => t.status === "planned").slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-white p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary-50/20 to-background p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
@@ -170,8 +159,8 @@ export function DashboardClient({
                 className="pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full md:w-64 text-stone-950"
               />
             </div>
-            {userRole !== "tour_leader" && (
-              <Button className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300">
+            {userRole !== "guide" && (
+              <Button className="btn-primary rounded-xl shadow-lg hover:shadow-xl">
                 <Plus className="h-4 w-4 mr-2" />
                 New Tour
               </Button>
@@ -197,28 +186,26 @@ export function DashboardClient({
               whileHover={{ scale: 1.02, y: -2 }}
               className="cursor-pointer"
             >
-              <Card className="overflow-hidden border-2 border-white hover:border-blue-100 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 rounded-3xl">
+              <Card className="overflow-hidden border-2 border-white hover:border-primary-100 hover:shadow-xl hover:shadow-primary-100/50 transition-all duration-300 rounded-3xl">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-slate-500 font-medium mb-2">
-                        {stat.label}
-                      </p>
+                      <p className="text-sm text-slate-500 font-medium mb-2">{stat.label}</p>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold text-slate-900">
-                          {stat.value}
-                        </p>
-                        <span
-                          className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            stat.trend === "up"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : stat.trend === "down"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {stat.change}
-                        </span>
+                        <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                        {stat.change && (
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded-full ${
+                              stat.trend === "up"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : stat.trend === "down"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-slate-100 text-slate-700"
+                            }`}
+                          >
+                            {stat.change}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div
@@ -249,29 +236,20 @@ export function DashboardClient({
               animate={{ opacity: 1, x: 0 }}
               className="md:col-span-2"
             >
-              <Card className="rounded-3xl border-2 border-white hover:border-blue-100 transition-all duration-300">
+              <Card className="rounded-3xl border-2 border-white hover:border-primary-100 transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-xl">Recent Tours</CardTitle>
-                    <CardDescription>
-                      Your latest tour activities
-                    </CardDescription>
+                    <CardDescription>Your latest tour activities</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl border-slate-300"
-                    >
+                    <Button variant="outline" size="sm" className="rounded-xl border-slate-300">
                       <Filter className="h-4 w-4 mr-2" />
                       Filter
                     </Button>
-                    {userRole !== "tour_leader" && (
+                    {userRole !== "guide" && (
                       <Link href="/dashboard/tours/new">
-                        <Button
-                          size="sm"
-                          className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                        >
+                        <Button size="sm" className="btn-primary rounded-xl">
                           <Plus className="h-4 w-4 mr-2" />
                           New Tour
                         </Button>
@@ -282,17 +260,15 @@ export function DashboardClient({
                 <CardContent>
                   {tours.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="rounded-full bg-gradient-to-br from-blue-500 to-blue-600 p-4 mb-4">
+                      <div className="rounded-full bg-gradient-to-br from-primary to-primary-600 p-4 mb-4">
                         <MapPin className="h-8 w-8 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        No tours yet
-                      </h3>
-                      <p className="mt-2 text-sm text-slate-600">
+                      <h3 className="text-lg font-semibold text-foreground">No tours yet</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Create your first tour to get started
                       </p>
                       <Link href="/dashboard/tours/new" className="mt-4">
-                        <Button className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-white shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300">
+                        <Button className="btn-primary rounded-full px-6 py-3 shadow-lg hover:shadow-xl">
                           Create Tour
                         </Button>
                       </Link>
@@ -307,46 +283,38 @@ export function DashboardClient({
                         >
                           <Link
                             href={`/dashboard/tours/${tour.id}`}
-                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50"
+                            className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-300 hover:border-primary hover:shadow-lg hover:shadow-primary/20"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-3">
+                              <div className="rounded-xl bg-gradient-to-br from-primary to-primary-600 p-3">
                                 <MapPin className="h-5 w-5 text-white" />
                               </div>
                               <div>
-                                <p className="font-semibold text-slate-900">
-                                  {tour.name}
-                                </p>
+                                <p className="font-semibold text-slate-900">{tour.name}</p>
                                 <div className="flex items-center gap-3 mt-1">
                                   <span className="text-sm text-slate-500">
-                                    {tour.destination}
+                                    {tour.destination || "No destination"}
                                   </span>
-                                  <span className="text-xs text-slate-400">
-                                    •
-                                  </span>
-                                  <span className="text-sm text-slate-500">
-                                    {tour.organizations?.name ||
-                                      "No Organization"}
-                                  </span>
+                                  {tour.leader_name && (
+                                    <>
+                                      <span className="text-xs text-slate-400">•</span>
+                                      <span className="text-sm text-slate-500">
+                                        Led by {tour.leader_name}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${
-                                  statusColors[
-                                    tour.status as keyof typeof statusColors
-                                  ]
+                                  statusColors[tour.status] || "bg-slate-100 text-slate-700"
                                 }`}
                               >
-                                {
-                                  statusIcons[
-                                    tour.status as keyof typeof statusIcons
-                                  ]
-                                }
+                                {statusIcons[tour.status] || <Clock className="h-4 w-4" />}
                                 <span>
-                                  {tour.status.charAt(0).toUpperCase() +
-                                    tour.status.slice(1)}
+                                  {tour.status.charAt(0).toUpperCase() + tour.status.slice(1)}
                                 </span>
                               </span>
                               <ChevronRight className="h-5 w-5 text-slate-400" />
@@ -367,7 +335,7 @@ export function DashboardClient({
               transition={{ delay: 0.2 }}
               className="md:col-span-2"
             >
-              <Card className="rounded-3xl border-2 border-white hover:border-blue-100 transition-all duration-300">
+              <Card className="rounded-3xl border-2 border-white hover:border-primary-100 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-xl">Quick Actions</CardTitle>
                   <CardDescription>Common tasks and shortcuts</CardDescription>
@@ -377,53 +345,46 @@ export function DashboardClient({
                     {
                       href: "/dashboard/tours/new",
                       icon: Plus,
-                      iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
+                      iconColor: "bg-gradient-to-br from-primary to-primary-600",
                       title: "Create New Tour",
                       description: "Start planning a new tour",
-                      roles: ["org_admin", "super_admin"],
+                      roles: ["admin"],
                     },
                     {
                       href: "/dashboard/attendance",
                       icon: ClipboardCheck,
-                      iconColor:
-                        "bg-gradient-to-br from-emerald-500 to-teal-500",
+                      iconColor: "bg-gradient-to-br from-emerald-500 to-teal-500",
                       title: "Take Attendance",
                       description: "Mark attendance for current tour",
-                      roles: ["org_admin", "super_admin", "tour_leader"],
+                      roles: ["admin", "guide"],
                     },
                     {
                       href: "/dashboard/announcements",
                       icon: Bell,
-                      iconColor:
-                        "bg-gradient-to-br from-violet-500 to-purple-500",
+                      iconColor: "bg-gradient-to-br from-accent to-accent-600",
                       title: "Send Announcement",
                       description: "Notify all participants",
-                      roles: ["org_admin", "super_admin", "tour_leader"],
+                      roles: ["admin", "guide"],
                     },
                     {
                       href: "/dashboard/safety",
                       icon: AlertTriangle,
-                      iconColor:
-                        "bg-gradient-to-br from-amber-500 to-orange-500",
+                      iconColor: "bg-gradient-to-br from-warning to-warning/90",
                       title: "Report Incident",
                       description: "Log safety concerns or emergencies",
-                      roles: ["org_admin", "super_admin", "tour_leader"],
+                      roles: ["admin", "guide"],
                     },
                     {
                       href: "/dashboard/audit-logs",
                       icon: History,
-                      iconColor:
-                        "bg-gradient-to-br from-slate-600 to-slate-800",
+                      iconColor: "bg-gradient-to-br from-secondary to-secondary-foreground",
                       title: "System Audit Logs",
                       description: "Track all administrative changes",
-                      roles: ["org_admin", "super_admin"],
+                      roles: ["admin"],
                     },
                   ]
-                    .filter(
-                      (action) =>
-                        !action.roles || action.roles.includes(userRole || ""),
-                    )
-                    .map((action, index) => (
+                    .filter((action) => !action.roles || action.roles.includes(userRole || ""))
+                    .map((action) => (
                       <motion.div
                         key={action.title}
                         whileHover={{ scale: 1.02 }}
@@ -431,20 +392,14 @@ export function DashboardClient({
                       >
                         <Link
                           href={action.href}
-                          className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50"
+                          className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-all duration-300 hover:border-primary hover:shadow-lg hover:shadow-primary/20"
                         >
-                          <div
-                            className={`rounded-xl p-3 text-white ${action.iconColor}`}
-                          >
+                          <div className={`rounded-xl p-3 text-white ${action.iconColor}`}>
                             <action.icon className="h-5 w-5" />
                           </div>
                           <div className="flex-1">
-                            <p className="font-semibold text-slate-900">
-                              {action.title}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {action.description}
-                            </p>
+                            <p className="font-semibold text-slate-900">{action.title}</p>
+                            <p className="text-sm text-slate-600">{action.description}</p>
                           </div>
                           <ChevronRight className="h-5 w-5 text-slate-400" />
                         </Link>
@@ -484,12 +439,8 @@ export function DashboardClient({
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="font-semibold text-slate-900">
-                              {tour.name}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {tour.destination}
-                            </p>
+                            <p className="font-semibold text-slate-900">{tour.name}</p>
+                            <p className="text-sm text-slate-600">{tour.destination}</p>
                           </div>
                           <span className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-xs font-medium text-white">
                             Active
@@ -497,11 +448,11 @@ export function DashboardClient({
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-500">
-                            {tour.participants?.length || 0} participants
+                            {tour.participant_count || 0} participants
                           </span>
                           <Link
                             href={`/dashboard/tours/${tour.id}`}
-                            className="text-blue-600 hover:text-blue-700 font-medium"
+                            className="text-primary hover:text-primary-600 font-medium"
                           >
                             View →
                           </Link>
@@ -536,28 +487,24 @@ export function DashboardClient({
                     {upcomingTours.map((tour) => (
                       <div
                         key={tour.id}
-                        className="rounded-xl border border-blue-100 bg-blue-50/50 p-4"
+                        className="rounded-xl border border-primary-100 bg-primary-50/50 p-4"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="font-semibold text-slate-900">
-                              {tour.name}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {tour.destination}
-                            </p>
+                            <p className="font-semibold text-foreground">{tour.name}</p>
+                            <p className="text-sm text-muted-foreground">{tour.destination}</p>
                           </div>
-                          <span className="rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-2 py-1 text-xs font-medium text-white">
+                          <span className="rounded-full bg-gradient-to-r from-primary to-primary-600 px-2 py-1 text-xs font-medium text-white">
                             Planned
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-500">
+                          <span className="text-muted-foreground">
                             Starts in {Math.floor(Math.random() * 14) + 1} days
                           </span>
                           <Link
                             href={`/dashboard/tours/${tour.id}`}
-                            className="text-blue-600 hover:text-blue-700 font-medium"
+                            className="text-primary hover:text-primary-600 font-medium"
                           >
                             Prepare →
                           </Link>
@@ -576,16 +523,14 @@ export function DashboardClient({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className="rounded-3xl border-2 border-white hover:border-blue-100 transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100/50">
+            <Card className="rounded-3xl border-2 border-white hover:border-primary-100 transition-all duration-300 bg-gradient-to-br from-primary-50 to-primary-100/50">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-3">
+                  <div className="rounded-xl bg-gradient-to-br from-primary to-primary-600 p-3">
                     <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Safety Status
-                    </h3>
+                    <h3 className="font-semibold text-slate-900">Safety Status</h3>
                     <p className="text-sm text-slate-600">All systems normal</p>
                   </div>
                 </div>
@@ -598,9 +543,7 @@ export function DashboardClient({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">Participants</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      All safe
-                    </span>
+                    <span className="text-sm font-medium text-slate-900">All safe</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-700">Last check</span>
@@ -608,7 +551,7 @@ export function DashboardClient({
                   </div>
                 </div>
                 <Button
-                  className="mt-4 w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                  className="mt-4 w-full rounded-xl bg-gradient-to-r from-primary to-primary-600 text-white"
                   variant="outline"
                 >
                   <AlertTriangle className="h-4 w-4 mr-2" />

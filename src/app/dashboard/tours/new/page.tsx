@@ -20,17 +20,10 @@ import {
   Minus,
   Trash2,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -40,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { tourApi } from "@/lib/api";
 
 export default function NewTourPage() {
   const router = useRouter();
@@ -181,45 +175,18 @@ export default function NewTourPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/tours", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          tour_code: formData.tourCode,
-          tour_type: formData.tourType,
-          description: formData.description,
-          start_date: formData.startDate,
-          end_date: formData.endDate,
-          duration: formData.duration,
-          max_participants: parseInt(formData.maxParticipants) || 0,
-          min_participants: parseInt(formData.minParticipants) || 0,
-          category_tags: formData.categoryTags,
-          tour_rules: formData.tourRules,
-          medical_requirements: formData.medicalRequirements,
-          starting_point: formData.startingPoint,
-          destination: formData.destination,
-          intermediate_stops: formData.intermediateStops,
-          itinerary: formData.itinerary,
-          accommodation: formData.accommodation,
-          transportation: formData.transportation,
-          total_budget: parseFloat(formData.totalBudget) || 0,
-          budget_breakdown: formData.budgetBreakdown,
-          participant_fee: parseFloat(formData.participantFee) || 0,
-          additional_charges: formData.additionalCharges,
-          payment_options: formData.paymentOptions,
-          primary_leader: formData.primaryLeader,
-          assistant_leaders: formData.assistantLeaders,
-          participants: formData.participants,
-          status: formData.status,
-          publish_date: formData.publishDate,
-          registration_close_date: formData.registrationCloseDate,
-        }),
+      const result = await tourApi.create({
+        name: formData.name,
+        description: formData.description,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        destination: formData.destination,
+        price: formData.participantFee,
+        status: formData.status as "planned" | "ongoing" | "completed" | "cancelled",
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Failed to create tour");
+      if (!result.success) {
+        toast.error(result.error || "Failed to create tour");
         return;
       }
 
@@ -246,12 +213,8 @@ export default function NewTourPage() {
             Back to Tours
           </Link>
           <div className="ml-2 border-l pl-4">
-            <h1 className="text-xl font-semibold text-slate-900">
-              Create New Tour
-            </h1>
-            <p className="text-sm text-slate-500">
-              Plan and organize your tour details
-            </p>
+            <h1 className="text-xl font-semibold text-slate-900">Create New Tour</h1>
+            <p className="text-sm text-slate-500">Plan and organize your tour details</p>
           </div>
         </div>
       </header>
@@ -264,18 +227,14 @@ export default function NewTourPage() {
               <div key={index} className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                    index <= currentStep
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-200 text-slate-600"
+                    index <= currentStep ? "bg-primary text-white" : "bg-slate-200 text-slate-600"
                   }`}
                 >
                   {index + 1}
                 </div>
                 <span
                   className={`ml-2 text-sm ${
-                    index <= currentStep
-                      ? "text-slate-900 font-medium"
-                      : "text-slate-500"
+                    index <= currentStep ? "text-slate-900 font-medium" : "text-slate-500"
                   }`}
                 >
                   {step}
@@ -283,7 +242,7 @@ export default function NewTourPage() {
                 {index < steps.length - 1 && (
                   <div
                     className={`ml-4 h-0.5 w-16 ${
-                      index < currentStep ? "bg-blue-600" : "bg-slate-200"
+                      index < currentStep ? "bg-primary" : "bg-slate-200"
                     }`}
                   />
                 )}
@@ -298,7 +257,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <MapPin className="h-5 w-5 text-primary" />
                   Basic Tour Information
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -313,9 +272,7 @@ export default function NewTourPage() {
                       id="name"
                       placeholder="Summer Adventure 2026"
                       value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
                   </div>
@@ -373,9 +330,7 @@ export default function NewTourPage() {
                       id="startDate"
                       type="date"
                       value={formData.startDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, startDate: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       required
                     />
                   </div>
@@ -385,9 +340,7 @@ export default function NewTourPage() {
                       id="endDate"
                       type="date"
                       value={formData.endDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, endDate: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                       required
                     />
                   </div>
@@ -438,33 +391,24 @@ export default function NewTourPage() {
                 <div className="space-y-2">
                   <Label>Category Tags</Label>
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      "Domestic",
-                      "International",
-                      "Day Trip",
-                      "Overnight",
-                      "Budget",
-                      "Luxury",
-                    ].map((tag) => (
-                      <Button
-                        key={tag}
-                        type="button"
-                        variant={
-                          formData.categoryTags.includes(tag)
-                            ? "default"
-                            : "outline"
-                        }
-                        size="sm"
-                        onClick={() => {
-                          const newTags = formData.categoryTags.includes(tag)
-                            ? formData.categoryTags.filter((t) => t !== tag)
-                            : [...formData.categoryTags, tag];
-                          setFormData({ ...formData, categoryTags: newTags });
-                        }}
-                      >
-                        {tag}
-                      </Button>
-                    ))}
+                    {["Domestic", "International", "Day Trip", "Overnight", "Budget", "Luxury"].map(
+                      (tag) => (
+                        <Button
+                          key={tag}
+                          type="button"
+                          variant={formData.categoryTags.includes(tag) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            const newTags = formData.categoryTags.includes(tag)
+                              ? formData.categoryTags.filter((t) => t !== tag)
+                              : [...formData.categoryTags, tag];
+                            setFormData({ ...formData, categoryTags: newTags });
+                          }}
+                        >
+                          {tag}
+                        </Button>
+                      )
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -473,9 +417,7 @@ export default function NewTourPage() {
                     id="description"
                     placeholder="Describe your tour..."
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                   />
                 </div>
@@ -485,9 +427,7 @@ export default function NewTourPage() {
                     id="tourRules"
                     placeholder="Enter tour rules and regulations..."
                     value={formData.tourRules}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tourRules: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, tourRules: e.target.value })}
                     rows={3}
                   />
                 </div>
@@ -498,9 +438,7 @@ export default function NewTourPage() {
                       <input
                         type="checkbox"
                         id="medicalCertificate"
-                        checked={
-                          formData.medicalRequirements.medicalCertificate
-                        }
+                        checked={formData.medicalRequirements.medicalCertificate}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -511,17 +449,13 @@ export default function NewTourPage() {
                           })
                         }
                       />
-                      <Label htmlFor="medicalCertificate">
-                        Medical certificate required
-                      </Label>
+                      <Label htmlFor="medicalCertificate">Medical certificate required</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id="insuranceMandatory"
-                        checked={
-                          formData.medicalRequirements.insuranceMandatory
-                        }
+                        checked={formData.medicalRequirements.insuranceMandatory}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -532,17 +466,13 @@ export default function NewTourPage() {
                           })
                         }
                       />
-                      <Label htmlFor="insuranceMandatory">
-                        Insurance mandatory
-                      </Label>
+                      <Label htmlFor="insuranceMandatory">Insurance mandatory</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         id="vaccinationRequirements"
-                        checked={
-                          formData.medicalRequirements.vaccinationRequirements
-                        }
+                        checked={formData.medicalRequirements.vaccinationRequirements}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -553,9 +483,7 @@ export default function NewTourPage() {
                           })
                         }
                       />
-                      <Label htmlFor="vaccinationRequirements">
-                        Vaccination requirements
-                      </Label>
+                      <Label htmlFor="vaccinationRequirements">Vaccination requirements</Label>
                     </div>
                   </div>
                 </div>
@@ -568,7 +496,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <Calendar className="h-5 w-5 text-primary" />
                   Itinerary & Schedule
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -627,9 +555,7 @@ export default function NewTourPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const newStops = formData.intermediateStops.filter(
-                            (_, i) => i !== index,
-                          );
+                          const newStops = formData.intermediateStops.filter((_, i) => i !== index);
                           setFormData({
                             ...formData,
                             intermediateStops: newStops,
@@ -657,10 +583,7 @@ export default function NewTourPage() {
                 <div className="space-y-4">
                   <Label>Day-by-Day Itinerary</Label>
                   {formData.itinerary.map((day, dayIndex) => (
-                    <div
-                      key={dayIndex}
-                      className="border rounded-lg p-4 space-y-4"
-                    >
+                    <div key={dayIndex} className="border rounded-lg p-4 space-y-4">
                       <div className="flex items-center gap-4">
                         <Input
                           type="date"
@@ -681,7 +604,7 @@ export default function NewTourPage() {
                           size="sm"
                           onClick={() => {
                             const newItinerary = formData.itinerary.filter(
-                              (_, i) => i !== dayIndex,
+                              (_, i) => i !== dayIndex
                             );
                             setFormData({
                               ...formData,
@@ -702,8 +625,7 @@ export default function NewTourPage() {
                               value={activity.time}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].morning[actIndex].time =
-                                  e.target.value;
+                                newItinerary[dayIndex].morning[actIndex].time = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -715,8 +637,7 @@ export default function NewTourPage() {
                               value={activity.place}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].morning[actIndex].place =
-                                  e.target.value;
+                                newItinerary[dayIndex].morning[actIndex].place = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -728,9 +649,7 @@ export default function NewTourPage() {
                               value={activity.activity}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].morning[
-                                  actIndex
-                                ].activity = e.target.value;
+                                newItinerary[dayIndex].morning[actIndex].activity = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -742,8 +661,7 @@ export default function NewTourPage() {
                               value={activity.notes}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].morning[actIndex].notes =
-                                  e.target.value;
+                                newItinerary[dayIndex].morning[actIndex].notes = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -756,10 +674,7 @@ export default function NewTourPage() {
                               size="sm"
                               onClick={() => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].morning.splice(
-                                  actIndex,
-                                  1,
-                                );
+                                newItinerary[dayIndex].morning.splice(actIndex, 1);
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -801,9 +716,7 @@ export default function NewTourPage() {
                               value={activity.time}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].afternoon[
-                                  actIndex
-                                ].time = e.target.value;
+                                newItinerary[dayIndex].afternoon[actIndex].time = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -815,9 +728,7 @@ export default function NewTourPage() {
                               value={activity.place}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].afternoon[
-                                  actIndex
-                                ].place = e.target.value;
+                                newItinerary[dayIndex].afternoon[actIndex].place = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -829,9 +740,8 @@ export default function NewTourPage() {
                               value={activity.activity}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].afternoon[
-                                  actIndex
-                                ].activity = e.target.value;
+                                newItinerary[dayIndex].afternoon[actIndex].activity =
+                                  e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -843,9 +753,7 @@ export default function NewTourPage() {
                               value={activity.notes}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].afternoon[
-                                  actIndex
-                                ].notes = e.target.value;
+                                newItinerary[dayIndex].afternoon[actIndex].notes = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -858,10 +766,7 @@ export default function NewTourPage() {
                               size="sm"
                               onClick={() => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].afternoon.splice(
-                                  actIndex,
-                                  1,
-                                );
+                                newItinerary[dayIndex].afternoon.splice(actIndex, 1);
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -903,8 +808,7 @@ export default function NewTourPage() {
                               value={activity.time}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].evening[actIndex].time =
-                                  e.target.value;
+                                newItinerary[dayIndex].evening[actIndex].time = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -916,8 +820,7 @@ export default function NewTourPage() {
                               value={activity.place}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].evening[actIndex].place =
-                                  e.target.value;
+                                newItinerary[dayIndex].evening[actIndex].place = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -929,9 +832,7 @@ export default function NewTourPage() {
                               value={activity.activity}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].evening[
-                                  actIndex
-                                ].activity = e.target.value;
+                                newItinerary[dayIndex].evening[actIndex].activity = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -943,8 +844,7 @@ export default function NewTourPage() {
                               value={activity.notes}
                               onChange={(e) => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].evening[actIndex].notes =
-                                  e.target.value;
+                                newItinerary[dayIndex].evening[actIndex].notes = e.target.value;
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -957,10 +857,7 @@ export default function NewTourPage() {
                               size="sm"
                               onClick={() => {
                                 const newItinerary = [...formData.itinerary];
-                                newItinerary[dayIndex].evening.splice(
-                                  actIndex,
-                                  1,
-                                );
+                                newItinerary[dayIndex].evening.splice(actIndex, 1);
                                 setFormData({
                                   ...formData,
                                   itinerary: newItinerary,
@@ -1004,15 +901,9 @@ export default function NewTourPage() {
                           ...formData.itinerary,
                           {
                             date: "",
-                            morning: [
-                              { time: "", place: "", activity: "", notes: "" },
-                            ],
-                            afternoon: [
-                              { time: "", place: "", activity: "", notes: "" },
-                            ],
-                            evening: [
-                              { time: "", place: "", activity: "", notes: "" },
-                            ],
+                            morning: [{ time: "", place: "", activity: "", notes: "" }],
+                            afternoon: [{ time: "", place: "", activity: "", notes: "" }],
+                            evening: [{ time: "", place: "", activity: "", notes: "" }],
                           },
                         ],
                       })
@@ -1197,7 +1088,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <DollarSign className="h-5 w-5 text-blue-600" />
+                  <DollarSign className="h-5 w-5 text-primary" />
                   Budget & Fees
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -1214,9 +1105,7 @@ export default function NewTourPage() {
                     step="0.01"
                     placeholder="10000.00"
                     value={formData.totalBudget}
-                    onChange={(e) =>
-                      setFormData({ ...formData, totalBudget: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, totalBudget: e.target.value })}
                   />
                 </div>
                 <div className="space-y-4">
@@ -1403,9 +1292,7 @@ export default function NewTourPage() {
                           })
                         }
                       />
-                      <Label htmlFor="installmentPlans">
-                        Installment plans available
-                      </Label>
+                      <Label htmlFor="installmentPlans">Installment plans available</Label>
                     </div>
                     <Input
                       placeholder="Payment deadlines"
@@ -1459,7 +1346,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <UserCheck className="h-5 w-5 text-blue-600" />
+                  <UserCheck className="h-5 w-5 text-primary" />
                   Assign Leaders & Participants
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -1488,15 +1375,11 @@ export default function NewTourPage() {
                       <input
                         type="checkbox"
                         id="leader2"
-                        checked={formData.assistantLeaders.includes(
-                          "Jane Smith",
-                        )}
+                        checked={formData.assistantLeaders.includes("Jane Smith")}
                         onChange={(e) => {
                           const newLeaders = e.target.checked
                             ? [...formData.assistantLeaders, "Jane Smith"]
-                            : formData.assistantLeaders.filter(
-                                (l) => l !== "Jane Smith",
-                              );
+                            : formData.assistantLeaders.filter((l) => l !== "Jane Smith");
                           setFormData({
                             ...formData,
                             assistantLeaders: newLeaders,
@@ -1509,15 +1392,11 @@ export default function NewTourPage() {
                       <input
                         type="checkbox"
                         id="leader3"
-                        checked={formData.assistantLeaders.includes(
-                          "Mike Johnson",
-                        )}
+                        checked={formData.assistantLeaders.includes("Mike Johnson")}
                         onChange={(e) => {
                           const newLeaders = e.target.checked
                             ? [...formData.assistantLeaders, "Mike Johnson"]
-                            : formData.assistantLeaders.filter(
-                                (l) => l !== "Mike Johnson",
-                              );
+                            : formData.assistantLeaders.filter((l) => l !== "Mike Johnson");
                           setFormData({
                             ...formData,
                             assistantLeaders: newLeaders,
@@ -1554,7 +1433,7 @@ export default function NewTourPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  <Eye className="h-5 w-5 text-blue-600" />
+                  <Eye className="h-5 w-5 text-primary" />
                   Review & Publish
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -1580,9 +1459,7 @@ export default function NewTourPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span>
-                          Leaders: {formData.primaryLeader ? 1 : 0} assigned
-                        </span>
+                        <span>Leaders: {formData.primaryLeader ? 1 : 0} assigned</span>
                       </div>
                     </div>
                   </div>
@@ -1635,12 +1512,7 @@ export default function NewTourPage() {
 
           {/* Navigation Buttons */}
           <div className="flex justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0}
-            >
+            <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Previous
             </Button>
