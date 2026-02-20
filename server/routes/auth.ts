@@ -47,12 +47,10 @@ router.put(
 );
 
 // PUT /api/auth/change-password - Change password
-router.put(
-  "/change-password",
-  authenticateToken,
-  asyncHandler((req, res) => authController.changePassword(req, res))
+router.post(
+  "/direct-reset",
+  asyncHandler((req, res, next) => authController.directResetPassword(req, res, next))
 );
-
 // GET /api/auth/leaders - Get all leaders (guide role)
 router.get(
   "/leaders",

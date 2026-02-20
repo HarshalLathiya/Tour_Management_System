@@ -110,20 +110,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const result = await authApi.register(data);
 
-        if (!result.success || !result.data) {
+        if (!result.success) {
           return { success: false, error: result.error || "Registration failed" };
         }
 
-        const { token, user } = result.data;
-
-        tokenManager.setToken(token);
-        tokenManager.setUser(user);
-
-        setState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        // 🚫 DO NOT set token
+        // 🚫 DO NOT set user
+        // 🚫 DO NOT set authenticated state
 
         return { success: true };
       } catch (error) {

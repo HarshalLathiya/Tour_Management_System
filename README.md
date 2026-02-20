@@ -152,7 +152,7 @@ This creates:
 | Role    | Email                   |
 | ------- | ----------------------- |
 | Admin   | `admin@toursync.com`    |
-| Guide   | `guide1@toursync.com`   |
+| Guide   | ` `                     |
 | Tourist | `tourist1@toursync.com` |
 
 ---

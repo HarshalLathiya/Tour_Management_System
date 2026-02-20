@@ -8,24 +8,29 @@ const skip = () => process.env.NODE_ENV === "test";
  * Rate limiter for authentication endpoints (login, register, password reset)
  * Stricter limits to prevent brute force attacks
  */
-export const authLimiter = rateLimit({
-  skip,
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
-  message: {
-    success: false,
-    error: "Too many authentication attempts. Please try again after 15 minutes.",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  handler: (req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: "Too many authentication attempts. Please try again after 15 minutes.",
-    });
-  },
-});
-
+export const authLimiter =
+  process.env.NODE_ENV === "production"
+    ? rateLimit({
+        skip,
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        message: {
+          success: false,
+          error: "Too many authentication attempts. Please try again after 15 minutes.",
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req: Request, res: Response) => {
+          res.status(429).json({
+            success: false,
+            error: "Too many authentication attempts. Please try again after 15 minutes.",
+          });
+        },
+      })
+    : rateLimit({
+        windowMs: 60 * 1000, // 1 minute in development
+        max: 100, // allow many attempts while testing
+      });
 /**
  * Rate limiter for general API endpoints
  * Moderate limits for normal API usage

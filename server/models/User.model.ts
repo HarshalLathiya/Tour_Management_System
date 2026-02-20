@@ -50,7 +50,7 @@ export class UserModel extends BaseModel {
       [email, password, name, role]
     );
 
-    return result.rows[0];
+    return result.rows[0]!;
   }
 
   /**
@@ -130,6 +130,15 @@ export class UserModel extends BaseModel {
    */
   async deleteUser(id: number): Promise<boolean> {
     return this.deleteById(id);
+  }
+
+  /**
+   * Find user by email (with password hash)
+   */
+  async findByEmailWithPassword(email: string): Promise<UserRow | null> {
+    const result = await this.query<UserRow>("SELECT * FROM users WHERE email = $1", [email]);
+
+    return result.rows[0] || null;
   }
 }
 

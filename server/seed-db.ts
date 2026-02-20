@@ -26,16 +26,16 @@ async function seed() {
 
     const usersResult = await client.query(
       `INSERT INTO users (email, password_hash, name, role) VALUES
-        ('admin@toursync.com',   $1, 'Alice Admin',    'admin'),
-        ('admin2@toursync.com',  $1, 'Bob Manager',    'admin'),
-        ('guide1@toursync.com',  $1, 'Rajesh Kumar',   'guide'),
-        ('guide2@toursync.com',  $1, 'Priya Sharma',   'guide'),
-        ('guide3@toursync.com',  $1, 'Arjun Mehta',    'guide'),
-        ('tourist1@toursync.com',$1, 'John Doe',       'tourist'),
-        ('tourist2@toursync.com',$1, 'Jane Smith',     'tourist'),
-        ('tourist3@toursync.com',$1, 'Carlos Rivera',  'tourist'),
-        ('tourist4@toursync.com',$1, 'Mei Chen',       'tourist'),
-        ('tourist5@toursync.com',$1, 'Sara Johnson',   'tourist')
+        ('admin@toursync.com',   $1, 'Admin One',    'admin'),
+        ('admin2@toursync.com',  $1, 'Manager Two',    'admin'),
+        ('guide1@toursync.com',  $1, 'Paras Thummar',   'guide'),
+        ('guide2@toursync.com',  $1, 'Vipul Baldha',   'guide'),
+        ('guide3@toursync.com',  $1, 'Dhruvil Padsala',    'guide'),
+        ('tourist1@toursync.com',$1, 'Harshal Lathiya',       'tourist'),
+        ('tourist2@toursync.com',$1, 'Dharmik Saraviya',     'tourist'),
+        ('tourist3@toursync.com',$1, 'Navdeep Bhalu',  'tourist'),
+        ('tourist4@toursync.com',$1, 'Deep Kanjariya',       'tourist'),
+        ('tourist5@toursync.com',$1, 'Vishal Makawana',   'tourist')
       RETURNING id, email, role`,
       [passwordHash]
     );

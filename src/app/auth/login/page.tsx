@@ -58,12 +58,6 @@ export default function LoginPage() {
             <label htmlFor="password" className="block text-sm font-medium text-foreground">
               Password<span className="text-destructive ml-1">*</span>
             </label>
-            <Link
-              href="/auth/forgot-password"
-              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              Forgot password?
-            </Link>
           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
@@ -89,8 +83,13 @@ export default function LoginPage() {
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors justify-end flex mt-2"
+          >
+            Forgot password?
+          </Link>
         </div>
-
         <button
           type="submit"
           disabled={loading}

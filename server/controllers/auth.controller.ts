@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User.model";
 import { AppError } from "../middleware/errorHandler";
 import type { JwtPayload } from "../types";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -193,40 +193,34 @@ export class AuthController {
       },
     });
   }
+  async directResetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, newPassword } = req.body as {
+        email: string;
+        newPassword: string;
+      };
 
-  /**
-   * Change password
-   */
-  async changePassword(req: Request, res: Response): Promise<void> {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const { currentPassword, newPassword } = req.body as {
-      currentPassword: string;
-      newPassword: string;
-    };
+      if (!email || !newPassword) {
+        throw new AppError(400, "Email and new password are required");
+      }
 
-    // Find user with password
-    const user = await User.findByIdWithPassword(userId);
-    if (!user) {
-      throw new AppError(404, "User not found");
+      const user = await User.findByEmail(email);
+      if (!user) {
+        throw new AppError(404, "User not found");
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await User.updatePassword(user.id, hashedPassword);
+
+      res.json({
+        success: true,
+        message: "Password reset successfully",
+      });
+    } catch (error) {
+      next(error); // VERY IMPORTANT
     }
-
-    // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
-    if (!isValidPassword) {
-      throw new AppError(401, "Current password is incorrect");
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password
-    await User.updatePassword(userId, hashedPassword);
-
-    res.json({
-      message: "Password changed successfully",
-    });
   }
-
   /**
    * Get all leaders (users with 'guide' role)
    */
