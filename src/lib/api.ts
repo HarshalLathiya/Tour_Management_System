@@ -62,13 +62,15 @@ export interface AttendanceData {
   user_id: number;
   tour_id: number;
   date: string;
-  status: "present" | "absent" | "late";
+  status: "present" | "absent" | "late" | "left_with_permission";
   checkpoint_id?: number;
   verified_by?: number;
   verification_time?: string;
   location_lat?: number;
   location_lng?: number;
-  created_at: string;
+  created_at?: string;
+  user_name?: string;
+  user_email?: string;
 }
 
 export interface AnnouncementData {

@@ -245,6 +245,28 @@ export class TourModel extends BaseModel {
     const result = await this.query<TourRow>(query);
     return result.rows;
   }
+
+  /**
+   * Get tour participants
+   */
+  async getTourParticipants(
+    tourId: number
+  ): Promise<{ id: number; user_id: number; full_name: string; email: string }[]> {
+    const query = `
+      SELECT tu.id, tu.user_id, u.name as full_name, u.email
+      FROM tour_users tu
+      JOIN users u ON tu.user_id = u.id
+      WHERE tu.tour_id = $1
+      ORDER BY u.name ASC
+    `;
+    const result = await this.query<{
+      id: number;
+      user_id: number;
+      full_name: string;
+      email: string;
+    }>(query, [tourId]);
+    return result.rows;
+  }
 }
 
 // Export singleton instance

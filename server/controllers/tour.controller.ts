@@ -360,6 +360,31 @@ export class TourController {
       data: tours,
     });
   }
+
+  /**
+   * Get tour participants
+   */
+  async getTourParticipants(req: Request, res: Response): Promise<void> {
+    const tourId = parseInt(String(req.params.id));
+
+    if (isNaN(tourId)) {
+      throw new AppError(400, "Invalid tour ID");
+    }
+
+    // Check if tour exists
+    const tour = await Tour.getTourById(tourId);
+    if (!tour) {
+      throw new AppError(404, "Tour not found");
+    }
+
+    // Get participants from tour_users table
+    const participants = await Tour.getTourParticipants(tourId);
+
+    res.json({
+      success: true,
+      data: participants,
+    });
+  }
 }
 
 // Export singleton instance

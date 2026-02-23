@@ -1,3 +1,4 @@
+import pool from "../db";
 import { Attendance } from "../models/Attendance.model";
 import { AppError } from "../middleware/errorHandler";
 import { isWithinGeofence } from "../utils/geofencing";
@@ -9,17 +10,45 @@ export class AttendanceController {
   async getAll(req: Request, res: Response): Promise<void> {
     const { tour_id, user_id, date, status } = req.query;
 
-    const filters: Record<string, unknown> = {};
-    if (tour_id) filters.tour_id = parseInt(tour_id as string);
-    if (user_id) filters.user_id = parseInt(user_id as string);
-    if (date) filters.date = date;
-    if (status) filters.status = status;
+    // Build query with user join to get participant names
+    let query = `
+      SELECT 
+        a.id, a.user_id, a.tour_id, a.date, a.status, 
+        a.checkpoint_id, a.verified_by, a.verification_time,
+        a.location_lat, a.location_lng, a.created_at,
+        u.name as user_name, u.email as user_email
+      FROM attendance a
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE 1=1
+    `;
+    const params: unknown[] = [];
+    let paramIndex = 1;
 
-    const records = await Attendance.getAll(filters);
+    if (tour_id) {
+      query += ` AND a.tour_id = $${paramIndex++}`;
+      params.push(parseInt(tour_id as string));
+    }
+    if (user_id) {
+      query += ` AND a.user_id = $${paramIndex++}`;
+      params.push(parseInt(user_id as string));
+    }
+    if (date) {
+      query += ` AND a.date = $${paramIndex++}`;
+      params.push(date);
+    }
+    if (status) {
+      query += ` AND a.status = $${paramIndex++}`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY a.date DESC, a.created_at DESC`;
+
+    // Execute custom query
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
-      data: records,
+      data: result.rows,
     });
   }
 

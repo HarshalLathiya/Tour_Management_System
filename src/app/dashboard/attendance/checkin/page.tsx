@@ -1,11 +1,13 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useCallback } from "react";
-import { MapPin, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { MapPin, CheckCircle, Clock, AlertCircle, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { tourApi, attendanceApi } from "@/lib/api";
+import { tourApi, attendanceApi, api } from "@/lib/api";
 import { toast } from "sonner";
 
 interface Tour {
@@ -33,6 +35,15 @@ interface AttendanceRecord {
   location_lng?: number;
   created_at: string;
   checkpoint_id?: number;
+  user_name?: string;
+}
+
+interface ItineraryLocation {
+  id: number;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  arrival_time?: string;
 }
 
 export default function CheckInPage() {
@@ -52,6 +63,7 @@ export default function CheckInPage() {
     try {
       const result = await attendanceApi.getAll({ tour_id: selectedTourId });
       if (result.success && result.data) {
+        // The API should return user info with each attendance record
         setAttendanceHistory(result.data as AttendanceRecord[]);
       }
     } catch (error) {
@@ -90,24 +102,53 @@ export default function CheckInPage() {
   };
 
   const fetchLocations = async () => {
-    // TODO: Implement when checkpoints API is ready
-    // For now, use placeholder data
-    setLocations([
-      {
-        id: 1,
-        name: "Eiffel Tower",
-        latitude: 48.8584,
-        longitude: 2.2945,
-        radius: 500,
-      },
-      {
-        id: 2,
-        name: "Louvre Museum",
-        latitude: 48.8606,
-        longitude: 2.3376,
-        radius: 500,
-      },
-    ]);
+    if (!selectedTourId) return;
+
+    try {
+      // Fetch itineraries for the tour to get real checkpoint locations
+      const itineraryResult = await api.get<{ id: number; title: string; date: string }[]>(
+        `/itineraries?tour_id=${selectedTourId}`
+      );
+
+      if (itineraryResult.success && itineraryResult.data && itineraryResult.data.length > 0) {
+        // Use real itinerary data as locations
+        // In a real app, you would have a separate locations/checkpoints table
+        // For now, we'll create placeholder locations from itinerary data
+        // This is a workaround - ideally the backend should have a checkpoints/locations table
+        const realLocations: CheckpointLocation[] = itineraryResult.data.map((item, index) => ({
+          id: item.id,
+          name: item.title || `Day ${index + 1}`,
+          // Default coordinates (in real app, these would come from the database)
+          latitude: 0,
+          longitude: 0,
+          radius: 500, // Default 500m radius
+        }));
+        setLocations(realLocations);
+      } else {
+        // Fallback to placeholder data if no itineraries
+        setLocations([
+          {
+            id: 1,
+            name: "Tour Start Location",
+            latitude: 0,
+            longitude: 0,
+            radius: 500,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      // Fallback to placeholder data on error
+      setLocations([
+        {
+          id: 1,
+          name: "Tour Start Location",
+          latitude: 0,
+          longitude: 0,
+          radius: 500,
+        },
+      ]);
+    }
   };
 
   const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
@@ -152,6 +193,25 @@ export default function CheckInPage() {
       // Find selected location details
       const selectedLocation = locations.find((l) => l.id === selectedLocationId);
 
+      // Calculate distance if we have real coordinates
+      if (selectedLocation && selectedLocation.latitude !== 0 && selectedLocation.longitude !== 0) {
+        const distance = calculateDistance(
+          location.lat,
+          location.lng,
+          selectedLocation.latitude,
+          selectedLocation.longitude
+        );
+
+        // Check if within geofence radius - ENFORCE GEOFENCE
+        if (distance > selectedLocation.radius) {
+          toast.error("Outside Check-In Area", {
+            description: `You are ${Math.round(distance)}m away from the location. Please move within ${selectedLocation.radius}m to check in.`,
+          });
+          setIsCheckingIn(false);
+          return;
+        }
+      }
+
       // Check in with geofencing
       const result = await attendanceApi.checkIn({
         tour_id: selectedTourId,
@@ -159,7 +219,7 @@ export default function CheckInPage() {
         location_lat: location.lat,
         location_lng: location.lng,
         date: new Date().toISOString().split("T")[0],
-        status: "PRESENT",
+        status: "present",
       });
 
       if (result.success) {
@@ -197,7 +257,10 @@ export default function CheckInPage() {
 
   const selectedLocation = locations.find((l) => l.id === selectedLocationId);
   const distanceToLocation =
-    userLocation && selectedLocation
+    userLocation &&
+    selectedLocation &&
+    selectedLocation.latitude !== 0 &&
+    selectedLocation.longitude !== 0
       ? calculateDistance(
           userLocation.lat,
           userLocation.lng,
@@ -205,6 +268,9 @@ export default function CheckInPage() {
           selectedLocation.longitude
         )
       : null;
+
+  const isOutsideGeofence =
+    distanceToLocation !== null && selectedLocation && distanceToLocation > selectedLocation.radius;
 
   if (loading) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -257,7 +323,7 @@ export default function CheckInPage() {
             </div>
 
             {userLocation && distanceToLocation !== null && selectedLocation && (
-              <div className="bg-slate-50 p-4 rounded-lg">
+              <div className={`p-4 rounded-lg ${isOutsideGeofence ? "bg-red-50" : "bg-slate-50"}`}>
                 <div className="flex items-center space-x-2 text-sm">
                   <MapPin className="h-4 w-4 text-slate-500" />
                   <span className="text-slate-700">
@@ -269,8 +335,8 @@ export default function CheckInPage() {
                     </span>
                   </span>
                 </div>
-                {distanceToLocation > selectedLocation.radius && (
-                  <div className="flex items-center space-x-2 text-sm text-amber-700 mt-2">
+                {isOutsideGeofence && (
+                  <div className="flex items-center space-x-2 text-sm text-red-700 mt-2">
                     <AlertCircle className="h-4 w-4" />
                     <span>You're outside the check-in radius ({selectedLocation.radius}m)</span>
                   </div>
@@ -300,8 +366,11 @@ export default function CheckInPage() {
 
               <Button
                 onClick={handleCheckIn}
-                disabled={!selectedTourId || !selectedLocationId || isCheckingIn}
+                disabled={
+                  !selectedTourId || !selectedLocationId || isCheckingIn || isOutsideGeofence
+                }
                 className="flex-1"
+                variant={isOutsideGeofence ? "secondary" : "default"}
               >
                 {isCheckingIn ? (
                   <>
@@ -316,6 +385,12 @@ export default function CheckInPage() {
                 )}
               </Button>
             </div>
+
+            {isOutsideGeofence && (
+              <p className="text-xs text-red-600 text-center">
+                Please move closer to the location to enable check-in
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -339,21 +414,26 @@ export default function CheckInPage() {
                   >
                     <div>
                       <p className="text-sm font-medium text-slate-800">
-                        {new Date(record.date).toLocaleDateString()}
+                        {record.user_name || "Unknown Participant"}
                       </p>
                       <p className="text-xs text-slate-500">
+                        {new Date(record.date).toLocaleDateString()} •{" "}
                         {new Date(record.created_at).toLocaleTimeString()}
                       </p>
                     </div>
                     <Badge
-                      variant={record.status === "PRESENT" ? "default" : "secondary"}
+                      variant={
+                        record.status === "PRESENT" || record.status === "present"
+                          ? "default"
+                          : "secondary"
+                      }
                       className={
-                        record.status === "PRESENT"
+                        record.status === "PRESENT" || record.status === "present"
                           ? "bg-green-100 text-green-700"
                           : "bg-slate-100 text-slate-700"
                       }
                     >
-                      {record.status}
+                      {record.status?.toUpperCase() || "UNKNOWN"}
                     </Badge>
                   </div>
                 ))}

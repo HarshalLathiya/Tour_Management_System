@@ -90,4 +90,11 @@ router.delete(
   asyncHandler((req, res) => tourController.deleteTour(req, res))
 );
 
+// GET /api/tours/:id/participants - Get tour participants
+router.get(
+  "/:id/participants",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.getTourParticipants(req, res))
+);
+
 export default router;

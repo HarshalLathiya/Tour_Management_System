@@ -222,6 +222,44 @@ async function seed() {
     }
     console.log(`✓ Created ${attendanceData.length} attendance records`);
 
+    // ─── Tour Users (Participants) ─────────────────────────────────────────────
+    // Assign tourists to tours
+    const tourUsersData = [
+      // Mumbai City Tour (ongoing) - tours[5]
+      [tours[5].id, tourist1.id, "participant"],
+      [tours[5].id, tourist2.id, "participant"],
+      [tours[5].id, tourist3.id, "participant"],
+      [tours[5].id, tourist4.id, "participant"],
+      [tours[5].id, tourist5.id, "participant"],
+      // Golden Triangle Tour (planned) - tours[0]
+      [tours[0].id, tourist1.id, "participant"],
+      [tours[0].id, tourist2.id, "participant"],
+      [tours[0].id, tourist3.id, "participant"],
+      // Gujarat Heritage Tour (planned) - tours[1]
+      [tours[1].id, tourist4.id, "participant"],
+      [tours[1].id, tourist5.id, "participant"],
+      // Kerala Backwaters (planned) - tours[2]
+      [tours[2].id, tourist1.id, "participant"],
+      [tours[2].id, tourist3.id, "participant"],
+      [tours[2].id, tourist5.id, "participant"],
+      // Rajasthan Royal Tour (planned) - tours[3]
+      [tours[3].id, tourist2.id, "participant"],
+      [tours[3].id, tourist4.id, "participant"],
+      // Himachal Adventure (planned) - tours[4]
+      [tours[4].id, tourist1.id, "participant"],
+      [tours[4].id, tourist2.id, "participant"],
+      [tours[4].id, tourist3.id, "participant"],
+      [tours[4].id, tourist4.id, "participant"],
+      [tours[4].id, tourist5.id, "participant"],
+    ];
+    for (const [tid, uid, role] of tourUsersData) {
+      await client.query(
+        `INSERT INTO tour_users (tour_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+        [tid, uid, role]
+      );
+    }
+    console.log(`✓ Created ${tourUsersData.length} tour user assignments`);
+
     // ─── Incidents ────────────────────────────────────────────────────────────
     const incidentData = [
       [
