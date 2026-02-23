@@ -79,6 +79,55 @@ export interface AnnouncementData {
   created_at: string;
 }
 
+export interface ItineraryData {
+  id: number;
+  tour_id: number;
+  route_id?: number;
+  date: string;
+  title: string;
+  description?: string;
+  start_time?: string;
+  end_time?: string;
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface AccommodationData {
+  id: number;
+  tour_id: number;
+  name: string;
+  address?: string;
+  check_in_date?: string;
+  check_out_date?: string;
+  contact_number?: string;
+  created_at?: string;
+}
+
+export interface RoomAssignmentData {
+  id: number;
+  accommodation_id: number;
+  user_id: number;
+  room_number?: string;
+  room_type?: string;
+  notes?: string;
+  profile?: {
+    full_name: string;
+  };
+}
+
+// Photo types
+export interface PhotoData {
+  id: number;
+  tour_id: number;
+  user_id: number;
+  photo_url: string;
+  caption?: string;
+  created_at: string;
+  user_name?: string;
+  user_email?: string;
+}
+
 // ============================================================================
 // Token Management
 // ============================================================================
@@ -389,11 +438,87 @@ export const announcementApi = {
 };
 
 /**
+ * Itinerary API
+ */
+export const itineraryApi = {
+  getAll: (tourId?: number) => {
+    const query = tourId ? `?tour_id=${tourId}` : "";
+    return apiClient.get<ItineraryData[]>(`/itineraries${query}`);
+  },
+
+  getById: (id: number) => apiClient.get<ItineraryData>(`/itineraries/${id}`),
+
+  create: (data: Partial<ItineraryData>) => apiClient.post<ItineraryData>("/itineraries", data),
+
+  update: (id: number, data: Partial<ItineraryData>) =>
+    apiClient.put<ItineraryData>(`/itineraries/${id}`, data),
+
+  delete: (id: number) => apiClient.delete(`/itineraries/${id}`),
+};
+
+/**
  * Users API
  */
 export const userApi = {
   getLeaders: () => authApi.getLeaders(),
   getProfile: () => authApi.getProfile(),
+};
+
+/**
+ * Accommodation API
+ */
+export const accommodationApi = {
+  getAll: (tourId: number) => apiClient.get<AccommodationData[]>(`/accommodations/${tourId}`),
+
+  create: (data: {
+    tour_id: number;
+    name: string;
+    address?: string;
+    check_in_date?: string;
+    check_out_date?: string;
+    contact_number?: string;
+  }) => apiClient.post<AccommodationData>("/accommodations", data),
+
+  update: (id: number, data: Partial<AccommodationData>) =>
+    apiClient.put<AccommodationData>(`/accommodations/${id}`, data),
+
+  delete: (id: number) => apiClient.delete(`/accommodations/${id}`),
+
+  getRoomAssignments: (accommodationId: number) =>
+    apiClient.get<RoomAssignmentData[]>(`/accommodations/${accommodationId}/assignments`),
+
+  createRoomAssignment: (data: {
+    accommodation_id: number;
+    user_id: number;
+    room_number?: string;
+    room_type?: string;
+    notes?: string;
+  }) =>
+    apiClient.post<RoomAssignmentData>(
+      `/accommodations/${data.accommodation_id}/assignments`,
+      data
+    ),
+
+  deleteRoomAssignment: (assignmentId: number) =>
+    apiClient.delete(`/accommodations/assignments/${assignmentId}`),
+
+  getTourParticipants: (tourId: number) =>
+    apiClient.get<{ user_id: number; name: string }[]>(`/accommodations/${tourId}/participants`),
+};
+
+/**
+ * Photo API
+ */
+export const photoApi = {
+  // Get all photos for a tour
+  getByTourId: (tourId: number) => apiClient.get<PhotoData[]>(`/photos/${tourId}`),
+
+  // Upload a new photo (sends base64 or URL)
+  upload: (tourId: number, data: { photo_url: string; caption?: string }) =>
+    apiClient.post<PhotoData>(`/photos/${tourId}`, data),
+
+  // Delete a photo
+  delete: (photoId: number) => apiClient.delete(`/photos/${photoId}`),
 };
 
 // Legacy exports for backward compatibility

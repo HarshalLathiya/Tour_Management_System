@@ -31,7 +31,13 @@ router.post(
       "INSERT INTO states (name, code) VALUES ($1, $2) RETURNING id",
       [name, code || null]
     );
-    res.status(201).json({ id: result.rows[0].id, name, code });
+    const row = result.rows[0];
+
+    if (!row) {
+      throw new Error("Failed to create state");
+    }
+
+    res.status(201).json({ id: row.id, name, code });
   })
 );
 
@@ -69,7 +75,13 @@ router.post(
       "INSERT INTO cities (name, state_id) VALUES ($1, $2) RETURNING id",
       [name, state_id]
     );
-    res.status(201).json({ id: result.rows[0].id, name, state_id });
+    const row = result.rows[0];
+
+    if (!row) {
+      throw new Error("Failed to create city");
+    }
+
+    res.status(201).json({ id: row.id, name, state_id });
   })
 );
 
@@ -124,8 +136,14 @@ router.post(
       [name, city_id, latitude ?? null, longitude ?? null, description ?? null, category ?? "OTHER"]
     );
 
+    const row = result.rows[0];
+
+    if (!row) {
+      throw new Error("Failed to create place");
+    }
+
     res.status(201).json({
-      id: result.rows[0].id,
+      id: row.id,
       name,
       city_id,
       latitude,

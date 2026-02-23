@@ -5,11 +5,16 @@ import Link from "next/link";
 import { Plus, MapPin, Calendar, Users, ChevronRight } from "lucide-react";
 import { PageHeader, LoadingCard, ErrorMessage } from "@/components/features";
 import { tourApi, type TourData } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ToursPage() {
+  const { user } = useAuth();
   const [tours, setTours] = useState<TourData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if user has admin role
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -33,10 +38,12 @@ export default function ToursPage() {
         title="Tours"
         description="Manage and monitor all your tours"
         action={
-          <Link href="/dashboard/tours/new" className="btn-primary">
-            <Plus className="h-4 w-4" />
-            Create Tour
-          </Link>
+          isAdmin ? (
+            <Link href="/dashboard/tours/new" className="btn-primary">
+              <Plus className="h-4 w-4" />
+              Create Tour
+            </Link>
+          ) : undefined
         }
       />
 
@@ -46,11 +53,15 @@ export default function ToursPage() {
             <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground">No tours found</h3>
             <p className="text-muted-foreground mt-2 mb-4">
-              Get started by creating your first tour
+              {isAdmin
+                ? "Get started by creating your first tour"
+                : "No tours available at the moment"}
             </p>
-            <Link href="/dashboard/tours/new" className="btn-primary">
-              Create Tour
-            </Link>
+            {isAdmin && (
+              <Link href="/dashboard/tours/new" className="btn-primary">
+                Create Tour
+              </Link>
+            )}
           </div>
         ) : (
           tours.map((tour) => (

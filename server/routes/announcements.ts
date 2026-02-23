@@ -3,6 +3,11 @@ import type { Request, Response } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { validate, announcementSchemas } from "../middleware/validation";
 import pool from "../db";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
+
+interface AuthenticatedRequest extends Request {
+  user?: { id: unknown };
+}
 
 const router = express.Router();
 
@@ -57,6 +62,15 @@ router.get("/:id", authenticateToken, async (req: Request, res: Response) => {
       });
     }
 
+    // Log the view action
+    await createAuditLog({
+      userId: (req as AuthenticatedRequest).user?.id as number | undefined,
+      action: AuditActions.VIEW,
+      entityType: EntityTypes.ANNOUNCEMENT,
+      entityId: id,
+      req,
+    });
+
     res.json({
       success: true,
       data: result.rows[0],
@@ -77,6 +91,7 @@ router.post(
   validate(announcementSchemas.create),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as AuthenticatedRequest).user?.id;
       const { tour_id, title, content } = req.body;
 
       const result = await pool.query(
@@ -85,6 +100,16 @@ router.post(
        RETURNING *`,
         [tour_id, title, content]
       );
+
+      // Log the create action
+      await createAuditLog({
+        userId: userId as number | undefined,
+        action: AuditActions.CREATE,
+        entityType: EntityTypes.ANNOUNCEMENT,
+        entityId: result.rows[0].id,
+        newValues: { tour_id, title },
+        req,
+      });
 
       res.status(201).json({
         success: true,
@@ -107,6 +132,7 @@ router.put(
   validate(announcementSchemas.update),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as AuthenticatedRequest).user?.id;
       const id = parseInt(String(req.params.id));
 
       if (isNaN(id)) {
@@ -155,6 +181,17 @@ router.put(
 
       const result = await pool.query(updateQuery, values);
 
+      // Log the update action
+      await createAuditLog({
+        userId: userId as number | undefined,
+        action: AuditActions.UPDATE,
+        entityType: EntityTypes.ANNOUNCEMENT,
+        entityId: id,
+        oldValues: existingResult.rows[0],
+        newValues: { title, content },
+        req,
+      });
+
       res.json({
         success: true,
         data: result.rows[0],
@@ -172,6 +209,7 @@ router.put(
 // DELETE /api/announcements/:id - Delete announcement
 router.delete("/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
+    const userId = (req as AuthenticatedRequest).user?.id;
     const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
@@ -189,6 +227,16 @@ router.delete("/:id", authenticateToken, async (req: Request, res: Response) => 
         error: "Announcement not found",
       });
     }
+
+    // Log the delete action
+    await createAuditLog({
+      userId: userId as number | undefined,
+      action: AuditActions.DELETE,
+      entityType: EntityTypes.ANNOUNCEMENT,
+      entityId: id,
+      oldValues: result.rows[0],
+      req,
+    });
 
     res.json({
       success: true,

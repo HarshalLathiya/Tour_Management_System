@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Organization, Tour } from "@/types";
 
 interface DashboardTour {
   id: number | string;
@@ -63,6 +62,7 @@ const statusIcons: Record<string, React.ReactNode> = {
 
 export function DashboardClient({ tours, userRole }: DashboardClientProps) {
   const isAdmin = userRole === "admin";
+  const [searchQuery, setSearchQuery] = useState("");
 
   const stats = isAdmin
     ? [
@@ -86,7 +86,7 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
           label: "Total Participants",
           value: tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0),
           icon: Users,
-          color: "from-accent-500 to-accent-600",
+          color: "from-primary-500 to-primary-600",
           change: null,
           trend: "neutral",
         },
@@ -120,7 +120,7 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
           label: "Upcoming Tours",
           value: tours.filter((t) => t.status === "planned").length,
           icon: Calendar,
-          color: "from-accent-500 to-accent-600",
+          color: "from-emerald-500 to-teal-600",
           change: null,
           trend: "neutral",
         },
@@ -134,10 +134,22 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
         },
       ];
 
-  const activeTours = tours
+  // Filter tours based on search query
+  const filteredTours = tours.filter((tour) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      tour.name?.toLowerCase().includes(query) ||
+      tour.destination?.toLowerCase().includes(query) ||
+      tour.leader_name?.toLowerCase().includes(query) ||
+      tour.status?.toLowerCase().includes(query)
+    );
+  });
+
+  const activeTours = filteredTours
     .filter((t) => t.status === "active" || t.status === "ongoing")
     .slice(0, 3);
-  const upcomingTours = tours.filter((t) => t.status === "planned").slice(0, 3);
+  const upcomingTours = filteredTours.filter((t) => t.status === "planned").slice(0, 3);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-50/20 to-background p-4 md:p-6 lg:p-8">
@@ -156,15 +168,17 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
               <input
                 type="search"
                 placeholder="Search tours, participants..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full md:w-64 text-stone-950"
               />
             </div>
-            {userRole !== "guide" && (
+            {/* {userRole !== "guide" && userRole !== "tourist" && (
               <Button className="btn-primary rounded-xl shadow-lg hover:shadow-xl">
                 <Plus className="h-4 w-4 mr-2" />
                 New Tour
               </Button>
-            )}
+            )} */}
           </div>
         </div>
       </motion.div>
@@ -247,7 +261,7 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
                       <Filter className="h-4 w-4 mr-2" />
                       Filter
                     </Button>
-                    {userRole !== "guide" && (
+                    {userRole !== "guide" && userRole !== "tourist" && (
                       <Link href="/dashboard/tours/new">
                         <Button size="sm" className="btn-primary rounded-xl">
                           <Plus className="h-4 w-4 mr-2" />
@@ -361,10 +375,10 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
                     {
                       href: "/dashboard/announcements",
                       icon: Bell,
-                      iconColor: "bg-gradient-to-br from-accent to-accent-600",
+                      iconColor: "bg-gradient-to-br from-emerald-500 to-teal-500",
                       title: "Send Announcement",
                       description: "Notify all participants",
-                      roles: ["admin", "guide"],
+                      roles: ["admin", "guide", "tourist"],
                     },
                     {
                       href: "/dashboard/safety",
@@ -372,7 +386,7 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
                       iconColor: "bg-gradient-to-br from-warning to-warning/90",
                       title: "Report Incident",
                       description: "Log safety concerns or emergencies",
-                      roles: ["admin", "guide"],
+                      roles: ["admin", "guide", "tourist"],
                     },
                     {
                       href: "/dashboard/audit-logs",
@@ -550,13 +564,13 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
                     <span className="text-sm text-slate-500">2 min ago</span>
                   </div>
                 </div>
-                <Button
+                {/* <Button
                   className="mt-4 w-full rounded-xl bg-gradient-to-r from-primary to-primary-600 text-white"
                   variant="outline"
                 >
                   <AlertTriangle className="h-4 w-4 mr-2" />
                   View Safety Dashboard
-                </Button>
+                </Button> */}
               </CardContent>
             </Card>
           </motion.div>

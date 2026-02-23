@@ -155,7 +155,7 @@ export default function AnnouncementsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {/* Post Form - Only for Leaders/Admins */}
-          {(profile?.role === "TOUR_LEADER" || profile?.role === "ORG_ADMIN") && (
+          {(profile?.role === "admin" || profile?.role === "guide") && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 border-b flex items-center space-x-2">
                 <Send className="h-4 w-4 text-primary" />
@@ -227,7 +227,7 @@ export default function AnnouncementsPage() {
                           </p>
                         </div>
                       </div>
-                      {!hasRead && profile?.role === "PARTICIPANT" && (
+                      {!hasRead && profile?.role === "tourist" && (
                         <button
                           onClick={() => markAsRead(ann.id)}
                           className="text-xs font-bold text-primary bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100"

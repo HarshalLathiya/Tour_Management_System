@@ -22,8 +22,10 @@ import incidentRoutes from "./routes/incidents";
 import announcementRoutes from "./routes/announcements";
 import auditLogRoutes from "./routes/auditLogs";
 import notificationRoutes from "./routes/notifications";
+import accommodationRoutes from "./routes/accommodations";
+import photoRoutes from "./routes/photos";
 import { errorHandler } from "./middleware/errorHandler";
-import { authLimiter, apiLimiter } from "./middleware/rateLimiter";
+import { authLimiter, apiLimiter, readLimiter } from "./middleware/rateLimiter";
 
 const app = express();
 
@@ -35,21 +37,65 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+// Increase JSON body limit to 20MB for image uploads (base64)
+app.use(express.json({ limit: "20mb" }));
 
-// Apply rate limiters
+// Apply rate limiters - use readLimiter for GET requests, apiLimiter for mutations
+// This allows more read operations (viewing data) while keeping mutations protected
+
+// Auth routes - use authLimiter for all auth endpoints
 app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/locations", apiLimiter, locationRoutes);
-app.use("/api/itineraries", apiLimiter, itineraryRoutes);
-app.use("/api/tours", apiLimiter, toursRoutes);
-app.use("/api/attendance", apiLimiter, attendanceRoutes);
-app.use("/api/budgets", apiLimiter, budgetRoutes);
-app.use("/api/expenses", apiLimiter, expenseRoutes);
-app.use("/api/safety", apiLimiter, safetyRoutes);
-app.use("/api/incidents", apiLimiter, incidentRoutes);
-app.use("/api/announcements", apiLimiter, announcementRoutes);
-app.use("/api/audit-logs", apiLimiter, auditLogRoutes);
+
+// Helper function to apply appropriate rate limiter based on HTTP method
+const applyRateLimiter = (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  if (req.method === "GET") {
+    return readLimiter(req, res, next);
+  }
+  return apiLimiter(req, res, next);
+};
+
+// Locations - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/locations", applyRateLimiter, locationRoutes);
+
+// Itineraries - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/itineraries", applyRateLimiter, itineraryRoutes);
+
+// Tours - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/tours", applyRateLimiter, toursRoutes);
+
+// Attendance - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/attendance", applyRateLimiter, attendanceRoutes);
+
+// Budgets - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/budgets", applyRateLimiter, budgetRoutes);
+
+// Expenses - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/expenses", applyRateLimiter, expenseRoutes);
+
+// Safety - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/safety", applyRateLimiter, safetyRoutes);
+
+// Incidents - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/incidents", applyRateLimiter, incidentRoutes);
+
+// Announcements - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/announcements", applyRateLimiter, announcementRoutes);
+
+// Audit Logs - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/audit-logs", applyRateLimiter, auditLogRoutes);
+
+// Notifications - no rate limiter
 app.use("/api/notifications", notificationRoutes);
+
+// Accommodations - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/accommodations", applyRateLimiter, accommodationRoutes);
+
+// Photos - GET uses readLimiter, mutations use apiLimiter
+app.use("/api/photos", applyRateLimiter, photoRoutes);
 
 // Global error handler — must be last
 app.use(errorHandler);

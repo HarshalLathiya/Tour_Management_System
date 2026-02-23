@@ -97,6 +97,10 @@ export abstract class BaseModel {
       values
     );
 
+    if (!result.rows[0]) {
+      throw new Error("Insert failed: no row returned");
+    }
+
     return result.rows[0];
   }
 

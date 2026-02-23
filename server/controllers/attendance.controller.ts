@@ -3,6 +3,7 @@ import { AppError } from "../middleware/errorHandler";
 import { isWithinGeofence } from "../utils/geofencing";
 import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
 
 export class AttendanceController {
   async getAll(req: Request, res: Response): Promise<void> {
@@ -29,11 +30,23 @@ export class AttendanceController {
     const record = await Attendance.findById(id);
     if (!record) throw new AppError(404, "Attendance record not found");
 
+    // Log the view action
+    const authReq = req as AuthenticatedRequest;
+    await createAuditLog({
+      userId: authReq.user?.id,
+      action: AuditActions.VIEW,
+      entityType: EntityTypes.ATTENDANCE,
+      entityId: id,
+      req,
+    });
+
     res.json({ success: true, data: record });
   }
 
   async create(req: Request, res: Response): Promise<void> {
-    const userId = (req as AuthenticatedRequest).user!.id;
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user!.id;
+
     const {
       tour_id,
       date,
@@ -64,39 +77,93 @@ export class AttendanceController {
       location_lng,
     });
 
+    // Log the create action
+    await createAuditLog({
+      userId,
+      action: AuditActions.CREATE,
+      entityType: EntityTypes.ATTENDANCE,
+      entityId: record.id,
+      newValues: { tour_id, date, status, checkpoint_id },
+      req,
+    });
+
     res.status(201).json({ success: true, data: record });
   }
 
   async update(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user!.id;
+
     const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
+
+    // Get old record for audit
+    const oldRecord = await Attendance.findById(id);
 
     const { status } = req.body;
     const updated = await Attendance.updateStatus(id, status);
 
     if (!updated) throw new AppError(404, "Attendance record not found");
 
+    // Log the update action
+    await createAuditLog({
+      userId,
+      action: AuditActions.UPDATE,
+      entityType: EntityTypes.ATTENDANCE,
+      entityId: id,
+      oldValues: oldRecord ? { status: oldRecord.status } : undefined,
+      newValues: { status },
+      req,
+    });
+
     res.json({ success: true, data: updated });
   }
 
   async verify(req: Request, res: Response): Promise<void> {
-    const id = parseInt(String(req.params.id));
-    const verifiedBy = (req as AuthenticatedRequest).user!.id;
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user!.id;
 
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
 
-    const verified = await Attendance.verifyAttendance(id, verifiedBy);
+    const verified = await Attendance.verifyAttendance(id, userId);
     if (!verified) throw new AppError(404, "Attendance record not found");
+
+    // Log the verify action
+    await createAuditLog({
+      userId,
+      action: AuditActions.VERIFY,
+      entityType: EntityTypes.ATTENDANCE,
+      entityId: id,
+      newValues: { verified_by: userId },
+      req,
+    });
 
     res.json({ success: true, data: verified });
   }
 
   async delete(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user!.id;
+
     const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid attendance ID");
 
+    // Get old record for audit
+    const oldRecord = await Attendance.findById(id);
+
     const deleted = await Attendance.deleteById(id);
     if (!deleted) throw new AppError(404, "Attendance record not found");
+
+    // Log the delete action
+    await createAuditLog({
+      userId,
+      action: AuditActions.DELETE,
+      entityType: EntityTypes.ATTENDANCE,
+      entityId: id,
+      oldValues: oldRecord || undefined,
+      req,
+    });
 
     res.json({ success: true, message: "Attendance record deleted" });
   }

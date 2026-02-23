@@ -4,6 +4,7 @@ import { AppError } from "../middleware/errorHandler";
 import { notificationService } from "../services/notification.service";
 import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
 
 export class IncidentController {
   async getAll(req: Request, res: Response): Promise<void> {
@@ -27,11 +28,23 @@ export class IncidentController {
     const incident = await Incident.findById(id);
     if (!incident) throw new AppError(404, "Incident not found");
 
+    // Log the view action
+    const authReq = req as AuthenticatedRequest;
+    await createAuditLog({
+      userId: authReq.user?.id,
+      action: AuditActions.VIEW,
+      entityType: EntityTypes.INCIDENT,
+      entityId: id,
+      req,
+    });
+
     res.json({ success: true, data: incident });
   }
 
   async create(req: Request, res: Response): Promise<void> {
-    const reportedBy = (req as AuthenticatedRequest).user!.id;
+    const authReq = req as AuthenticatedRequest;
+    const reportedBy = authReq.user!.id;
+
     const {
       tour_id,
       title,
@@ -55,11 +68,23 @@ export class IncidentController {
       health_category,
     });
 
+    // Log the create action
+    await createAuditLog({
+      userId: reportedBy,
+      action: AuditActions.CREATE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: incident.id,
+      newValues: { tour_id, title, severity, status, incident_type },
+      req,
+    });
+
     res.status(201).json({ success: true, data: incident });
   }
 
   async triggerSOS(req: Request, res: Response): Promise<void> {
-    const reportedBy = (req as AuthenticatedRequest).user!.id;
+    const authReq = req as AuthenticatedRequest;
+    const reportedBy = authReq.user!.id;
+
     const { tour_id, location, description } = req.body;
 
     const sos = await Incident.triggerSOS({
@@ -83,6 +108,16 @@ export class IncidentController {
       description,
     });
 
+    // Log the SOS trigger
+    await createAuditLog({
+      userId: reportedBy,
+      action: AuditActions.CREATE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: sos.id,
+      newValues: { tour_id, type: "SOS", location, description },
+      req,
+    });
+
     res.status(201).json({
       success: true,
       message: "SOS alert triggered successfully",
@@ -91,7 +126,9 @@ export class IncidentController {
   }
 
   async reportHealth(req: Request, res: Response): Promise<void> {
-    const reportedBy = (req as AuthenticatedRequest).user!.id;
+    const authReq = req as AuthenticatedRequest;
+    const reportedBy = authReq.user!.id;
+
     const { tour_id, health_category, description, location, severity } = req.body;
 
     if (!health_category) {
@@ -122,6 +159,16 @@ export class IncidentController {
       severity: severity || "MEDIUM",
     });
 
+    // Log the health report
+    await createAuditLog({
+      userId: reportedBy,
+      action: AuditActions.CREATE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: healthIssue.id,
+      newValues: { tour_id, type: "HEALTH", health_category, severity },
+      req,
+    });
+
     res.status(201).json({
       success: true,
       message: "Health issue reported successfully",
@@ -130,9 +177,10 @@ export class IncidentController {
   }
 
   async respond(req: Request, res: Response): Promise<void> {
-    const id = parseInt(String(req.params.id));
-    const respondedBy = (req as AuthenticatedRequest).user!.id;
+    const authReq = req as AuthenticatedRequest;
+    const respondedBy = authReq.user!.id;
 
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
 
     const incident = await Incident.respondToIncident(id, respondedBy);
@@ -150,6 +198,16 @@ export class IncidentController {
       reportedBy: incident.reported_by,
     });
 
+    // Log the respond action
+    await createAuditLog({
+      userId: respondedBy,
+      action: AuditActions.UPDATE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: id,
+      newValues: { status: "IN_PROGRESS", responded_by: respondedBy },
+      req,
+    });
+
     res.json({
       success: true,
       message: "Incident marked as in progress",
@@ -158,14 +216,19 @@ export class IncidentController {
   }
 
   async resolve(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const resolvedBy = authReq.user!.id;
+
     const id = parseInt(String(req.params.id));
-    const resolvedBy = (req as AuthenticatedRequest).user!.id;
     const { resolution_notes } = req.body;
 
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
     if (!resolution_notes) {
       throw new AppError(400, "Resolution notes are required");
     }
+
+    // Get old incident for audit
+    const oldIncident = await Incident.findById(id);
 
     const incident = await Incident.resolveIncident(id, resolution_notes);
     if (!incident) throw new AppError(404, "Incident not found");
@@ -183,6 +246,17 @@ export class IncidentController {
       resolutionNotes: resolution_notes,
     });
 
+    // Log the resolve action
+    await createAuditLog({
+      userId: resolvedBy,
+      action: AuditActions.UPDATE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: id,
+      oldValues: oldIncident ? { status: oldIncident.status } : undefined,
+      newValues: { status: "RESOLVED", resolution_notes, resolved_by: resolvedBy },
+      req,
+    });
+
     res.json({
       success: true,
       message: "Incident resolved successfully",
@@ -191,21 +265,54 @@ export class IncidentController {
   }
 
   async update(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
     const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
 
+    // Get old incident for audit
+    const oldIncident = await Incident.findById(id);
+
     const updated = await Incident.updateById(id, req.body);
     if (!updated) throw new AppError(404, "Incident not found");
+
+    // Log the update action
+    await createAuditLog({
+      userId,
+      action: AuditActions.UPDATE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: id,
+      oldValues: oldIncident || undefined,
+      newValues: req.body,
+      req,
+    });
 
     res.json({ success: true, data: updated });
   }
 
   async delete(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
     const id = parseInt(String(req.params.id));
     if (isNaN(id)) throw new AppError(400, "Invalid incident ID");
 
+    // Get old incident for audit
+    const oldIncident = await Incident.findById(id);
+
     const deleted = await Incident.deleteById(id);
     if (!deleted) throw new AppError(404, "Incident not found");
+
+    // Log the delete action
+    await createAuditLog({
+      userId,
+      action: AuditActions.DELETE,
+      entityType: EntityTypes.INCIDENT,
+      entityId: id,
+      oldValues: oldIncident || undefined,
+      req,
+    });
 
     res.json({ success: true, message: "Incident deleted" });
   }

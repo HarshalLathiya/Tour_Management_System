@@ -3,6 +3,7 @@ import { User } from "../models/User.model";
 import { AppError } from "../middleware/errorHandler";
 import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
 
 /**
  * Tour Controller - Handles tour management business logic
@@ -45,6 +46,16 @@ export class TourController {
       throw new AppError(404, "Tour not found");
     }
 
+    // Log the view action
+    const authReq = req as AuthenticatedRequest;
+    await createAuditLog({
+      userId: authReq.user?.id,
+      action: AuditActions.VIEW,
+      entityType: EntityTypes.TOUR,
+      entityId: id,
+      req,
+    });
+
     res.json({
       success: true,
       data: tour,
@@ -55,6 +66,9 @@ export class TourController {
    * Create a new tour (Admin only)
    */
   async createTour(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
     const { name, description, start_date, end_date, destination, price, status, content } =
       req.body;
 
@@ -79,6 +93,16 @@ export class TourController {
       content,
     });
 
+    // Log the create action
+    await createAuditLog({
+      userId,
+      action: AuditActions.CREATE,
+      entityType: EntityTypes.TOUR,
+      entityId: tour.id,
+      newValues: { name, description, start_date, end_date, destination, price, status },
+      req,
+    });
+
     res.status(201).json({
       success: true,
       message: "Tour created successfully",
@@ -90,11 +114,17 @@ export class TourController {
    * Update tour (Admin only)
    */
   async updateTour(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
     const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
       throw new AppError(400, "Invalid tour ID");
     }
+
+    // Get old tour data for audit
+    const oldTour = await Tour.getTourById(id);
 
     const { name, description, start_date, end_date, destination, price, status, content } =
       req.body;
@@ -124,6 +154,17 @@ export class TourController {
       throw new AppError(404, "Tour not found");
     }
 
+    // Log the update action
+    await createAuditLog({
+      userId,
+      action: AuditActions.UPDATE,
+      entityType: EntityTypes.TOUR,
+      entityId: id,
+      oldValues: oldTour ? { ...oldTour } : undefined,
+      newValues: { name, description, start_date, end_date, destination, price, status },
+      req,
+    });
+
     res.json({
       success: true,
       message: "Tour updated successfully",
@@ -135,17 +176,33 @@ export class TourController {
    * Delete tour (Admin only)
    */
   async deleteTour(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
     const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
       throw new AppError(400, "Invalid tour ID");
     }
 
+    // Get old tour data for audit
+    const oldTour = await Tour.getTourById(id);
+
     const deleted = await Tour.deleteTour(id);
 
     if (!deleted) {
       throw new AppError(404, "Tour not found");
     }
+
+    // Log the delete action
+    await createAuditLog({
+      userId,
+      action: AuditActions.DELETE,
+      entityType: EntityTypes.TOUR,
+      entityId: id,
+      oldValues: oldTour ? { ...oldTour } : undefined,
+      req,
+    });
 
     res.json({
       success: true,
@@ -157,6 +214,9 @@ export class TourController {
    * Assign leader to tour (Admin only)
    */
   async assignLeader(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
     const tourId = parseInt(String(req.params.id));
     const { leader_id } = req.body as { leader_id: number };
 
@@ -187,6 +247,17 @@ export class TourController {
     // Assign leader
     const updatedTour = await Tour.assignLeader(tourId, leader_id);
 
+    // Log the assign action
+    await createAuditLog({
+      userId,
+      action: AuditActions.ASSIGN,
+      entityType: EntityTypes.TOUR,
+      entityId: tourId,
+      oldValues: { assigned_leader_id: tour.assigned_leader_id },
+      newValues: { assigned_leader_id: leader_id, leader_name: leader.name },
+      req,
+    });
+
     res.json({
       success: true,
       message: "Leader assigned successfully",
@@ -198,6 +269,9 @@ export class TourController {
    * Unassign leader from tour (Admin only)
    */
   async unassignLeader(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const currentUserId = authReq.user?.id;
+
     const tourId = parseInt(String(req.params.id));
 
     if (isNaN(tourId)) {
@@ -212,6 +286,17 @@ export class TourController {
 
     // Unassign leader
     const updatedTour = await Tour.unassignLeader(tourId);
+
+    // Log the unassign action
+    await createAuditLog({
+      userId: currentUserId,
+      action: AuditActions.UNASSIGN,
+      entityType: EntityTypes.TOUR,
+      entityId: tourId,
+      oldValues: { assigned_leader_id: tour.assigned_leader_id },
+      newValues: { assigned_leader_id: null },
+      req,
+    });
 
     res.json({
       success: true,

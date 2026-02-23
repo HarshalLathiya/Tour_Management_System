@@ -3,6 +3,8 @@ import type { Request, Response } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { validate, budgetSchemas } from "../middleware/validation";
 import pool from "../db";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
+import type { AuthenticatedRequest } from "../types";
 
 const router = express.Router();
 
@@ -57,6 +59,15 @@ router.get("/:id", authenticateToken, async (req: Request, res: Response) => {
       });
     }
 
+    // Log the view action
+    await createAuditLog({
+      userId: (req as AuthenticatedRequest).user?.id,
+      action: AuditActions.VIEW,
+      entityType: EntityTypes.BUDGET,
+      entityId: id,
+      req,
+    });
+
     res.json({
       success: true,
       data: result.rows[0],
@@ -77,6 +88,7 @@ router.post(
   validate(budgetSchemas.create),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as AuthenticatedRequest).user?.id;
       const { tour_id, total_amount, spent_amount, per_participant_fee, currency, description } =
         req.body;
 
@@ -106,6 +118,16 @@ router.post(
         ]
       );
 
+      // Log the create action
+      await createAuditLog({
+        userId,
+        action: AuditActions.CREATE,
+        entityType: EntityTypes.BUDGET,
+        entityId: result.rows[0].id,
+        newValues: { tour_id, total_amount, currency },
+        req,
+      });
+
       res.status(201).json({
         success: true,
         data: result.rows[0],
@@ -127,6 +149,7 @@ router.put(
   validate(budgetSchemas.update),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as AuthenticatedRequest).user?.id;
       const id = parseInt(String(req.params.id));
 
       if (isNaN(id)) {
@@ -187,6 +210,17 @@ router.put(
 
       const result = await pool.query(updateQuery, values);
 
+      // Log the update action
+      await createAuditLog({
+        userId,
+        action: AuditActions.UPDATE,
+        entityType: EntityTypes.BUDGET,
+        entityId: id,
+        oldValues: existingResult.rows[0],
+        newValues: req.body,
+        req,
+      });
+
       res.json({
         success: true,
         data: result.rows[0],
@@ -204,6 +238,7 @@ router.put(
 // DELETE /api/budgets/:id - Delete budget
 router.delete("/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
+    const userId = (req as AuthenticatedRequest).user?.id;
     const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
@@ -221,6 +256,16 @@ router.delete("/:id", authenticateToken, async (req: Request, res: Response) => 
         error: "Budget not found",
       });
     }
+
+    // Log the delete action
+    await createAuditLog({
+      userId,
+      action: AuditActions.DELETE,
+      entityType: EntityTypes.BUDGET,
+      entityId: id,
+      oldValues: result.rows[0],
+      req,
+    });
 
     res.json({
       success: true,

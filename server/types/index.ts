@@ -110,3 +110,16 @@ export interface UpdateResult {
   affectedRows: number;
   changedRows: number;
 }
+
+// ─── Photo Types ─────────────────────────────────────────────────────────────
+export interface PhotoRow {
+  id: number;
+  tour_id: number;
+  user_id: number;
+  photo_url: string;
+  caption: string | null;
+  created_at: Date;
+  // Joined fields from user table
+  user_name?: string;
+  user_email?: string;
+}

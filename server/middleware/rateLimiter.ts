@@ -32,19 +32,42 @@ export const authLimiter =
         max: 100, // allow many attempts while testing
       });
 /**
- * Rate limiter for general API endpoints
- * Moderate limits for normal API usage
+ * Rate limiter for general API endpoints (POST, PUT, PATCH, DELETE)
+ * Stricter limits for mutations to prevent abuse
  */
 export const apiLimiter = rateLimit({
   skip,
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 150, // Limit each IP to 150 mutation requests per windowMs
   message: {
     success: false,
     error: "Too many requests. Please try again later.",
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req: Request, res: Response) => {
+    res.status(429).json({
+      success: false,
+      error: "Too many requests. Please try again later.",
+    });
+  },
+});
+
+/**
+ * Rate limiter for read-only endpoints (GET requests)
+ * More lenient limits for viewing data
+ */
+export const readLimiter = rateLimit({
+  skip,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 GET requests per 15 minutes
+  message: {
+    success: false,
+    error: "Too many requests. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
   handler: (req: Request, res: Response) => {
     res.status(429).json({
       success: false,
@@ -71,29 +94,6 @@ export const uploadLimiter = rateLimit({
     res.status(429).json({
       success: false,
       error: "Too many file uploads. Please try again later.",
-    });
-  },
-});
-
-/**
- * Rate limiter for read-only endpoints (GET requests)
- * More lenient limits for viewing data
- */
-export const readLimiter = rateLimit({
-  skip,
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // Limit each IP to 60 requests per minute
-  message: {
-    success: false,
-    error: "Too many requests. Please slow down.",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: false,
-  handler: (req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: "Too many requests. Please slow down.",
     });
   },
 });

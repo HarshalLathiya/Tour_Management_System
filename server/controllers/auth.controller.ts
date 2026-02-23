@@ -5,6 +5,7 @@ import { AppError } from "../middleware/errorHandler";
 import type { JwtPayload } from "../types";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
@@ -57,6 +58,16 @@ export class AuthController {
       expiresIn: "24h",
     });
 
+    // Log the registration
+    await createAuditLog({
+      userId,
+      action: AuditActions.CREATE,
+      entityType: EntityTypes.USER,
+      entityId: userId,
+      newValues: { email, name, role },
+      req,
+    });
+
     res.status(201).json({
       message: "User registered successfully",
       token,
@@ -89,6 +100,16 @@ export class AuthController {
 
     const refreshToken = jwt.sign({ id: user.id, email: user.email }, JWT_REFRESH_SECRET, {
       expiresIn: "7d",
+    });
+
+    // Log the login
+    await createAuditLog({
+      userId: user.id,
+      action: AuditActions.LOGIN,
+      entityType: EntityTypes.USER,
+      entityId: user.id,
+      newValues: { email: user.email },
+      req,
     });
 
     res.json({
@@ -177,11 +198,25 @@ export class AuthController {
       }
     }
 
+    // Get old user data for audit
+    const oldUser = await User.findByIdSafe(userId);
+
     // Update profile
     const updatedUser = await User.updateProfile(userId, { name, email });
     if (!updatedUser) {
       throw new AppError(400, "No fields to update");
     }
+
+    // Log the profile update
+    await createAuditLog({
+      userId,
+      action: AuditActions.UPDATE,
+      entityType: EntityTypes.USER,
+      entityId: userId,
+      oldValues: oldUser ? { email: oldUser.email, name: oldUser.name } : undefined,
+      newValues: { name, email },
+      req,
+    });
 
     res.json({
       message: "Profile updated successfully",
@@ -193,6 +228,10 @@ export class AuthController {
       },
     });
   }
+
+  /**
+   * Direct password reset (admin function)
+   */
   async directResetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, newPassword } = req.body as {
@@ -209,18 +248,33 @@ export class AuthController {
         throw new AppError(404, "User not found");
       }
 
+      // Get current user doing the reset (from authenticated request)
+      const adminUserId = (req as AuthenticatedRequest).user?.id;
+
       const hashedPassword = await bcrypt.hash(newPassword, 10);
 
       await User.updatePassword(user.id, hashedPassword);
+
+      // Log the password reset
+      await createAuditLog({
+        userId: adminUserId,
+        action: AuditActions.UPDATE,
+        entityType: EntityTypes.USER,
+        entityId: user.id,
+        oldValues: { email: user.email },
+        newValues: { action: "password_reset" },
+        req,
+      });
 
       res.json({
         success: true,
         message: "Password reset successfully",
       });
     } catch (error) {
-      next(error); // VERY IMPORTANT
+      next(error);
     }
   }
+
   /**
    * Get all leaders (users with 'guide' role)
    */

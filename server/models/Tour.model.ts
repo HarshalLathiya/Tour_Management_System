@@ -78,14 +78,19 @@ export class TourModel extends BaseModel {
 
     const result = await this.query<TourRow>(
       `INSERT INTO tours (name, description, start_date, end_date, destination, price, status, content)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
       [name, description, start_date, end_date, destination, price, status, content]
     );
 
-    return result.rows[0];
-  }
+    const row = result.rows[0];
 
+    if (!row) {
+      throw new Error("Failed to create tour: no row returned");
+    }
+
+    return row;
+  }
   /**
    * Update tour by ID
    */

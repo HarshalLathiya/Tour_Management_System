@@ -99,11 +99,9 @@ export default function SafetyPage() {
   const triggerSOS = async () => {
     if (!selectedTourId) return;
 
-    const result = await incidentApi.create({
+    const result = await incidentApi.triggerSOS({
       tour_id: selectedTourId,
-      title: "URGENT SOS TRIGGERED",
       description: "Automatic SOS alert triggered by user.",
-      severity: "CRITICAL",
     });
 
     if (result.success && result.data) {
@@ -136,7 +134,7 @@ export default function SafetyPage() {
   };
 
   const resolveIncident = async (id: number) => {
-    const result = await incidentApi.update(id, { status: "RESOLVED" });
+    const result = await incidentApi.resolve(id, "Resolved by user");
 
     if (result.success) {
       setIncidents(incidents.map((inc) => (inc.id === id ? { ...inc, status: "RESOLVED" } : inc)));

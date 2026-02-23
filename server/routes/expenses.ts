@@ -3,6 +3,8 @@ import type { Request, Response } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { validate, expenseSchemas } from "../middleware/validation";
 import pool from "../db";
+import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
+import type { AuthenticatedRequest } from "../types";
 
 const router = express.Router();
 
@@ -63,6 +65,15 @@ router.get("/:id", authenticateToken, async (req: Request, res: Response) => {
       });
     }
 
+    // Log the view action
+    await createAuditLog({
+      userId: (req as AuthenticatedRequest).user?.id,
+      action: AuditActions.VIEW,
+      entityType: EntityTypes.EXPENSE,
+      entityId: id,
+      req,
+    });
+
     res.json({
       success: true,
       data: result.rows[0],
@@ -83,6 +94,7 @@ router.post(
   validate(expenseSchemas.create),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as AuthenticatedRequest).user?.id;
       const { tour_id, amount, category, description } = req.body;
 
       const result = await pool.query(
@@ -99,6 +111,16 @@ router.post(
        WHERE tour_id = $2`,
         [amount, tour_id]
       );
+
+      // Log the create action
+      await createAuditLog({
+        userId,
+        action: AuditActions.CREATE,
+        entityType: EntityTypes.EXPENSE,
+        entityId: result.rows[0].id,
+        newValues: { tour_id, amount, category },
+        req,
+      });
 
       res.status(201).json({
         success: true,
@@ -121,6 +143,7 @@ router.put(
   validate(expenseSchemas.update),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as AuthenticatedRequest).user?.id;
       const id = parseInt(String(req.params.id));
 
       if (isNaN(id)) {
@@ -183,6 +206,17 @@ router.put(
 
       const result = await pool.query(updateQuery, values);
 
+      // Log the update action
+      await createAuditLog({
+        userId,
+        action: AuditActions.UPDATE,
+        entityType: EntityTypes.EXPENSE,
+        entityId: id,
+        oldValues: existingExpense,
+        newValues: req.body,
+        req,
+      });
+
       res.json({
         success: true,
         data: result.rows[0],
@@ -200,6 +234,7 @@ router.put(
 // DELETE /api/expenses/:id - Delete expense
 router.delete("/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
+    const userId = (req as AuthenticatedRequest).user?.id;
     const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
@@ -227,6 +262,16 @@ router.delete("/:id", authenticateToken, async (req: Request, res: Response) => 
        WHERE tour_id = $2`,
       [deletedExpense.amount, deletedExpense.tour_id]
     );
+
+    // Log the delete action
+    await createAuditLog({
+      userId,
+      action: AuditActions.DELETE,
+      entityType: EntityTypes.EXPENSE,
+      entityId: id,
+      oldValues: deletedExpense,
+      req,
+    });
 
     res.json({
       success: true,

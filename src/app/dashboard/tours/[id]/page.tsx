@@ -13,14 +13,26 @@ import {
   Edit,
   Trash2,
   User,
+  X,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { BackButton } from "@/components/BackButton";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { AccommodationManager } from "@/components/accommodation-manager";
 import { LeaderAssignment } from "@/components/LeaderAssignment";
 import { SOSButton } from "@/components/SOSButton";
-import { tourApi } from "@/lib/api";
+import { tourApi, itineraryApi, ItineraryData } from "@/lib/api";
 
 interface TourData {
   id: number;
@@ -36,24 +48,28 @@ interface TourData {
   leader_email?: string | null;
 }
 
-interface ItineraryItem {
-  id: string;
-  day_number: number;
-  location_name: string;
-  activity_details: string;
-}
-
 export default function TourDetailsPage() {
   const router = useRouter();
   const { id: rawId } = useParams();
   const tourId = Array.isArray(rawId) ? rawId[0] : rawId;
   const [tour, setTour] = useState<TourData | null>(null);
-  const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
+  const [itinerary, setItinerary] = useState<ItineraryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<TourData>>({});
+
+  // Itinerary dialog state
+  const [isAddItineraryOpen, setIsAddItineraryOpen] = useState(false);
+  const [newItinerary, setNewItinerary] = useState({
+    title: "",
+    date: "",
+    start_time: "",
+    end_time: "",
+    description: "",
+  });
+  const [isSubmittingItinerary, setIsSubmittingItinerary] = useState(false);
 
   const fetchTourData = async () => {
     setLoading(true);
@@ -79,8 +95,16 @@ export default function TourDetailsPage() {
         }
       }
 
-      // Itinerary endpoint not yet available; initialize as empty
-      setItinerary([]);
+      // Fetch itinerary items
+      try {
+        const itineraryResult = await itineraryApi.getAll(parseInt(tourId));
+        if (itineraryResult.success && itineraryResult.data) {
+          setItinerary(itineraryResult.data);
+        }
+      } catch (err) {
+        console.error("Error fetching itinerary:", err);
+        setItinerary([]);
+      }
     } catch (error) {
       console.error("Error fetching tour data:", error);
     } finally {
@@ -131,6 +155,46 @@ export default function TourDetailsPage() {
     } catch (error) {
       console.error("Error deleting tour:", error);
       alert("Failed to delete tour. Please try again.");
+    }
+  };
+
+  const handleAddItinerary = async () => {
+    if (!newItinerary.title || !newItinerary.date) {
+      alert("Please fill in the required fields");
+      return;
+    }
+
+    setIsSubmittingItinerary(true);
+    try {
+      const result = await itineraryApi.create({
+        tour_id: parseInt(tourId),
+        title: newItinerary.title,
+        date: newItinerary.date,
+        start_time: newItinerary.start_time || undefined,
+        end_time: newItinerary.end_time || undefined,
+        description: newItinerary.description || undefined,
+      });
+
+      if (result.success) {
+        alert("Itinerary item added successfully!");
+        setIsAddItineraryOpen(false);
+        setNewItinerary({
+          title: "",
+          date: "",
+          start_time: "",
+          end_time: "",
+          description: "",
+        });
+        fetchTourData();
+      } else {
+        console.error("Error adding itinerary:", result.error);
+        alert(`Failed to add itinerary: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Error adding itinerary:", error);
+      alert("Failed to add itinerary. Please try again.");
+    } finally {
+      setIsSubmittingItinerary(false);
     }
   };
 
@@ -278,7 +342,7 @@ export default function TourDetailsPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Price per Person</dt>
-                  <dd className="font-medium">${tour.price ? tour.price.toFixed(2) : "0.00"}</dd>
+                  <dd className="font-medium">${Number(tour.price ?? 0).toFixed(2)}</dd>
                 </div>
                 {tour.leader_name && (
                   <div className="flex justify-between">
@@ -313,7 +377,10 @@ export default function TourDetailsPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Itinerary Items</h3>
-              <button className="flex items-center text-sm btn-primary">
+              <button
+                onClick={() => setIsAddItineraryOpen(true)}
+                className="flex items-center text-sm btn-primary"
+              >
                 <Plus className="h-4 w-4 mr-1" /> Add Location
               </button>
             </div>
@@ -333,11 +400,15 @@ export default function TourDetailsPage() {
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="bg-primary-100 text-primary-700 text-xs font-bold px-2 py-0.5 rounded">
-                          Day {item.day_number}
+                          {item.date ? new Date(item.date).toLocaleDateString() : "No date"}
                         </span>
-                        <h4 className="font-bold text-slate-800">{item.location_name}</h4>
+                        <h4 className="font-bold text-slate-800">{item.title}</h4>
                       </div>
-                      <p className="text-sm text-slate-500 mt-1">{item.activity_details}</p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {item.start_time && item.end_time
+                          ? `${item.start_time} - ${item.end_time}`
+                          : item.description || "No description"}
+                      </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                   </div>
@@ -370,7 +441,7 @@ export default function TourDetailsPage() {
                 <div className="flex justify-between items-center pb-2 border-b">
                   <span className="text-slate-500">Price per Person</span>
                   <span className="font-bold text-slate-900">
-                    ${tour.price ? tour.price.toFixed(2) : "0.00"}
+                    ${Number(tour.price ?? 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -410,6 +481,85 @@ export default function TourDetailsPage() {
           </div>
         )}
       </div>
+
+      {/* Add Itinerary Dialog */}
+      <Dialog open={isAddItineraryOpen} onOpenChange={setIsAddItineraryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Itinerary Item</DialogTitle>
+            <DialogDescription>
+              Add a new location or activity to the tour itinerary.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Title *</label>
+              <Input
+                value={newItinerary.title}
+                onChange={(e) => setNewItinerary({ ...newItinerary, title: e.target.value })}
+                placeholder="e.g., Visit Eiffel Tower"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Date *</label>
+              <Input
+                type="date"
+                value={newItinerary.date}
+                onChange={(e) => setNewItinerary({ ...newItinerary, date: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Start Time</label>
+                <Input
+                  type="time"
+                  value={newItinerary.start_time}
+                  onChange={(e) => setNewItinerary({ ...newItinerary, start_time: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">End Time</label>
+                <Input
+                  type="time"
+                  value={newItinerary.end_time}
+                  onChange={(e) => setNewItinerary({ ...newItinerary, end_time: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={newItinerary.description}
+                onChange={(e) => setNewItinerary({ ...newItinerary, description: e.target.value })}
+                placeholder="Additional details about this activity..."
+                rows={3}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddItineraryOpen(false)}
+              disabled={isSubmittingItinerary}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddItinerary} disabled={isSubmittingItinerary}>
+              {isSubmittingItinerary ? "Adding..." : "Add Item"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

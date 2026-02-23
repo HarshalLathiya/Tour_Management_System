@@ -1,46 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Hotel,
-  Plus,
-  Trash2,
-  UserPlus,
-  MapPin,
-  Phone,
-  Calendar,
-  Loader2,
-  X,
-  Check,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Hotel, Plus, Trash2, UserPlus, MapPin, Phone, Calendar, Loader2, X } from "lucide-react";
+import { accommodationApi } from "@/lib/api";
 
 interface Accommodation {
   id: string;
   name: string;
-  address: string;
-  check_in_date: string;
-  check_out_date: string;
-  contact_number: string;
+  address?: string;
+  check_in_date?: string;
+  check_out_date?: string;
+  contact_number?: string;
 }
 
 interface RoomAssignment {
   id: string;
   accommodation_id: string;
   user_id: string;
-  room_number: string;
-  room_type: string;
-  notes: string;
-  profile: {
-    full_name: string;
+  room_number?: string;
+  room_type?: string;
+  notes?: string;
+  profile?: {
+    full_name?: string;
   };
 }
 
-export function AccommodationManager({ tourId }: { tourId: string }) {
+export function AccommodationManager({ tourId }: { tourId: string }): React.ReactElement {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [assignments, setAssignments] = useState<RoomAssignment[]>([]);
-  const [participants, setParticipants] = useState<
-    { user_id: string; profiles?: { full_name: string } }[]
-  >([]);
+  const [participants, setParticipants] = useState<{ user_id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
@@ -66,32 +54,151 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
 
   const fetchData = async () => {
     setLoading(true);
-    // Accommodation endpoints are not yet available on the Express server.
-    // Initialize with empty data until the endpoints are implemented.
-    setAccommodations([]);
-    setAssignments([]);
-    setParticipants([]);
-    setLoading(false);
+    try {
+      const tourIdNum = parseInt(tourId);
+
+      const [accommodationsRes, participantsRes] = await Promise.all([
+        accommodationApi.getAll(tourIdNum),
+        accommodationApi.getTourParticipants(tourIdNum),
+      ]);
+
+      if (accommodationsRes.success && accommodationsRes.data) {
+        // Convert number IDs to strings for frontend compatibility
+        setAccommodations(
+          accommodationsRes.data.map((acc) => ({
+            id: String(acc.id),
+            name: acc.name,
+            address: acc.address || "",
+            check_in_date: acc.check_in_date,
+            check_out_date: acc.check_out_date,
+            contact_number: acc.contact_number || "",
+          }))
+        );
+
+        // Fetch room assignments for each accommodation
+        const allAssignments: RoomAssignment[] = [];
+        for (const acc of accommodationsRes.data) {
+          const assignmentsRes = await accommodationApi.getRoomAssignments(acc.id);
+          if (assignmentsRes.success && assignmentsRes.data) {
+            allAssignments.push(
+              ...assignmentsRes.data.map((a) => ({
+                id: String(a.id),
+                accommodation_id: String(acc.id),
+                user_id: String(a.user_id),
+                room_number: a.room_number,
+                room_type: a.room_type,
+                notes: a.notes,
+                profile: a.profile,
+              }))
+            );
+          }
+        }
+        setAssignments(allAssignments);
+      }
+
+      if (participantsRes.success && participantsRes.data) {
+        setParticipants(
+          participantsRes.data.map((p) => ({
+            user_id: String(p.user_id),
+            name: p.name || `User ${p.user_id}`,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching accommodation data:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddAccommodation = async () => {
-    // Accommodation creation endpoint is not yet available.
-    alert("Accommodation management is not yet implemented.");
-    setShowAddModal(false);
-    setNewAcc({ name: "", address: "", check_in_date: "", check_out_date: "", contact_number: "" });
+    try {
+      const tourIdNum = parseInt(tourId);
+      const result = await accommodationApi.create({
+        tour_id: tourIdNum,
+        name: newAcc.name,
+        address: newAcc.address,
+        check_in_date: newAcc.check_in_date,
+        check_out_date: newAcc.check_out_date,
+        contact_number: newAcc.contact_number,
+      });
+
+      if (result.success) {
+        await fetchData();
+        setShowAddModal(false);
+        setNewAcc({
+          name: "",
+          address: "",
+          check_in_date: "",
+          check_out_date: "",
+          contact_number: "",
+        });
+      } else {
+        alert(result.error || "Failed to add accommodation");
+      }
+    } catch (error) {
+      console.error("Error adding accommodation:", error);
+      alert("Failed to add accommodation");
+    }
   };
 
-  const handleAddAssignment = async (_accommodationId: string) => {
-    // Room assignment endpoint is not yet available.
-    alert("Room assignment is not yet implemented.");
-    setShowAssignModal(null);
-    setNewAssign({ user_id: "", room_number: "", room_type: "", notes: "" });
+  const handleAddAssignment = async (accommodationId: string) => {
+    if (!newAssign.user_id) {
+      alert("Please select a participant");
+      return;
+    }
+
+    try {
+      const result = await accommodationApi.createRoomAssignment({
+        accommodation_id: parseInt(accommodationId),
+        user_id: parseInt(newAssign.user_id),
+        room_number: newAssign.room_number,
+        room_type: newAssign.room_type,
+        notes: newAssign.notes,
+      });
+
+      if (result.success) {
+        await fetchData();
+        setShowAssignModal(null);
+        setNewAssign({ user_id: "", room_number: "", room_type: "", notes: "" });
+      } else {
+        alert(result.error || "Failed to assign room");
+      }
+    } catch (error) {
+      console.error("Error assigning room:", error);
+      alert("Failed to assign room");
+    }
   };
 
-  const handleDeleteAccommodation = async (_id: string) => {
+  const handleDeleteAccommodation = async (id: string) => {
     if (confirm("Are you sure you want to delete this accommodation?")) {
-      // Accommodation deletion endpoint is not yet available.
-      alert("Accommodation deletion is not yet implemented.");
+      try {
+        const result = await accommodationApi.delete(parseInt(id));
+        if (result.success) {
+          await fetchData();
+        } else {
+          alert(result.error || "Failed to delete accommodation");
+        }
+      } catch (error) {
+        console.error("Error deleting accommodation:", error);
+        alert("Failed to delete accommodation");
+      }
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (confirm("Are you sure you want to remove this room assignment?")) {
+      try {
+        const result = await accommodationApi.deleteRoomAssignment(parseInt(assignmentId));
+        if (result.success) {
+          await fetchData();
+        } else {
+          alert(result.error || "Failed to remove assignment");
+        }
+      } catch (error) {
+        console.error("Error removing assignment:", error);
+        alert("Failed to remove assignment");
+      }
     }
   };
 
@@ -142,8 +249,13 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
                       </span>
                       <span className="flex items-center">
                         <Calendar className="h-3.5 w-3.5 mr-1" />{" "}
-                        {new Date(acc.check_in_date).toLocaleDateString()} -{" "}
-                        {new Date(acc.check_out_date).toLocaleDateString()}
+                        {acc.check_in_date
+                          ? new Date(acc.check_in_date).toLocaleDateString()
+                          : "N/A"}{" "}
+                        -{" "}
+                        {acc.check_out_date
+                          ? new Date(acc.check_out_date).toLocaleDateString()
+                          : "N/A"}
                       </span>
                     </div>
                   </div>
@@ -182,13 +294,11 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
                             {assign.profile?.full_name || "Unknown"}
                           </p>
                           <p className="text-xs text-slate-500">
-                            Room {assign.room_number} • {assign.room_type}
+                            Room {assign.room_number || "N/A"} • {assign.room_type || "N/A"}
                           </p>
                         </div>
                         <button
-                          onClick={() => {
-                            alert("Room assignment deletion is not yet implemented.");
-                          }}
+                          onClick={() => handleDeleteAssignment(assign.id)}
                           className="text-slate-300 hover:text-red-500"
                         >
                           <X className="h-4 w-4" />
@@ -297,7 +407,7 @@ export function AccommodationManager({ tourId }: { tourId: string }) {
                   <option value="">Select participant</option>
                   {participants.map((p) => (
                     <option key={p.user_id} value={p.user_id}>
-                      {p.profiles?.full_name}
+                      {p.name}
                     </option>
                   ))}
                 </select>
