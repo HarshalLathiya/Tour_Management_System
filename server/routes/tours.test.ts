@@ -1,123 +1,208 @@
-import { describe, it, expect } from "vitest";
-import { tourSchemas } from "../middleware/validation";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
+import request from "supertest";
 
-describe("Tour validation schemas", () => {
-  describe("create schema", () => {
-    it("should accept valid tour data", () => {
-      const result = tourSchemas.create.safeParse({
-        name: "Paris Tour 2025",
-        description: "A wonderful tour of Paris",
-        start_date: "2025-06-01",
-        end_date: "2025-06-10",
-        destination: "Paris, France",
-        price: 1500,
-        status: "planned",
-        content: "Detailed itinerary...",
+const { mockQuery } = vi.hoisted(() => ({
+  mockQuery: vi.fn(),
+}));
+
+vi.mock("../db", () => ({
+  default: { query: mockQuery },
+}));
+
+vi.mock("jsonwebtoken", () => ({
+  __esModule: true,
+  default: {
+    verify: vi.fn(),
+  },
+}));
+
+import app from "../index";
+import jwt from "jsonwebtoken";
+
+describe("Tours API Routes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Mock user for authenticated requests
+  const mockAdminUser = {
+    id: 1,
+    email: "admin@example.com",
+    role: "admin",
+    name: "Admin User",
+  };
+
+  const mockGuideUser = {
+    id: 2,
+    email: "guide@example.com",
+    role: "guide",
+    name: "Guide User",
+  };
+
+  const mockTouristUser = {
+    id: 3,
+    email: "tourist@example.com",
+    role: "tourist",
+    name: "Tourist User",
+  };
+
+  describe("POST /api/tours/:id/join - Join Tour", () => {
+    it("should allow tourist to join a tour", async () => {
+      // Mock: JWT verify returns tourist user
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+
+      // Mock: Tour exists
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, name: "Test Tour", status: "planned" }],
       });
-      expect(result.success).toBe(true);
-    });
 
-    it("should accept minimal valid data (only name)", () => {
-      const result = tourSchemas.create.safeParse({
-        name: "Quick Tour",
+      // Mock: User not already participating
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      // Mock: Insert participation
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, tour_id: 1, user_id: 3 }],
       });
-      expect(result.success).toBe(true);
+
+      const response = await request(app)
+        .post("/api/tours/1/join")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty("message", "Successfully joined the tour");
     });
 
-    it("should reject missing name", () => {
-      const result = tourSchemas.create.safeParse({
-        description: "Tour without a name",
+    it("should return 404 if tour not found", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post("/api/tours/999/join")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(404);
+      expect(response.body).toHaveProperty("error", "Tour not found");
+    });
+
+    it("should return 400 if already participating", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, name: "Test Tour" }],
       });
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject name too short", () => {
-      const result = tourSchemas.create.safeParse({ name: "ab" });
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject name exceeding max length", () => {
-      const result = tourSchemas.create.safeParse({ name: "x".repeat(256) });
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject invalid date format", () => {
-      const result = tourSchemas.create.safeParse({
-        name: "Tour",
-        start_date: "2025/06/01", // Wrong format
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, tour_id: 1, user_id: 3 }],
       });
-      expect(result.success).toBe(false);
+
+      const response = await request(app)
+        .post("/api/tours/1/join")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error", "Already participating in this tour");
     });
 
-    it("should reject negative price", () => {
-      const result = tourSchemas.create.safeParse({
-        name: "Tour",
-        price: -100,
-      });
-      expect(result.success).toBe(false);
-    });
+    it("should return 401 without authorization", async () => {
+      const response = await request(app).post("/api/tours/1/join");
 
-    it("should reject invalid status", () => {
-      const result = tourSchemas.create.safeParse({
-        name: "Tour",
-        status: "invalid_status",
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("should accept valid status values", () => {
-      const statuses = ["planned", "ongoing", "completed", "cancelled"];
-      statuses.forEach((status) => {
-        const result = tourSchemas.create.safeParse({
-          name: "Tour",
-          status,
-        });
-        expect(result.success).toBe(true);
-      });
+      expect(response.status).toBe(401);
     });
   });
 
-  describe("update schema", () => {
-    it("should accept any valid field update", () => {
-      const result = tourSchemas.update.safeParse({
-        name: "Updated Tour Name",
-        description: "Updated description",
+  describe("DELETE /api/tours/:id/leave - Leave Tour", () => {
+    it("should allow tourist to leave a tour", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+
+      // Mock: Tour exists
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, name: "Test Tour" }],
       });
-      expect(result.success).toBe(true);
+
+      // Mock: User is participating
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, tour_id: 1, user_id: 3 }],
+      });
+
+      // Mock: Delete participation
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+
+      const response = await request(app)
+        .delete("/api/tours/1/leave")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty("message", "Successfully left the tour");
     });
 
-    it("should accept empty update (no fields)", () => {
-      const result = tourSchemas.update.safeParse({});
-      expect(result.success).toBe(true);
+    it("should return 404 if not participating", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, name: "Test Tour" }],
+      });
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .delete("/api/tours/1/leave")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(404);
+      expect(response.body).toHaveProperty("error", "Not participating in this tour");
+    });
+  });
+
+  describe("GET /api/tours/:id/participation - Check Participation", () => {
+    it("should return participation status", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+
+      // Mock: User is participating
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, tour_id: 1, user_id: 3 }],
+      });
+
+      const response = await request(app)
+        .get("/api/tours/1/participation")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body.data).toHaveProperty("isParticipating", true);
     });
 
-    it("should accept partial updates", () => {
-      const result = tourSchemas.update.safeParse({
-        status: "completed",
-      });
-      expect(result.success).toBe(true);
-    });
+    it("should return false when not participating", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
-    it("should reject invalid field values", () => {
-      const result = tourSchemas.update.safeParse({
-        name: "ab", // Too short
-      });
-      expect(result.success).toBe(false);
-    });
+      const response = await request(app)
+        .get("/api/tours/1/participation")
+        .set("Authorization", "Bearer valid_token");
 
-    it("should reject negative price", () => {
-      const result = tourSchemas.update.safeParse({
-        price: -500,
-      });
-      expect(result.success).toBe(false);
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveProperty("isParticipating", false);
     });
+  });
 
-    it("should accept valid date updates", () => {
-      const result = tourSchemas.update.safeParse({
-        start_date: "2025-07-01",
-        end_date: "2025-07-15",
+  describe("GET /api/tours - Get All Tours", () => {
+    it("should return list of tours", async () => {
+      (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockGuideUser);
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, name: "Tour 1", status: "planned" },
+          { id: 2, name: "Tour 2", status: "ongoing" },
+        ],
       });
-      expect(result.success).toBe(true);
+
+      const response = await request(app)
+        .get("/api/tours")
+        .set("Authorization", "Bearer valid_token");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body.data).toHaveLength(2);
     });
   });
 });

@@ -101,6 +101,24 @@ export class UserModel extends BaseModel {
   }
 
   /**
+   * Update user role
+   */
+  async updateRole(id: number, role: string): Promise<boolean> {
+    const result = await this.query("UPDATE users SET role = $1 WHERE id = $2", [role, id]);
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  /**
+   * Get all users (without password hash)
+   */
+  async findAllUsers(): Promise<Omit<UserRow, "password_hash">[]> {
+    const result = await this.query<Omit<UserRow, "password_hash">>(
+      "SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC"
+    );
+    return result.rows;
+  }
+
+  /**
    * Get all users with a specific role
    */
   async findByRole(role: string): Promise<Omit<UserRow, "password_hash">[]> {

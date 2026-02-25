@@ -196,6 +196,38 @@ export class AttendanceController {
 
     res.json({ success: true, message: "Attendance record deleted" });
   }
+
+  async getUnverified(req: Request, res: Response): Promise<void> {
+    const tour_id = req.params.tour_id;
+
+    if (!tour_id || Array.isArray(tour_id)) {
+      throw new AppError(400, "Tour ID is required");
+    }
+
+    const parsedTourId = parseInt(tour_id);
+    if (isNaN(parsedTourId)) {
+      throw new AppError(400, "Invalid Tour ID");
+    }
+
+    const query = `
+      SELECT 
+        a.id, a.user_id, a.tour_id, a.date, a.status, 
+        a.checkpoint_id, a.verified_by, a.verification_time,
+        a.location_lat, a.location_lng, a.created_at,
+        u.name as user_name, u.email as user_email
+      FROM attendance a
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE a.tour_id = $1 AND a.verified_by IS NULL
+      ORDER BY a.date DESC, a.created_at DESC
+    `;
+
+    const result = await pool.query(query, [parsedTourId]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+    });
+  }
 }
 
 export const attendanceController = new AttendanceController();

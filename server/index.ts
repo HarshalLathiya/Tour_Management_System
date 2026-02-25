@@ -24,6 +24,7 @@ import auditLogRoutes from "./routes/auditLogs";
 import notificationRoutes from "./routes/notifications";
 import accommodationRoutes from "./routes/accommodations";
 import photoRoutes from "./routes/photos";
+import userRoutes from "./routes/users";
 import { errorHandler } from "./middleware/errorHandler";
 import { authLimiter, apiLimiter, readLimiter } from "./middleware/rateLimiter";
 
@@ -96,6 +97,9 @@ app.use("/api/accommodations", applyRateLimiter, accommodationRoutes);
 
 // Photos - GET uses readLimiter, mutations use apiLimiter
 app.use("/api/photos", applyRateLimiter, photoRoutes);
+
+// Users - GET uses readLimiter, mutations use apiLimiter (Admin only)
+app.use("/api/users", applyRateLimiter, userRoutes);
 
 // Global error handler — must be last
 app.use(errorHandler);

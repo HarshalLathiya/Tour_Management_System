@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   MapPin,
+  UserCog,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -27,6 +28,12 @@ const sidebarLinks = [
     href: "/dashboard/tours",
     icon: Map,
     roles: ["admin", "guide", "tourist"],
+  },
+  {
+    name: "User Management",
+    href: "/dashboard/users",
+    icon: UserCog,
+    roles: ["admin"],
   },
   {
     name: "Attendance",

@@ -14,6 +14,10 @@ import {
   Trash2,
   User,
   X,
+  UserPlus,
+  UserMinus,
+  Loader2,
+  Users,
 } from "lucide-react";
 import {
   Dialog,
@@ -32,7 +36,15 @@ import { PhotoGallery } from "@/components/photo-gallery";
 import { AccommodationManager } from "@/components/accommodation-manager";
 import { LeaderAssignment } from "@/components/LeaderAssignment";
 import { SOSButton } from "@/components/SOSButton";
-import { tourApi, itineraryApi, ItineraryData } from "@/lib/api";
+import {
+  tourApi,
+  itineraryApi,
+  ItineraryData,
+  tokenManager,
+  budgetApi,
+  type BudgetData,
+} from "@/lib/api";
+import { toast } from "sonner";
 
 interface TourData {
   id: number;
@@ -46,6 +58,14 @@ interface TourData {
   assigned_leader_id: number | null;
   leader_name?: string | null;
   leader_email?: string | null;
+  participant_count?: number;
+}
+
+interface Participant {
+  id: number;
+  user_id: number;
+  full_name: string;
+  email: string;
 }
 
 export default function TourDetailsPage() {
@@ -54,11 +74,19 @@ export default function TourDetailsPage() {
   const tourId = Array.isArray(rawId) ? rawId[0] : rawId;
   const [tour, setTour] = useState<TourData | null>(null);
   const [itinerary, setItinerary] = useState<ItineraryData[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<TourData>>({});
+  const [isParticipant, setIsParticipant] = useState(false);
+  const [loadingParticipation, setLoadingParticipation] = useState(false);
+  const [joiningTour, setJoiningTour] = useState(false);
+  const [budget, setBudget] = useState<BudgetData | null>(null);
+  const [loadingBudget, setLoadingBudget] = useState(false);
 
   // Itinerary dialog state
   const [isAddItineraryOpen, setIsAddItineraryOpen] = useState(false);
@@ -84,15 +112,21 @@ export default function TourDetailsPage() {
         console.error("Failed to fetch tour:", result.error);
       }
 
-      // Decode JWT token to get user role
-      const token = localStorage.getItem("token");
+      // Decode JWT token to get user role and ID
+      const token = tokenManager.getToken();
       if (token) {
         try {
           const payload = JSON.parse(atob(token.split(".")[1]));
+          console.log("Token payload:", payload);
           setUserRole(payload.role || null);
-        } catch {
+          setUserId(payload.id || null);
+        } catch (e) {
+          console.error("Error parsing token:", e);
           setUserRole(null);
+          setUserId(null);
         }
+      } else {
+        console.log("No token found in localStorage");
       }
 
       // Fetch itinerary items
@@ -105,6 +139,24 @@ export default function TourDetailsPage() {
         console.error("Error fetching itinerary:", err);
         setItinerary([]);
       }
+
+      // Fetch budget data
+      try {
+        setLoadingBudget(true);
+        const budgetResult = await budgetApi.getByTourId(parseInt(tourId));
+        if (budgetResult.success && budgetResult.data) {
+          // Handle both array and single object responses
+          const budgetData = Array.isArray(budgetResult.data)
+            ? budgetResult.data[0]
+            : budgetResult.data;
+          setBudget(budgetData);
+        }
+      } catch (err) {
+        console.error("Error fetching budget:", err);
+        setBudget(null);
+      } finally {
+        setLoadingBudget(false);
+      }
     } catch (error) {
       console.error("Error fetching tour data:", error);
     } finally {
@@ -112,9 +164,102 @@ export default function TourDetailsPage() {
     }
   };
 
+  const fetchParticipation = async () => {
+    if (!userId) return;
+    setLoadingParticipation(true);
+    try {
+      const result = await tourApi.checkParticipation(parseInt(tourId));
+      if (result.success && result.data) {
+        setIsParticipant(result.data.isParticipant);
+      }
+    } catch (err) {
+      console.error("Error checking participation:", err);
+    } finally {
+      setLoadingParticipation(false);
+    }
+  };
+
+  const fetchParticipants = async () => {
+    setLoadingParticipants(true);
+    try {
+      const token = tokenManager.getToken();
+      const result = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/tours/${tourId}/participants`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await result.json();
+      if (data.success && data.data) {
+        setParticipants(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching participants:", err);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
+
   useEffect(() => {
     fetchTourData();
   }, [tourId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchParticipation();
+    }
+  }, [userId, tourId]);
+
+  useEffect(() => {
+    if (activeTab === "participants") {
+      fetchParticipants();
+    }
+  }, [activeTab]);
+
+  const handleJoinTour = async () => {
+    console.log("handleJoinTour called, tourId:", tourId);
+    alert("Joining tour... ID: " + tourId);
+    setJoiningTour(true);
+    try {
+      const result = await tourApi.join(parseInt(tourId));
+      console.log("Join result:", result);
+      if (result.success) {
+        setIsParticipant(true);
+        toast.success("Successfully joined the tour!");
+        fetchTourData();
+      } else {
+        console.error("Join failed:", result.error);
+        alert(result.error || "Failed to join tour");
+      }
+    } catch (err) {
+      console.error("Join error:", err);
+      alert("Failed to join tour - check console");
+    } finally {
+      setJoiningTour(false);
+    }
+  };
+
+  const handleLeaveTour = async () => {
+    if (!confirm("Are you sure you want to leave this tour?")) return;
+
+    setJoiningTour(true);
+    try {
+      const result = await tourApi.leave(parseInt(tourId));
+      if (result.success) {
+        setIsParticipant(false);
+        toast.success("Successfully left the tour");
+        fetchTourData();
+      } else {
+        toast.error(result.error || "Failed to leave tour");
+      }
+    } catch (err) {
+      toast.error("Failed to leave tour");
+    } finally {
+      setJoiningTour(false);
+    }
+  };
 
   const handleEditTour = async () => {
     try {
@@ -202,6 +347,9 @@ export default function TourDetailsPage() {
   if (!tour) return <div className="p-8 text-center">Tour not found.</div>;
 
   const isAdmin = userRole === "admin";
+  const isGuide = userRole === "guide";
+  const canManageTour = isAdmin || isGuide;
+  const canJoinTour = !isAdmin && userRole !== null;
 
   return (
     <div className="space-y-6">
@@ -238,44 +386,75 @@ export default function TourDetailsPage() {
             )}
           </div>
         </div>
-        {isAdmin && (
-          <div className="flex space-x-2">
-            {isEditing ? (
-              <>
-                <button onClick={handleEditTour} className="btn-primary">
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditForm(tour);
-                  }}
-                  className="bg-slate-500 text-white px-4 py-2 rounded-md hover:bg-slate-600"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Tour
-                </button>
-                <button
-                  onClick={handleDeleteTour}
-                  className="flex items-center bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Tour
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Join/Leave Tour Button for non-admin users (tourists and guides) */}
+          {canJoinTour && !loadingParticipation && (
+            <button
+              onClick={isParticipant ? handleLeaveTour : handleJoinTour}
+              disabled={joiningTour}
+              className={`flex items-center px-4 py-2 rounded-lg font-bold transition-all ${
+                isParticipant
+                  ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200"
+                  : "bg-green-600 text-white hover:bg-green-700"
+              } disabled:opacity-50`}
+            >
+              {joiningTour ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : isParticipant ? (
+                <UserMinus className="h-4 w-4 mr-2" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-2" />
+              )}
+              {isParticipant ? "Leave Tour" : "Join Tour"}
+            </button>
+          )}
+          {isAdmin && (
+            <div className="flex space-x-2">
+              {isEditing ? (
+                <>
+                  <button onClick={handleEditTour} className="btn-primary">
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditForm(tour);
+                    }}
+                    className="bg-slate-500 text-white px-4 py-2 rounded-md hover:bg-slate-600"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Tour
+                  </button>
+                  <button
+                    onClick={handleDeleteTour}
+                    className="flex items-center bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Tour
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Participation Status Banner */}
+      {canJoinTour && isParticipant && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <User className="h-5 w-5 text-green-600" />
+          <span className="text-green-700 font-medium">You are a participant of this tour</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-slate-200">
@@ -283,6 +462,7 @@ export default function TourDetailsPage() {
           {[
             { id: "overview", label: "Overview" },
             { id: "leader", label: "Leader", icon: User, adminOnly: true },
+            { id: "participants", label: "Participants", icon: Users },
             { id: "itinerary", label: "Itinerary" },
             { id: "accommodation", label: "Accommodation", icon: Hotel },
             { id: "attendance", label: "Attendance" },
@@ -350,6 +530,10 @@ export default function TourDetailsPage() {
                     <dd className="font-medium">{tour.leader_name}</dd>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Participants</dt>
+                  <dd className="font-medium">{tour.participant_count || 0}</dd>
+                </div>
               </dl>
             </div>
             {tour.description && (
@@ -373,16 +557,58 @@ export default function TourDetailsPage() {
           </div>
         )}
 
+        {activeTab === "participants" && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Tour Participants</h3>
+            {loadingParticipants ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
+              </div>
+            ) : participants.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center border-2 border-dashed border-slate-200">
+                <Users className="h-12 w-12 text-slate-300 mx-auto" />
+                <p className="mt-2 text-slate-500">No participants yet.</p>
+                <p className="text-sm text-slate-400">
+                  Tourists can join this tour from the overview tab.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {participants.map((participant) => (
+                  <div
+                    key={participant.id}
+                    className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-3"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center">
+                      <span className="text-sm font-bold text-slate-600">
+                        {participant.full_name?.charAt(0).toUpperCase() || "?"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">
+                        {participant.full_name || "Unknown"}
+                      </p>
+                      <p className="text-xs text-slate-500">{participant.email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "itinerary" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Itinerary Items</h3>
-              <button
-                onClick={() => setIsAddItineraryOpen(true)}
-                className="flex items-center text-sm btn-primary"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Location
-              </button>
+              {canManageTour && (
+                <button
+                  onClick={() => setIsAddItineraryOpen(true)}
+                  className="flex items-center text-sm btn-primary"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Location
+                </button>
+              )}
             </div>
 
             {itinerary.length === 0 ? (
@@ -418,7 +644,9 @@ export default function TourDetailsPage() {
           </div>
         )}
 
-        {activeTab === "accommodation" && <AccommodationManager tourId={tourId} />}
+        {activeTab === "accommodation" && (
+          <AccommodationManager tourId={tourId} canManage={canManageTour} />
+        )}
 
         {activeTab === "attendance" && (
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
@@ -434,24 +662,69 @@ export default function TourDetailsPage() {
         )}
 
         {activeTab === "budget" && (
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-              <h3 className="text-lg font-semibold mb-4 text-slate-800">Budget Summary</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b">
-                  <span className="text-slate-500">Price per Person</span>
-                  <span className="font-bold text-slate-900">
-                    ${Number(tour.price ?? 0).toFixed(2)}
-                  </span>
-                </div>
+          <div className="space-y-6">
+            {loadingBudget ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
               </div>
-              <Link
-                href="/dashboard/budget"
-                className="mt-6 block text-center text-sm font-semibold bg-slate-50 py-2 rounded-lg hover:bg-slate-100"
-              >
-                Manage Expenses
-              </Link>
-            </div>
+            ) : budget ? (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+                <h3 className="text-lg font-semibold mb-4 text-slate-800">Budget Summary</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <span className="text-slate-500">Total Budget</span>
+                    <span className="font-bold text-slate-900 text-xl">
+                      ${Number(budget.total_amount ?? 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <span className="text-slate-500">Spent Amount</span>
+                    <span className="font-semibold text-slate-900">
+                      ${Number(budget.spent_amount ?? 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-slate-500">Remaining</span>
+                    <span className="font-semibold text-green-600">
+                      ${Number((budget.total_amount ?? 0) - (budget.spent_amount ?? 0)).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="p-4 bg-slate-50 rounded-lg">
+                      <span className="text-sm text-slate-500 block">Per Participant Fee</span>
+                      <span className="font-semibold text-slate-900">
+                        ${Number(budget.per_participant_fee ?? 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-lg">
+                      <span className="text-sm text-slate-500 block">Currency</span>
+                      <span className="font-semibold text-slate-900">
+                        {budget.currency ?? "INR"}
+                      </span>
+                    </div>
+                  </div>
+                  {budget.description && (
+                    <div className="pt-4 border-t">
+                      <span className="text-sm text-slate-500 block">Description</span>
+                      <p className="text-slate-700 mt-1">{budget.description}</p>
+                    </div>
+                  )}
+                </div>
+                <Link
+                  href="/dashboard/budget"
+                  className="mt-6 block text-center text-sm font-semibold bg-slate-50 py-2 rounded-lg hover:bg-slate-100"
+                >
+                  Manage Expenses
+                </Link>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl p-8 text-center border-2 border-dashed border-slate-200">
+                <p className="text-slate-500">No budget set for this tour yet.</p>
+                <p className="text-sm text-slate-400 mt-1">
+                  Add budget details when creating a tour or set it up here.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -482,7 +755,10 @@ export default function TourDetailsPage() {
         )}
       </div>
 
-      {/* Add Itinerary Dialog */}
+      {/* Add Itin
+      
+      
+      Dialog */}
       <Dialog open={isAddItineraryOpen} onOpenChange={setIsAddItineraryOpen}>
         <DialogContent>
           <DialogHeader>

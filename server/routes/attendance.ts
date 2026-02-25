@@ -58,4 +58,11 @@ router.delete(
   asyncHandler((req, res) => attendanceController.delete(req, res))
 );
 
+// GET /api/attendance/unverified/:tour_id - Get unverified attendance for a tour
+router.get(
+  "/unverified/:tour_id",
+  authenticateToken,
+  asyncHandler((req, res) => attendanceController.getUnverified(req, res))
+);
+
 export default router;

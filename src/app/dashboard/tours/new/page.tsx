@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { tourApi } from "@/lib/api";
+import { tourApi, itineraryApi, accommodationApi, budgetApi } from "@/lib/api";
 
 export default function NewTourPage() {
   const router = useRouter();
@@ -175,23 +175,102 @@ export default function NewTourPage() {
     setLoading(true);
 
     try {
+      // Convert price to number, default to 0 if empty
+      const priceValue = formData.participantFee ? parseFloat(formData.participantFee) : 0;
+
       const result = await tourApi.create({
         name: formData.name,
         description: formData.description,
         start_date: formData.startDate,
         end_date: formData.endDate,
         destination: formData.destination,
-        price: formData.participantFee,
-        status: formData.status as "planned" | "ongoing" | "completed" | "cancelled",
+        price: priceValue,
+        status: (formData.status === "draft" ? "planned" : formData.status) as
+          | "planned"
+          | "ongoing"
+          | "completed"
+          | "cancelled",
       });
 
-      if (!result.success) {
+      if (!result.success || !result.data) {
         toast.error(result.error || "Failed to create tour");
         return;
       }
 
-      toast.success("Tour created successfully!");
-      router.push("/dashboard/tours");
+      const tourId = result.data.id;
+
+      // Create Itinerary items
+      if (formData.itinerary && formData.itinerary.length > 0) {
+        for (const day of formData.itinerary) {
+          if (day.date) {
+            const morningActivities = day.morning
+              .filter((a) => a.activity)
+              .map(
+                (a) =>
+                  `${a.time || ""} - ${a.place || ""}: ${a.activity}${a.notes ? ` (${a.notes})` : ""}`
+              )
+              .join("; ");
+
+            const afternoonActivities = day.afternoon
+              .filter((a) => a.activity)
+              .map(
+                (a) =>
+                  `${a.time || ""} - ${a.place || ""}: ${a.activity}${a.notes ? ` (${a.notes})` : ""}`
+              )
+              .join("; ");
+
+            const eveningActivities = day.evening
+              .filter((a) => a.activity)
+              .map(
+                (a) =>
+                  `${a.time || ""} - ${a.place || ""}: ${a.activity}${a.notes ? ` (${a.notes})` : ""}`
+              )
+              .join("; ");
+
+            const description = [
+              morningActivities ? `Morning: ${morningActivities}` : "",
+              afternoonActivities ? `Afternoon: ${afternoonActivities}` : "",
+              eveningActivities ? `Evening: ${eveningActivities}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n");
+
+            await itineraryApi.create({
+              tour_id: tourId,
+              date: day.date,
+              title: `Day ${formData.itinerary.indexOf(day) + 1}`,
+              description: description || undefined,
+              status: "SCHEDULED",
+            });
+          }
+        }
+      }
+
+      // Create Accommodation
+      if (formData.accommodation && formData.accommodation.name) {
+        await accommodationApi.create({
+          tour_id: tourId,
+          name: formData.accommodation.name,
+          address: formData.accommodation.address || undefined,
+          check_in_date: formData.accommodation.checkIn || undefined,
+          check_out_date: formData.accommodation.checkOut || undefined,
+          contact_number: formData.accommodation.contact || undefined,
+        });
+      }
+
+      // Create Budget
+      if (formData.totalBudget) {
+        await budgetApi.create({
+          tour_id: tourId,
+          total_amount: parseFloat(formData.totalBudget) || 0,
+          per_participant_fee: formData.participantFee ? parseFloat(formData.participantFee) : 0,
+          currency: "USD",
+          description: `Budget for ${formData.name}`,
+        });
+      }
+
+      toast.success("Tour created successfully with all details!");
+      router.push(`/dashboard/tours/${tourId}`);
       router.refresh();
     } catch (error) {
       console.error("Error creating tour:", error);
@@ -202,7 +281,7 @@ export default function NewTourPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <form onSubmit={handleSubmit} className="min-h-screen bg-slate-50">
       <header className="border-b bg-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center gap-4 px-6">
           <Link
@@ -1541,6 +1620,6 @@ export default function NewTourPage() {
           </div>
         </div>
       </main>
-    </div>
+    </form>
   );
 }

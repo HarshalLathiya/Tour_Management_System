@@ -19,6 +19,7 @@ import { BackButton } from "@/components/BackButton";
 import { tourApi, api } from "@/lib/api";
 import type { TourData } from "@/lib/api";
 import type { Tour } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface BudgetExpense {
   id: number;
@@ -30,6 +31,7 @@ interface BudgetExpense {
 }
 
 export default function BudgetPage() {
+  const { user } = useAuth();
   const [tours, setTours] = useState<TourData[]>([]);
   const [selectedTourId, setSelectedTourId] = useState<number>(0);
   const [selectedTour, setSelectedTour] = useState<TourData | null>(null);
@@ -41,6 +43,9 @@ export default function BudgetPage() {
     category: "MISC",
     description: "",
   });
+
+  // Check if user can manage expenses (admin or guide only)
+  const canManageExpenses = user?.role === "admin" || user?.role === "guide";
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -107,7 +112,7 @@ export default function BudgetPage() {
   };
 
   const totalFunds = selectedTour
-    ? parseFloat(selectedTour.price || "0") * (selectedTour.participant_count || 1)
+    ? parseFloat(String(selectedTour.price) || "0") * (selectedTour.participant_count || 1)
     : 0;
   const totalSpent = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
   const remaining = totalFunds - totalSpent;
@@ -137,9 +142,11 @@ export default function BudgetPage() {
               </option>
             ))}
           </select>
-          <button onClick={() => setIsAddingExpense(true)} className="btn-primary">
-            <Plus className="mr-2 h-4 w-4" /> Add Expense
-          </button>
+          {canManageExpenses && (
+            <button onClick={() => setIsAddingExpense(true)} className="btn-primary">
+              <Plus className="mr-2 h-4 w-4" /> Add Expense
+            </button>
+          )}
         </div>
       </div>
 
@@ -157,12 +164,13 @@ export default function BudgetPage() {
                   <Wallet className="h-4 w-4 text-primary" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-800">${totalFunds.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-800">₹{totalFunds.toLocaleString()}</p>
               <p className="text-xs text-slate-500 flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-                Base: $
+                Base: ₹
                 {(
-                  parseFloat(selectedTour?.price || "0") * (selectedTour?.participant_count || 1)
+                  parseFloat(String(selectedTour?.price) || "0") *
+                  (selectedTour?.participant_count || 1)
                 ).toLocaleString()}
               </p>
             </div>
@@ -173,7 +181,7 @@ export default function BudgetPage() {
                   <ArrowUpRight className="h-4 w-4 text-red-600" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-800">${totalSpent.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-800">₹{totalSpent.toLocaleString()}</p>
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2">
                 <div
                   className="bg-red-500 h-full transition-all"
@@ -189,7 +197,7 @@ export default function BudgetPage() {
                   <PieChart className="h-4 w-4 text-green-600" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-800">${remaining.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-800">₹{remaining.toLocaleString()}</p>
               <p
                 className={`text-xs font-bold ${remaining < 0 ? "text-red-500" : "text-green-500"}`}
               >
@@ -211,7 +219,7 @@ export default function BudgetPage() {
                         <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
                           <span>{cat}</span>
                           <span>
-                            ${amount.toLocaleString()} ({pct.toFixed(0)}%)
+                            ₹{amount.toLocaleString()} ({pct.toFixed(0)}%)
                           </span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -275,7 +283,7 @@ export default function BudgetPage() {
                           </div>
                         </div>
                         <p className="text-lg font-black text-slate-800">
-                          ${parseFloat(expense.amount).toLocaleString()}
+                          ₹{parseFloat(expense.amount).toLocaleString()}
                         </p>
                       </div>
                     ))
@@ -287,8 +295,8 @@ export default function BudgetPage() {
         </>
       )}
 
-      {/* Modal for adding expense */}
-      {isAddingExpense && (
+      {/* Modal for adding expense - only show for admin/guide */}
+      {canManageExpenses && isAddingExpense && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b bg-slate-50">
@@ -297,7 +305,7 @@ export default function BudgetPage() {
             </div>
             <form onSubmit={handleAddExpense} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Amount ($)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Amount (₹)</label>
                 <input
                   type="number"
                   required

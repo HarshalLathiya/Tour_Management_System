@@ -385,6 +385,142 @@ export class TourController {
       data: participants,
     });
   }
+
+  /**
+   * Join a tour as participant
+   */
+  async joinTour(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
+    const tourId = parseInt(String(req.params.id));
+
+    if (isNaN(tourId)) {
+      throw new AppError(400, "Invalid tour ID");
+    }
+
+    // Check if tour exists
+    const tour = await Tour.getTourById(tourId);
+    if (!tour) {
+      throw new AppError(404, "Tour not found");
+    }
+
+    // Check if tour is not cancelled
+    if (tour.status === "cancelled") {
+      throw new AppError(400, "Cannot join a cancelled tour");
+    }
+
+    // Check if already a participant
+    const isAlreadyParticipant = await Tour.isParticipant(tourId, userId!);
+    if (isAlreadyParticipant) {
+      throw new AppError(400, "You are already a participant of this tour");
+    }
+
+    // Join the tour
+    await Tour.joinTour(tourId, userId!);
+
+    // Log the action
+    await createAuditLog({
+      userId,
+      action: AuditActions.JOIN,
+      entityType: EntityTypes.TOUR,
+      entityId: tourId,
+      newValues: { action: "joined tour" },
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: "Successfully joined the tour",
+    });
+  }
+
+  /**
+   * Leave a tour
+   */
+  async leaveTour(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
+    const tourId = parseInt(String(req.params.id));
+
+    if (isNaN(tourId)) {
+      throw new AppError(400, "Invalid tour ID");
+    }
+
+    // Check if tour exists
+    const tour = await Tour.getTourById(tourId);
+    if (!tour) {
+      throw new AppError(404, "Tour not found");
+    }
+
+    // Check if already a participant
+    const isParticipant = await Tour.isParticipant(tourId, userId!);
+    if (!isParticipant) {
+      throw new AppError(400, "You are not a participant of this tour");
+    }
+
+    // Leave the tour
+    const left = await Tour.leaveTour(tourId, userId!);
+
+    if (!left) {
+      throw new AppError(500, "Failed to leave tour");
+    }
+
+    // Log the action
+    await createAuditLog({
+      userId,
+      action: AuditActions.LEAVE,
+      entityType: EntityTypes.TOUR,
+      entityId: tourId,
+      newValues: { action: "left tour" },
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: "Successfully left the tour",
+    });
+  }
+
+  /**
+   * Check if current user is participant of a tour
+   */
+  async checkParticipation(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
+    const tourId = parseInt(String(req.params.id));
+
+    if (isNaN(tourId)) {
+      throw new AppError(400, "Invalid tour ID");
+    }
+
+    const isParticipant = await Tour.isParticipant(tourId, userId!);
+
+    res.json({
+      success: true,
+      data: { isParticipant },
+    });
+  }
+
+  /**
+   * Get all tours a user is participating in
+   */
+  async getUserTours(req: Request, res: Response): Promise<void> {
+    const userId = parseInt(String(req.params.userId));
+
+    if (isNaN(userId)) {
+      throw new AppError(400, "Invalid user ID");
+    }
+
+    const tours = await Tour.getUserTours(userId);
+
+    res.json({
+      success: true,
+      data: tours,
+    });
+  }
 }
 
 // Export singleton instance

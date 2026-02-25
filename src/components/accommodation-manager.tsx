@@ -25,7 +25,13 @@ interface RoomAssignment {
   };
 }
 
-export function AccommodationManager({ tourId }: { tourId: string }): React.ReactElement {
+export function AccommodationManager({
+  tourId,
+  canManage = false,
+}: {
+  tourId: string;
+  canManage?: boolean;
+}): React.ReactElement {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [assignments, setAssignments] = useState<RoomAssignment[]>([]);
   const [participants, setParticipants] = useState<{ user_id: string; name: string }[]>([]);
@@ -63,7 +69,6 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
       ]);
 
       if (accommodationsRes.success && accommodationsRes.data) {
-        // Convert number IDs to strings for frontend compatibility
         setAccommodations(
           accommodationsRes.data.map((acc) => ({
             id: String(acc.id),
@@ -75,10 +80,9 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
           }))
         );
 
-        // Fetch room assignments for each accommodation
         const allAssignments: RoomAssignment[] = [];
         for (const acc of accommodationsRes.data) {
-          const assignmentsRes = await accommodationApi.getRoomAssignments(acc.id);
+          const assignmentsRes = await accommodationApi.getRoomAssignments(Number(acc.id));
           if (assignmentsRes.success && assignmentsRes.data) {
             allAssignments.push(
               ...assignmentsRes.data.map((a) => ({
@@ -216,12 +220,14 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
           <Hotel className="mr-2 h-5 w-5 text-blue-600" />
           Accommodation & Stays
         </h3>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" /> Add Hotel/Stay
-        </button>
+        {canManage && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" /> Add Hotel/Stay
+          </button>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -259,12 +265,14 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteAccommodation(acc.id)}
-                    className="text-slate-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => handleDeleteAccommodation(acc.id)}
+                      className="text-slate-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -273,12 +281,14 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
                   <h5 className="font-semibold text-slate-800 text-sm uppercase tracking-wider">
                     Room Assignments
                   </h5>
-                  <button
-                    onClick={() => setShowAssignModal(acc.id)}
-                    className="text-blue-600 text-sm font-medium flex items-center hover:text-blue-700"
-                  >
-                    <UserPlus className="h-4 w-4 mr-1" /> Assign Room
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => setShowAssignModal(acc.id)}
+                      className="text-blue-600 text-sm font-medium flex items-center hover:text-blue-700"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" /> Assign Room
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -297,12 +307,14 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
                             Room {assign.room_number || "N/A"} • {assign.room_type || "N/A"}
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleDeleteAssignment(assign.id)}
-                          className="text-slate-300 hover:text-red-500"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        {canManage && (
+                          <button
+                            onClick={() => handleDeleteAssignment(assign.id)}
+                            className="text-slate-300 hover:text-red-500"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   {assignments.filter((a) => a.accommodation_id === acc.id).length === 0 && (
@@ -317,7 +329,6 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
         )}
       </div>
 
-      {/* Add Accommodation Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
@@ -391,7 +402,6 @@ export function AccommodationManager({ tourId }: { tourId: string }): React.Reac
         </div>
       )}
 
-      {/* Assign Room Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">

@@ -65,6 +65,8 @@ export const AuditActions = {
   UNASSIGN: "UNASSIGN",
   VERIFY: "VERIFY",
   ACKNOWLEDGE: "ACKNOWLEDGE",
+  JOIN: "JOIN",
+  LEAVE: "LEAVE",
 } as const;
 
 /**

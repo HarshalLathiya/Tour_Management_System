@@ -267,6 +267,85 @@ export class TourModel extends BaseModel {
     }>(query, [tourId]);
     return result.rows;
   }
+
+  /**
+   * Join a tour as participant
+   * Returns null if user is already a participant
+   */
+  async joinTour(
+    tourId: number,
+    userId: number
+  ): Promise<{ id: number; tour_id: number; user_id: number } | null> {
+    const result = await this.query<{ id: number; tour_id: number; user_id: number }>(
+      `INSERT INTO tour_users (tour_id, user_id, role, joined_at)
+       VALUES ($1, $2, 'participant', CURRENT_TIMESTAMP)
+       ON CONFLICT (tour_id, user_id) DO NOTHING
+       RETURNING id, tour_id, user_id`,
+      [tourId, userId]
+    );
+
+    // If no row was returned (conflict occurred), return null
+    if (!result.rows[0]) {
+      return null;
+    }
+
+    // Update participant count
+    await this.query(
+      `UPDATE tours SET participant_count = (
+        SELECT COUNT(*) FROM tour_users WHERE tour_id = $1
+      ) WHERE id = $1`,
+      [tourId]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Leave a tour
+   */
+  async leaveTour(tourId: number, userId: number): Promise<boolean> {
+    const result = await this.query(`DELETE FROM tour_users WHERE tour_id = $1 AND user_id = $2`, [
+      tourId,
+      userId,
+    ]);
+
+    // Update participant count
+    await this.query(
+      `UPDATE tours SET participant_count = (
+        SELECT COUNT(*) FROM tour_users WHERE tour_id = $1
+      ) WHERE id = $1`,
+      [tourId]
+    );
+
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  /**
+   * Check if user is already a participant
+   */
+  async isParticipant(tourId: number, userId: number): Promise<boolean> {
+    const result = await this.query(
+      `SELECT 1 FROM tour_users WHERE tour_id = $1 AND user_id = $2`,
+      [tourId, userId]
+    );
+    return result.rows.length > 0;
+  }
+
+  /**
+   * Get all tours a user is participating in
+   */
+  async getUserTours(userId: number): Promise<TourRow[]> {
+    const query = `
+      SELECT t.*, u.name as leader_name, u.email as leader_email
+      FROM tours t
+      LEFT JOIN users u ON t.assigned_leader_id = u.id
+      INNER JOIN tour_users tu ON t.id = tu.tour_id
+      WHERE tu.user_id = $1
+      ORDER BY t.start_date DESC
+    `;
+    const result = await this.query<TourRow>(query, [userId]);
+    return result.rows;
+  }
 }
 
 // Export singleton instance

@@ -24,7 +24,7 @@ export interface TourData {
   start_date: string;
   end_date: string;
   destination?: string;
-  price?: string;
+  price?: number | string;
   status: "planned" | "ongoing" | "completed" | "cancelled";
   content?: string;
   created_by?: number;
@@ -347,6 +347,15 @@ export const tourApi = {
     apiClient.put<TourData>(`/tours/${tourId}/assign-leader`, { leader_id: leaderId }),
 
   unassignLeader: (tourId: number) => apiClient.delete<TourData>(`/tours/${tourId}/assign-leader`),
+
+  getUserTours: (userId: number) => apiClient.get<TourData[]>(`/tours/user/${userId}`),
+
+  join: (tourId: number) => apiClient.post<{ message: string }>(`/tours/${tourId}/join`),
+
+  leave: (tourId: number) => apiClient.delete<{ message: string }>(`/tours/${tourId}/leave`),
+
+  checkParticipation: (tourId: number) =>
+    apiClient.get<{ isParticipant: boolean }>(`/tours/${tourId}/participation`),
 };
 
 /**
@@ -399,6 +408,9 @@ export const attendanceApi = {
   },
 
   getById: (id: number) => apiClient.get<AttendanceData>(`/attendance/${id}`),
+
+  getUnverified: (tourId: number) =>
+    apiClient.get<AttendanceData[]>(`/attendance/unverified/${tourId}`),
 
   checkIn: (data: {
     tour_id: number;
@@ -462,7 +474,20 @@ export const itineraryApi = {
  * Users API
  */
 export const userApi = {
+  getAll: () => apiClient.get<UserData[]>("/users"),
+
+  getById: (id: number) => apiClient.get<UserData>(`/users/${id}`),
+
+  create: (data: { email: string; password: string; name: string; role: string }) =>
+    apiClient.post<UserData>("/users", data),
+
+  update: (id: number, data: { name?: string; email?: string; role?: string }) =>
+    apiClient.put<UserData>(`/users/${id}`, data),
+
+  delete: (id: number) => apiClient.delete(`/users/${id}`),
+
   getLeaders: () => authApi.getLeaders(),
+
   getProfile: () => authApi.getProfile(),
 };
 
@@ -521,6 +546,47 @@ export const photoApi = {
 
   // Delete a photo
   delete: (photoId: number) => apiClient.delete(`/photos/${photoId}`),
+};
+
+// Extended BudgetData with frontend-friendly field names
+// Maps to the same database fields but provides alternative names
+export interface BudgetData {
+  id: number;
+  tour_id: number;
+  total_amount: number;
+  total_budget?: number; // Alias for total_amount
+  spent_amount?: number;
+  per_participant_fee?: number;
+  currency?: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Budget categories (not in DB yet, but frontend expects them)
+  accommodation_budget?: number;
+  transportation_budget?: number;
+  food_budget?: number;
+  activities_budget?: number;
+  miscellaneous_budget?: number;
+}
+
+/**
+ * Budget API
+ */
+export const budgetApi = {
+  getByTourId: (tourId: number) => apiClient.get<BudgetData>(`/budgets?tour_id=${tourId}`),
+
+  create: (data: {
+    tour_id: number;
+    total_amount: number;
+    per_participant_fee?: number;
+    currency?: string;
+    description?: string;
+  }) => apiClient.post<BudgetData>("/budgets", data),
+
+  update: (id: number, data: Partial<BudgetData>) =>
+    apiClient.put<BudgetData>(`/budgets/${id}`, data),
+
+  delete: (id: number) => apiClient.delete(`/budgets/${id}`),
 };
 
 // Legacy exports for backward compatibility

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { tokenManager } from "@/lib/api";
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
@@ -26,11 +27,12 @@ export default function UpdatePasswordPage() {
     setError(null);
 
     try {
+      const token = tokenManager.getToken();
       const response = await fetch("http://localhost:5000/api/auth/update-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + (localStorage.getItem("token") || ""),
+          Authorization: "Bearer " + (token || ""),
         },
         body: JSON.stringify({ password }),
       });

@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface DashboardTour {
+export interface DashboardTour {
   id: number | string;
   name: string;
   description?: string;
@@ -31,7 +31,7 @@ interface DashboardTour {
   start_date?: string;
   end_date?: string;
   status: string;
-  price?: string;
+  price?: string | number;
   participant_count?: number;
   leader_name?: string;
   leader_email?: string;

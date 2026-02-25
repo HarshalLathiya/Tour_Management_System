@@ -97,4 +97,32 @@ router.get(
   asyncHandler((req, res) => tourController.getTourParticipants(req, res))
 );
 
+// POST /api/tours/:id/join - Join a tour as participant
+router.post(
+  "/:id/join",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.joinTour(req, res))
+);
+
+// DELETE /api/tours/:id/leave - Leave a tour
+router.delete(
+  "/:id/leave",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.leaveTour(req, res))
+);
+
+// GET /api/tours/:id/participation - Check if current user is participant
+router.get(
+  "/:id/participation",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.checkParticipation(req, res))
+);
+
+// GET /api/tours/user/:userId - Get all tours a user is participating in
+router.get(
+  "/user/:userId",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.getUserTours(req, res))
+);
+
 export default router;
