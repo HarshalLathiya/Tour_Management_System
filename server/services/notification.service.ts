@@ -8,7 +8,7 @@ interface NotificationClient {
 
 interface Notification {
   id: string;
-  type: "SOS" | "HEALTH" | "INCIDENT" | "ATTENDANCE" | "ANNOUNCEMENT";
+  type: "SOS" | "HEALTH" | "INCIDENT" | "ATTENDANCE" | "ANNOUNCEMENT" | "TOUR_REQUEST";
   title: string;
   message: string;
   data?: unknown;
@@ -89,6 +89,20 @@ class NotificationService {
       }
     });
     console.log(`[SSE] Notified ${count} leaders/admins`);
+  }
+
+  /**
+   * Send notification to all admins only
+   */
+  notifyAdmins(notification: Notification): void {
+    let count = 0;
+    this.clients.forEach((client) => {
+      if (client.role === "admin") {
+        this.sendToClient(client.userId, notification);
+        count++;
+      }
+    });
+    console.log(`[SSE] Notified ${count} admins`);
   }
 
   /**
@@ -229,6 +243,80 @@ class NotificationService {
     };
 
     this.sendToClient(data.reportedBy, notification);
+  }
+
+  /**
+   * Notify user when their tour join request is approved
+   */
+  notifyTourJoinApproved(data: { userId: number; tourId: number; tourName: string }): void {
+    const notification: Notification = {
+      id: `tour-join-approved-${data.tourId}-${Date.now()}`,
+      type: "TOUR_REQUEST",
+      title: "Tour Join Request Approved! 🎉",
+      message: `Your request to join "${data.tourName}" has been approved. You are now a participant!`,
+      data: {
+        tourId: data.tourId,
+        tourName: data.tourName,
+      },
+      timestamp: new Date().toISOString(),
+      severity: "MEDIUM",
+    };
+
+    this.sendToClient(data.userId, notification);
+  }
+
+  /**
+   * Notify user when their tour join request is rejected
+   */
+  notifyTourJoinRejected(data: {
+    userId: number;
+    tourId: number;
+    tourName: string;
+    reason?: string;
+  }): void {
+    const notification: Notification = {
+      id: `tour-join-rejected-${data.tourId}-${Date.now()}`,
+      type: "TOUR_REQUEST",
+      title: "Tour Join Request Rejected",
+      message: `Your request to join "${data.tourName}" has been rejected${data.reason ? `: ${data.reason}` : "."}`,
+      data: {
+        tourId: data.tourId,
+        tourName: data.tourName,
+        reason: data.reason,
+      },
+      timestamp: new Date().toISOString(),
+      severity: "LOW",
+    };
+
+    this.sendToClient(data.userId, notification);
+  }
+
+  /**
+   * Notify admins about new tour join request
+   */
+  notifyNewTourJoinRequest(data: {
+    userId: number;
+    userName: string;
+    tourId: number;
+    tourName: string;
+  }): void {
+    const notification: Notification = {
+      id: `tour-join-request-${data.tourId}-${Date.now()}`,
+      type: "TOUR_REQUEST",
+      title: "New Tour Join Request",
+      message: `${data.userName} wants to join "${data.tourName}". Please review and approve.`,
+      data: {
+        userId: data.userId,
+        userName: data.userName,
+        tourId: data.tourId,
+        tourName: data.tourName,
+      },
+      timestamp: new Date().toISOString(),
+      severity: "MEDIUM",
+    };
+
+    // Notify all admins
+    this.notifyAdmins(notification);
   }
 }
 

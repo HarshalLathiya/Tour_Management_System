@@ -4,6 +4,7 @@ import { AppError } from "../middleware/errorHandler";
 import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
 import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
+import { notificationService } from "../services/notification.service";
 
 /**
  * Tour Controller - Handles tour management business logic
@@ -387,7 +388,7 @@ export class TourController {
   }
 
   /**
-   * Join a tour as participant
+   * Request to join a tour as participant (requires admin approval)
    */
   async joinTour(req: Request, res: Response): Promise<void> {
     const authReq = req as AuthenticatedRequest;
@@ -410,14 +411,54 @@ export class TourController {
       throw new AppError(400, "Cannot join a cancelled tour");
     }
 
-    // Check if already a participant
-    const isAlreadyParticipant = await Tour.isParticipant(tourId, userId!);
-    if (isAlreadyParticipant) {
-      throw new AppError(400, "You are already a participant of this tour");
+    // Check if already a participant (approved)
+    const isApprovedParticipant = await Tour.isParticipant(tourId, userId!);
+    if (isApprovedParticipant) {
+      throw new AppError(400, "You are already an approved participant of this tour");
     }
 
-    // Join the tour
-    await Tour.joinTour(tourId, userId!);
+    // Check for date conflicts with other approved tours
+    if (tour.start_date && tour.end_date) {
+      const conflict = await Tour.checkDateConflict(userId!, tour.start_date, tour.end_date);
+      if (conflict) {
+        throw new AppError(
+          400,
+          `You already have an approved tour "${conflict.name}" from ${new Date(conflict.start_date).toLocaleDateString()} to ${new Date(conflict.end_date).toLocaleDateString()}. Cannot join multiple tours on the same dates.`
+        );
+      }
+    }
+
+    // Check if user already has a pending request
+    const userRequests = await Tour.getUserRequests(userId!);
+    const existingRequest = userRequests.find((r) => r.tour_id === tourId);
+
+    if (existingRequest) {
+      if (existingRequest.status === "pending") {
+        throw new AppError(400, "You already have a pending request to join this tour");
+      }
+      if (existingRequest.status === "approved") {
+        throw new AppError(400, "You are already an approved participant of this tour");
+      }
+      // If rejected, allow re-applying
+    }
+
+    // Create join request (pending status)
+    const request = await Tour.requestJoinTour(tourId, userId!);
+
+    if (!request) {
+      throw new AppError(400, "You already have a pending or approved request for this tour");
+    }
+
+    // Get user info for notification
+    const user = await User.findByIdSafe(userId!);
+
+    // Notify admins about new join request
+    notificationService.notifyNewTourJoinRequest({
+      userId: userId!,
+      userName: user?.name || "Unknown User",
+      tourId: tourId,
+      tourName: tour.name,
+    });
 
     // Log the action
     await createAuditLog({
@@ -425,13 +466,161 @@ export class TourController {
       action: AuditActions.JOIN,
       entityType: EntityTypes.TOUR,
       entityId: tourId,
-      newValues: { action: "joined tour" },
+      newValues: { action: "requested to join tour", status: "pending" },
+      req,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Join request submitted successfully. Waiting for admin approval.",
+      data: { requestId: request.id, status: request.status },
+    });
+  }
+
+  /**
+   * Get pending join requests for a tour (Admin only)
+   */
+  async getJoinRequests(req: Request, res: Response): Promise<void> {
+    const tourId = parseInt(String(req.params.id));
+
+    if (isNaN(tourId)) {
+      throw new AppError(400, "Invalid tour ID");
+    }
+
+    // Check if tour exists
+    const tour = await Tour.getTourById(tourId);
+    if (!tour) {
+      throw new AppError(404, "Tour not found");
+    }
+
+    // Get pending requests
+    const requests = await Tour.getPendingRequests(tourId);
+
+    res.json({
+      success: true,
+      data: requests,
+    });
+  }
+
+  /**
+   * Approve a join request (Admin only)
+   */
+  async approveJoinRequest(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const approvedBy = authReq.user?.id;
+
+    const tourId = parseInt(String(req.params.id));
+    const requestId = String(req.params.requestId);
+
+    if (isNaN(tourId) || isNaN(parseInt(requestId))) {
+      throw new AppError(400, "Invalid tour ID or request ID");
+    }
+
+    // Approve the request
+    const approved = await Tour.approveRequest(parseInt(requestId), approvedBy!);
+
+    if (!approved) {
+      throw new AppError(404, "Join request not found or already processed");
+    }
+
+    // Get tour info for notification
+    const tour = await Tour.getTourById(tourId);
+
+    // Send notification to the user
+    notificationService.notifyTourJoinApproved({
+      userId: approved.user_id,
+      tourId: tourId,
+      tourName: tour?.name || "Unknown Tour",
+    });
+
+    // Log the action
+    await createAuditLog({
+      userId: approvedBy,
+      action: AuditActions.APPROVE,
+      entityType: EntityTypes.TOUR,
+      entityId: tourId,
+      newValues: {
+        action: "approved join request",
+        requestId: requestId,
+        userId: approved.user_id,
+      },
       req,
     });
 
     res.json({
       success: true,
-      message: "Successfully joined the tour",
+      message: `Join request approved. User is now a participant of "${tour?.name}".`,
+      data: approved,
+    });
+  }
+
+  /**
+   * Reject a join request (Admin only)
+   */
+  async rejectJoinRequest(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const rejectedBy = authReq.user?.id;
+
+    const tourId = parseInt(String(req.params.id));
+    const requestId = String(req.params.requestId);
+    const { reason } = req.body;
+
+    if (isNaN(tourId) || isNaN(parseInt(requestId))) {
+      throw new AppError(400, "Invalid tour ID or request ID");
+    }
+
+    // Reject the request
+    const rejected = await Tour.rejectRequest(parseInt(requestId), reason);
+
+    if (!rejected) {
+      throw new AppError(404, "Join request not found or already processed");
+    }
+
+    // Get tour info
+    const tour = await Tour.getTourById(tourId);
+
+    // Send notification to the user
+    notificationService.notifyTourJoinRejected({
+      userId: rejected.user_id,
+      tourId: tourId,
+      tourName: tour?.name || "Unknown Tour",
+      reason: reason,
+    });
+
+    // Log the action
+    await createAuditLog({
+      userId: rejectedBy,
+      action: AuditActions.REJECT,
+      entityType: EntityTypes.TOUR,
+      entityId: tourId,
+      newValues: {
+        action: "rejected join request",
+        requestId: requestId,
+        userId: rejected.user_id,
+        reason,
+      },
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Join request rejected for "${tour?.name}".`,
+      data: rejected,
+    });
+  }
+
+  /**
+   * Get current user's join requests
+   */
+  async getMyRequests(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+
+    const requests = await Tour.getUserRequests(userId!);
+
+    res.json({
+      success: true,
+      data: requests,
     });
   }
 

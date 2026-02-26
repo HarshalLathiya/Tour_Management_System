@@ -36,12 +36,14 @@ import { PhotoGallery } from "@/components/photo-gallery";
 import { AccommodationManager } from "@/components/accommodation-manager";
 import { LeaderAssignment } from "@/components/LeaderAssignment";
 import { SOSButton } from "@/components/SOSButton";
+import { JoinRequestsManager } from "@/components/JoinRequestsManager";
 import {
   tourApi,
   itineraryApi,
   ItineraryData,
   tokenManager,
   budgetApi,
+  incidentApi,
   type BudgetData,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -83,10 +85,23 @@ export default function TourDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<TourData>>({});
   const [isParticipant, setIsParticipant] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [loadingParticipation, setLoadingParticipation] = useState(false);
   const [joiningTour, setJoiningTour] = useState(false);
   const [budget, setBudget] = useState<BudgetData | null>(null);
   const [loadingBudget, setLoadingBudget] = useState(false);
+
+  // Incident reporting state
+  const [isReportingIncident, setIsReportingIncident] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({
+    title: "",
+    description: "",
+    location: "",
+  });
+  const [incidentSeverity, setIncidentSeverity] = useState<"LOW" | "MEDIUM" | "HIGH" | "CRITICAL">(
+    "LOW"
+  );
+  const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
 
   // Itinerary dialog state
   const [isAddItineraryOpen, setIsAddItineraryOpen] = useState(false);
@@ -168,9 +183,27 @@ export default function TourDetailsPage() {
     if (!userId) return;
     setLoadingParticipation(true);
     try {
+      // Check if user is an approved participant
       const result = await tourApi.checkParticipation(parseInt(tourId));
       if (result.success && result.data) {
         setIsParticipant(result.data.isParticipant);
+      }
+
+      // Check if user has a pending request
+      const token = tokenManager.getToken();
+      const requestsResult = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/tours/my-requests`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const requestsData = await requestsResult.json();
+      if (requestsData.success && requestsData.data) {
+        const pendingForThisTour = requestsData.data.find(
+          (r: { tour_id: number; status: string }) =>
+            r.tour_id === parseInt(tourId) && r.status === "pending"
+        );
+        setHasPendingRequest(!!pendingForThisTour);
       }
     } catch (err) {
       console.error("Error checking participation:", err);
@@ -226,8 +259,10 @@ export default function TourDetailsPage() {
       const result = await tourApi.join(parseInt(tourId));
       console.log("Join result:", result);
       if (result.success) {
-        setIsParticipant(true);
-        toast.success("Successfully joined the tour!");
+        fetchParticipation(); // Refresh participation status
+        toast.success(
+          result.message || "Join request submitted successfully. Waiting for admin approval."
+        );
         fetchTourData();
       } else {
         console.error("Join failed:", result.error);
@@ -343,6 +378,40 @@ export default function TourDetailsPage() {
     }
   };
 
+  const handleReportIncident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tourId || !incidentForm.title || !incidentForm.description) {
+      alert("Please fill in the required fields");
+      return;
+    }
+
+    setIsSubmittingIncident(true);
+    try {
+      const result = await incidentApi.create({
+        tour_id: parseInt(tourId),
+        title: incidentForm.title,
+        description: incidentForm.description,
+        location: incidentForm.location,
+        severity: incidentSeverity,
+      });
+
+      if (result.success) {
+        toast.success("Incident reported successfully!");
+        setIsReportingIncident(false);
+        setIncidentForm({ title: "", description: "", location: "" });
+        setIncidentSeverity("LOW");
+      } else {
+        console.error("Error reporting incident:", result.error);
+        alert(result.error || "Failed to report incident");
+      }
+    } catch (error) {
+      console.error("Error reporting incident:", error);
+      alert("Failed to report incident. Please try again.");
+    } finally {
+      setIsSubmittingIncident(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center">Loading tour details...</div>;
   if (!tour) return <div className="p-8 text-center">Tour not found.</div>;
 
@@ -391,11 +460,13 @@ export default function TourDetailsPage() {
           {canJoinTour && !loadingParticipation && (
             <button
               onClick={isParticipant ? handleLeaveTour : handleJoinTour}
-              disabled={joiningTour}
+              disabled={joiningTour || hasPendingRequest}
               className={`flex items-center px-4 py-2 rounded-lg font-bold transition-all ${
                 isParticipant
                   ? "bg-red-100 text-red-700 hover:bg-red-200 border border-red-200"
-                  : "bg-green-600 text-white hover:bg-green-700"
+                  : hasPendingRequest
+                    ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
+                    : "bg-green-600 text-white hover:bg-green-700"
               } disabled:opacity-50`}
             >
               {joiningTour ? (
@@ -405,7 +476,7 @@ export default function TourDetailsPage() {
               ) : (
                 <UserPlus className="h-4 w-4 mr-2" />
               )}
-              {isParticipant ? "Leave Tour" : "Join Tour"}
+              {isParticipant ? "Leave Tour" : hasPendingRequest ? "Request Pending" : "Join Tour"}
             </button>
           )}
           {isAdmin && (
@@ -453,6 +524,16 @@ export default function TourDetailsPage() {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
           <User className="h-5 w-5 text-green-600" />
           <span className="text-green-700 font-medium">You are a participant of this tour</span>
+        </div>
+      )}
+
+      {/* Pending Request Status Banner */}
+      {canJoinTour && hasPendingRequest && !isParticipant && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-3">
+          <Clock className="h-5 w-5 text-yellow-600" />
+          <span className="text-yellow-700 font-medium">
+            Your join request is pending approval from admin
+          </span>
         </div>
       )}
 
@@ -559,6 +640,15 @@ export default function TourDetailsPage() {
 
         {activeTab === "participants" && (
           <div className="space-y-4">
+            {isAdmin && (
+              <JoinRequestsManager
+                tourId={tourId}
+                onRequestProcessed={() => {
+                  fetchParticipants();
+                  fetchTourData();
+                }}
+              />
+            )}
             <h3 className="text-lg font-semibold">Tour Participants</h3>
             {loadingParticipants ? (
               <div className="flex justify-center py-8">
@@ -672,34 +762,41 @@ export default function TourDetailsPage() {
                 <h3 className="text-lg font-semibold mb-4 text-slate-800">Budget Summary</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b">
-                    <span className="text-slate-500">Total Budget</span>
+                    <span className="text-slate-500">Participant Budget</span>
                     <span className="font-bold text-slate-900 text-xl">
-                      ${Number(budget.total_amount ?? 0).toFixed(2)}
+                      ₹
+                      {Number(
+                        (budget.per_participant_fee ?? 0) * (tour.participant_count || 0)
+                      ).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b">
                     <span className="text-slate-500">Spent Amount</span>
                     <span className="font-semibold text-slate-900">
-                      ${Number(budget.spent_amount ?? 0).toFixed(2)}
+                      ₹{Number(budget.spent_amount ?? 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-slate-500">Remaining</span>
                     <span className="font-semibold text-green-600">
-                      ${Number((budget.total_amount ?? 0) - (budget.spent_amount ?? 0)).toFixed(2)}
+                      ₹
+                      {Number(
+                        (budget.per_participant_fee ?? 0) * (tour.participant_count || 0) -
+                          (budget.spent_amount ?? 0)
+                      ).toFixed(2)}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="p-4 bg-slate-50 rounded-lg">
                       <span className="text-sm text-slate-500 block">Per Participant Fee</span>
                       <span className="font-semibold text-slate-900">
-                        ${Number(budget.per_participant_fee ?? 0).toFixed(2)}
+                        ₹{Number(budget.per_participant_fee ?? 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-lg">
-                      <span className="text-sm text-slate-500 block">Currency</span>
+                      <span className="text-sm text-slate-500 block">Total Participants</span>
                       <span className="font-semibold text-slate-900">
-                        {budget.currency ?? "INR"}
+                        {tour.participant_count || 0}
                       </span>
                     </div>
                   </div>
@@ -739,7 +836,10 @@ export default function TourDetailsPage() {
             </p>
             <div className="grid grid-cols-2 gap-4">
               <SOSButton tourId={tour.id} />
-              <button className="bg-white text-red-600 border border-red-200 font-bold py-3 rounded-lg hover:bg-red-50 transition-colors">
+              <button
+                onClick={() => setIsReportingIncident(true)}
+                className="bg-white text-red-600 border border-red-200 font-bold py-3 rounded-lg hover:bg-red-50 transition-colors"
+              >
                 REPORT INCIDENT
               </button>
             </div>
@@ -755,10 +855,7 @@ export default function TourDetailsPage() {
         )}
       </div>
 
-      {/* Add Itin
-      
-      
-      Dialog */}
+      {/* Add Itinerary Dialog */}
       <Dialog open={isAddItineraryOpen} onOpenChange={setIsAddItineraryOpen}>
         <DialogContent>
           <DialogHeader>
@@ -834,6 +931,87 @@ export default function TourDetailsPage() {
               {isSubmittingItinerary ? "Adding..." : "Add Item"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Incident Dialog */}
+      <Dialog open={isReportingIncident} onOpenChange={setIsReportingIncident}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report Safety Incident</DialogTitle>
+            <DialogDescription>
+              Document any safety issues or incidents that occurred during the tour.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleReportIncident} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Incident Title *</label>
+              <Input
+                value={incidentForm.title}
+                onChange={(e) => setIncidentForm({ ...incidentForm, title: e.target.value })}
+                placeholder="Brief summary of the incident"
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Severity *</label>
+              <select
+                value={incidentSeverity}
+                onChange={(e) =>
+                  setIncidentSeverity(e.target.value as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL")
+                }
+                className="input mt-1"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Location</label>
+              <Input
+                value={incidentForm.location}
+                onChange={(e) => setIncidentForm({ ...incidentForm, location: e.target.value })}
+                placeholder="Where did this incident occur?"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Description *</label>
+              <Textarea
+                value={incidentForm.description}
+                onChange={(e) => setIncidentForm({ ...incidentForm, description: e.target.value })}
+                placeholder="Detailed description of what happened..."
+                rows={4}
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsReportingIncident(false)}
+                disabled={isSubmittingIncident}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingIncident}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isSubmittingIncident ? "Reporting..." : "Report Incident"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

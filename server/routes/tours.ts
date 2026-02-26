@@ -42,6 +42,13 @@ router.get(
   asyncHandler((req, res) => tourController.getMyAssignedTours(req, res))
 );
 
+// GET /api/tours/my-requests - Get current user's join requests
+router.get(
+  "/my-requests",
+  authenticateToken,
+  asyncHandler((req, res) => tourController.getMyRequests(req, res))
+);
+
 // GET /api/tours/:id - Get single tour
 router.get(
   "/:id",
@@ -97,6 +104,14 @@ router.get(
   asyncHandler((req, res) => tourController.getTourParticipants(req, res))
 );
 
+// GET /api/tours/:id/requests - Get pending join requests for a tour (Admin only)
+router.get(
+  "/:id/requests",
+  authenticateToken,
+  authorizeRoles("admin"),
+  asyncHandler((req, res) => tourController.getJoinRequests(req, res))
+);
+
 // POST /api/tours/:id/join - Join a tour as participant
 router.post(
   "/:id/join",
@@ -116,6 +131,22 @@ router.get(
   "/:id/participation",
   authenticateToken,
   asyncHandler((req, res) => tourController.checkParticipation(req, res))
+);
+
+// PUT /api/tours/:id/requests/:requestId/approve - Approve a join request (Admin only)
+router.put(
+  "/:id/requests/:requestId/approve",
+  authenticateToken,
+  authorizeRoles("admin"),
+  asyncHandler((req, res) => tourController.approveJoinRequest(req, res))
+);
+
+// PUT /api/tours/:id/requests/:requestId/reject - Reject a join request (Admin only)
+router.put(
+  "/:id/requests/:requestId/reject",
+  authenticateToken,
+  authorizeRoles("admin"),
+  asyncHandler((req, res) => tourController.rejectJoinRequest(req, res))
 );
 
 // GET /api/tours/user/:userId - Get all tours a user is participating in

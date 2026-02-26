@@ -256,7 +256,7 @@ export class TourModel extends BaseModel {
       SELECT tu.id, tu.user_id, u.name as full_name, u.email
       FROM tour_users tu
       JOIN users u ON tu.user_id = u.id
-      WHERE tu.tour_id = $1
+      WHERE tu.tour_id = $1 AND tu.status = 'approved'
       ORDER BY u.name ASC
     `;
     const result = await this.query<{
@@ -325,14 +325,14 @@ export class TourModel extends BaseModel {
    */
   async isParticipant(tourId: number, userId: number): Promise<boolean> {
     const result = await this.query(
-      `SELECT 1 FROM tour_users WHERE tour_id = $1 AND user_id = $2`,
+      `SELECT 1 FROM tour_users WHERE tour_id = $1 AND user_id = $2 AND status = 'approved'`,
       [tourId, userId]
     );
     return result.rows.length > 0;
   }
 
   /**
-   * Get all tours a user is participating in
+   * Get all tours a user is participating in (approved only)
    */
   async getUserTours(userId: number): Promise<TourRow[]> {
     const query = `
@@ -340,11 +340,199 @@ export class TourModel extends BaseModel {
       FROM tours t
       LEFT JOIN users u ON t.assigned_leader_id = u.id
       INNER JOIN tour_users tu ON t.id = tu.tour_id
-      WHERE tu.user_id = $1
+      WHERE tu.user_id = $1 AND tu.status = 'approved'
       ORDER BY t.start_date DESC
     `;
     const result = await this.query<TourRow>(query, [userId]);
     return result.rows;
+  }
+
+  /**
+   * Check if user has a date conflict with any existing approved tours
+   * Returns the conflicting tour if one exists
+   */
+  async checkDateConflict(
+    userId: number,
+    startDate: Date | string,
+    endDate: Date | string,
+    excludeTourId?: number
+  ): Promise<{ id: number; name: string; start_date: Date; end_date: Date } | null> {
+    const query = `
+      SELECT t.id, t.name, t.start_date, t.end_date
+      FROM tours t
+      INNER JOIN tour_users tu ON t.id = tu.tour_id
+      WHERE tu.user_id = $1 
+        AND tu.status = 'approved'
+        AND t.status != 'cancelled'
+        AND t.start_date <= $3
+        AND t.end_date >= $2
+        ${excludeTourId ? "AND t.id != $4" : ""}
+      LIMIT 1
+    `;
+
+    const params: unknown[] = [userId, startDate, endDate];
+    if (excludeTourId) {
+      params.push(excludeTourId);
+    }
+
+    const result = await this.query<{ id: number; name: string; start_date: Date; end_date: Date }>(
+      query,
+      params
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Request to join a tour (creates pending request)
+   */
+  async requestJoinTour(
+    tourId: number,
+    userId: number
+  ): Promise<{ id: number; tour_id: number; user_id: number; status: string } | null> {
+    const result = await this.query<{
+      id: number;
+      tour_id: number;
+      user_id: number;
+      status: string;
+    }>(
+      `INSERT INTO tour_users (tour_id, user_id, role, status, requested_at)
+       VALUES ($1, $2, 'participant', 'pending', CURRENT_TIMESTAMP)
+       ON CONFLICT (tour_id, user_id) DO UPDATE SET
+         status = EXCLUDED.status,
+         requested_at = CURRENT_TIMESTAMP
+       WHERE tour_users.status = 'rejected'
+       RETURNING id, tour_id, user_id, status`,
+      [tourId, userId]
+    );
+
+    // If no row was returned, user already has a pending/approved request
+    if (!result.rows[0]) {
+      return null;
+    }
+
+    return result.rows[0];
+  }
+
+  /**
+   * Get pending join requests for a tour
+   */
+  async getPendingRequests(
+    tourId: number
+  ): Promise<
+    { id: number; user_id: number; full_name: string; email: string; requested_at: Date }[]
+  > {
+    const query = `
+      SELECT tu.id, tu.user_id, u.name as full_name, u.email, tu.requested_at
+      FROM tour_users tu
+      JOIN users u ON tu.user_id = u.id
+      WHERE tu.tour_id = $1 AND tu.status = 'pending'
+      ORDER BY tu.requested_at ASC
+    `;
+    const result = await this.query<{
+      id: number;
+      user_id: number;
+      full_name: string;
+      email: string;
+      requested_at: Date;
+    }>(query, [tourId]);
+    return result.rows;
+  }
+
+  /**
+   * Get user's join requests
+   */
+  async getUserRequests(
+    userId: number
+  ): Promise<
+    { id: number; tour_id: number; status: string; requested_at: Date; tour_name?: string }[]
+  > {
+    const query = `
+      SELECT tu.id, tu.tour_id, tu.status, tu.requested_at, t.name as tour_name
+      FROM tour_users tu
+      LEFT JOIN tours t ON tu.tour_id = t.id
+      WHERE tu.user_id = $1
+      ORDER BY tu.requested_at DESC
+    `;
+    const result = await this.query<{
+      id: number;
+      tour_id: number;
+      status: string;
+      requested_at: Date;
+      tour_name?: string;
+    }>(query, [userId]);
+    return result.rows;
+  }
+
+  /**
+   * Approve a join request
+   */
+  async approveRequest(
+    requestId: number,
+    approvedBy: number
+  ): Promise<{ id: number; tour_id: number; user_id: number; status: string } | null> {
+    const result = await this.query<{
+      id: number;
+      tour_id: number;
+      user_id: number;
+      status: string;
+    }>(
+      `UPDATE tour_users 
+       SET status = 'approved', approved_by = $1, approved_at = CURRENT_TIMESTAMP, joined_at = CURRENT_TIMESTAMP
+       WHERE id = $2 AND status = 'pending'
+       RETURNING id, tour_id, user_id, status`,
+      [approvedBy, requestId]
+    );
+
+    if (!result.rows[0]) {
+      return null;
+    }
+
+    const { tour_id } = result.rows[0];
+
+    // Update participant count
+    await this.query(
+      `UPDATE tours SET participant_count = (
+        SELECT COUNT(*) FROM tour_users WHERE tour_id = $1 AND status = 'approved'
+      ) WHERE id = $1`,
+      [tour_id]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
+   * Reject a join request
+   */
+  async rejectRequest(
+    requestId: number,
+    rejectionReason?: string
+  ): Promise<{ id: number; tour_id: number; user_id: number; status: string } | null> {
+    const result = await this.query<{
+      id: number;
+      tour_id: number;
+      user_id: number;
+      status: string;
+    }>(
+      `UPDATE tour_users 
+       SET status = 'rejected', rejection_reason = $1
+       WHERE id = $2 AND status = 'pending'
+       RETURNING id, tour_id, user_id, status`,
+      [rejectionReason || null, requestId]
+    );
+
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Check if user has any approved tour on a specific date range
+   */
+  async hasApprovedTourOnDates(
+    userId: number,
+    startDate: Date | string,
+    endDate: Date | string
+  ): Promise<boolean> {
+    const conflict = await this.checkDateConflict(userId, startDate, endDate);
+    return conflict !== null;
   }
 }
 

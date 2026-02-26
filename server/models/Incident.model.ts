@@ -25,7 +25,12 @@ export class IncidentModel extends BaseModel {
     incident_type?: string;
     health_category?: string;
   }) {
-    return this.create(data);
+    // Set default status to "OPEN" if not provided or null
+    const incidentData = {
+      ...data,
+      status: data.status || "OPEN",
+    };
+    return this.create(incidentData);
   }
 
   async triggerSOS(data: {
@@ -37,6 +42,7 @@ export class IncidentModel extends BaseModel {
     return this.create({
       ...data,
       title: "SOS Emergency Alert",
+      description: data.description || "SOS Emergency Alert triggered",
       incident_type: "SOS",
       severity: "CRITICAL",
       status: "OPEN",

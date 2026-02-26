@@ -111,12 +111,12 @@ export default function BudgetPage() {
     }
   };
 
-  const totalFunds = selectedTour
+  const participantBudget = selectedTour
     ? parseFloat(String(selectedTour.price) || "0") * (selectedTour.participant_count || 1)
     : 0;
   const totalSpent = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-  const remaining = totalFunds - totalSpent;
-  const spentPercentage = totalFunds > 0 ? (totalSpent / totalFunds) * 100 : 0;
+  const remaining = participantBudget - totalSpent;
+  const spentPercentage = participantBudget > 0 ? (totalSpent / participantBudget) * 100 : 0;
 
   const categoryTotals = expenses.reduce((acc: Record<string, number>, e) => {
     acc[e.category] = (acc[e.category] || 0) + parseFloat(e.amount);
@@ -164,7 +164,9 @@ export default function BudgetPage() {
                   <Wallet className="h-4 w-4 text-primary" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-800">₹{totalFunds.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-800">
+                ₹{participantBudget.toLocaleString()}
+              </p>
               <p className="text-xs text-slate-500 flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
                 Base: ₹

@@ -86,8 +86,10 @@ export abstract class BaseModel {
   async create<T extends QueryResultRow = QueryResultRow>(
     data: Record<string, unknown>
   ): Promise<T> {
-    const keys = Object.keys(data);
-    const values = Object.values(data);
+    // Filter out undefined values to let PostgreSQL use DEFAULT values
+    const entries = Object.entries(data).filter(([_, value]) => value !== undefined);
+    const keys = entries.map(([key]) => key);
+    const values = entries.map(([_, value]) => value);
 
     const columns = keys.join(", ");
     const placeholders = keys.map((_, index) => `$${index + 1}`).join(", ");
