@@ -242,9 +242,18 @@ class ApiClient {
           }
         }
 
+        // For validation errors (400), include details if available
+        let errorMessage =
+          data.error || data.message || `Request failed with status ${response.status}`;
+        if (response.status === 400 && data.details) {
+          const details = data.details as Array<{ field: string; message: string }>;
+          const detailMessages = details.map((d) => `${d.field}: ${d.message}`).join(", ");
+          errorMessage = `${errorMessage} (${detailMessages})`;
+        }
+
         return {
           success: false,
-          error: data.error || data.message || `Request failed with status ${response.status}`,
+          error: errorMessage,
         };
       }
 
@@ -456,8 +465,10 @@ export const announcementApi = {
  */
 export const itineraryApi = {
   getAll: (tourId?: number) => {
-    const query = tourId ? `?tour_id=${tourId}` : "";
-    return apiClient.get<ItineraryData[]>(`/itineraries${query}`);
+    if (tourId) {
+      return apiClient.get<ItineraryData[]>(`/itineraries?tour_id=${tourId}`);
+    }
+    return apiClient.get<ItineraryData[]>("/itineraries");
   },
 
   getById: (id: number) => apiClient.get<ItineraryData>(`/itineraries/${id}`),

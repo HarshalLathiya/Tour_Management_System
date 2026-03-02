@@ -19,6 +19,7 @@ import {
   Plus,
   Minus,
   Trash2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,11 +34,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { tourApi, itineraryApi, accommodationApi, budgetApi } from "@/lib/api";
+import { tourApi, itineraryApi, accommodationApi, budgetApi, userApi, UserData } from "@/lib/api";
 
 export default function NewTourPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<UserData[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const steps = [
     "Basic Tour Information",
@@ -128,13 +131,32 @@ export default function NewTourPage() {
     },
     // Step 4: Assign Leaders & Participants
     primaryLeader: "",
-    assistantLeaders: [] as string[],
+    primaryLeaderId: null as number | null,
     participants: [] as string[],
+    participantIds: [] as number[],
     // Step 5: Review & Publish
     status: "draft",
     publishDate: "",
     registrationCloseDate: "",
   });
+
+  // Fetch users for leader and participant selection
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setUsersLoading(true);
+      try {
+        const result = await userApi.getAll();
+        if (result.success && result.data) {
+          setAvailableUsers(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   // Calculate duration when startDate or endDate changes
   useEffect(() => {
@@ -142,7 +164,7 @@ export default function NewTourPage() {
       const start = new Date(formData.startDate);
       const end = new Date(formData.endDate);
       const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start day
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
       setFormData((prev) => ({ ...prev, duration: diffDays }));
     }
   }, [formData.startDate, formData.endDate]);
@@ -153,7 +175,7 @@ export default function NewTourPage() {
       const date = new Date(formData.startDate);
       const yy = date.getFullYear().toString().slice(-2);
       const mm = (date.getMonth() + 1).toString().padStart(2, "0");
-      const code = `GTMS-${yy}${mm}-001`; // For now, using 001; in future, fetch from DB
+      const code = `GTMS-${yy}${mm}-001`;
       setFormData((prev) => ({ ...prev, tourCode: code }));
     }
   }, [formData.startDate]);
@@ -175,22 +197,28 @@ export default function NewTourPage() {
     setLoading(true);
 
     try {
-      // Convert price to number, default to 0 if empty
-      const priceValue = formData.participantFee ? parseFloat(formData.participantFee) : 0;
+      // Parse price as number (or undefined if empty)
+      const priceValue = formData.participantFee ? parseFloat(formData.participantFee) : undefined;
 
-      const result = await tourApi.create({
+      // Build the tour data object - only include fields that are set
+      const tourData: Record<string, unknown> = {
         name: formData.name,
-        description: formData.description,
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        destination: formData.destination,
-        price: priceValue,
-        status: (formData.status === "draft" ? "planned" : formData.status) as
-          | "planned"
-          | "ongoing"
-          | "completed"
-          | "cancelled",
-      });
+      };
+
+      // Only add optional fields if they have values
+      if (formData.description) tourData.description = formData.description;
+      if (formData.startDate) tourData.start_date = formData.startDate;
+      if (formData.endDate) tourData.end_date = formData.endDate;
+      if (formData.destination) tourData.destination = formData.destination;
+      if (priceValue !== undefined && !isNaN(priceValue)) tourData.price = priceValue;
+      // Map frontend status values to backend enum values
+      let statusValue = formData.status;
+      if (statusValue === "draft") statusValue = "planned";
+      else if (statusValue === "published") statusValue = "planned";
+      else if (statusValue === "private") statusValue = "planned";
+      tourData.status = statusValue;
+
+      const result = await tourApi.create(tourData);
 
       if (!result.success || !result.data) {
         toast.error(result.error || "Failed to create tour");
@@ -199,7 +227,6 @@ export default function NewTourPage() {
 
       const tourId = result.data.id;
 
-      // Create Itinerary items
       if (formData.itinerary && formData.itinerary.length > 0) {
         for (const day of formData.itinerary) {
           if (day.date) {
@@ -246,7 +273,6 @@ export default function NewTourPage() {
         }
       }
 
-      // Create Accommodation
       if (formData.accommodation && formData.accommodation.name) {
         await accommodationApi.create({
           tour_id: tourId,
@@ -258,7 +284,6 @@ export default function NewTourPage() {
         });
       }
 
-      // Create Budget
       if (formData.totalBudget) {
         await budgetApi.create({
           tour_id: tourId,
@@ -269,12 +294,48 @@ export default function NewTourPage() {
         });
       }
 
+      // Assign leader to tour
+      if (formData.primaryLeaderId) {
+        try {
+          const leaderResult = await tourApi.assignLeader(tourId, formData.primaryLeaderId);
+          if (!leaderResult.success) {
+            console.error("Failed to assign leader:", leaderResult.error);
+          }
+        } catch (leaderError) {
+          console.error("Error assigning leader:", leaderError);
+        }
+      }
+
       toast.success("Tour created successfully with all details!");
       router.push(`/dashboard/tours/${tourId}`);
       router.refresh();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating tour:", error);
-      toast.error("An unexpected error occurred");
+      // Try to extract error message from different error formats
+      let errorMessage = "An unexpected error occurred";
+
+      if (error && typeof error === "object") {
+        // Check for API response error
+        if ("response" in error) {
+          const response = (error as { response?: { data?: unknown } }).response;
+          if (response?.data) {
+            const data = response.data as { error?: string; details?: unknown };
+            if (data.error) {
+              errorMessage = data.error;
+              // Log validation details for debugging
+              if (data.details) {
+                console.error("Validation details:", JSON.stringify(data.details, null, 2));
+              }
+            }
+          }
+        }
+        // Check for error with message property
+        else if ("message" in error) {
+          errorMessage = String((error as { message: unknown }).message);
+        }
+      }
+
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -694,7 +755,6 @@ export default function NewTourPage() {
                           Remove Day
                         </Button>
                       </div>
-                      {/* Morning Activities */}
                       <div className="space-y-2">
                         <Label>Morning</Label>
                         {day.morning.map((activity, actIndex) => (
@@ -785,7 +845,6 @@ export default function NewTourPage() {
                           Add Morning Activity
                         </Button>
                       </div>
-                      {/* Afternoon Activities */}
                       <div className="space-y-2">
                         <Label>Afternoon</Label>
                         {day.afternoon.map((activity, actIndex) => (
@@ -877,7 +936,6 @@ export default function NewTourPage() {
                           Add Afternoon Activity
                         </Button>
                       </div>
-                      {/* Evening Activities */}
                       <div className="space-y-2">
                         <Label>Evening</Label>
                         {day.evening.map((activity, actIndex) => (
@@ -1433,72 +1491,156 @@ export default function NewTourPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Primary Leader Selection - Only show guides */}
                 <div className="space-y-4">
-                  <Label>Select Tour Leaders</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="leader1"
-                        checked={formData.primaryLeader === "John Doe"}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            primaryLeader: e.target.checked ? "John Doe" : "",
-                          })
-                        }
-                      />
-                      <Label htmlFor="leader1">John Doe (Primary Leader)</Label>
+                  <Label>Tour Leader *</Label>
+                  {usersLoading ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading users...
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="leader2"
-                        checked={formData.assistantLeaders.includes("Jane Smith")}
-                        onChange={(e) => {
-                          const newLeaders = e.target.checked
-                            ? [...formData.assistantLeaders, "Jane Smith"]
-                            : formData.assistantLeaders.filter((l) => l !== "Jane Smith");
-                          setFormData({
-                            ...formData,
-                            assistantLeaders: newLeaders,
-                          });
-                        }}
-                      />
-                      <Label htmlFor="leader2">Jane Smith (Assistant)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="leader3"
-                        checked={formData.assistantLeaders.includes("Mike Johnson")}
-                        onChange={(e) => {
-                          const newLeaders = e.target.checked
-                            ? [...formData.assistantLeaders, "Mike Johnson"]
-                            : formData.assistantLeaders.filter((l) => l !== "Mike Johnson");
-                          setFormData({
-                            ...formData,
-                            assistantLeaders: newLeaders,
-                          });
-                        }}
-                      />
-                      <Label htmlFor="leader3">Mike Johnson (Backup)</Label>
-                    </div>
-                  </div>
+                  ) : (
+                    <Select
+                      value={formData.primaryLeaderId?.toString() || ""}
+                      onValueChange={(value: string) => {
+                        const userId = parseInt(value);
+                        const user = availableUsers.find((u) => u.id === userId);
+                        setFormData({
+                          ...formData,
+                          primaryLeaderId: userId,
+                          primaryLeader: user?.name || "",
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select tour leader" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableUsers
+                          .filter((user) => user.role === "guide")
+                          .map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
+
+                {/* Participants Selection - Only show tourists */}
                 <div className="space-y-4">
-                  <Label>Add Participants</Label>
-                  <div className="space-y-2">
-                    <Button type="button" variant="outline">
+                  <Label>Participants</Label>
+                  {usersLoading ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading users...
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Select
+                          onValueChange={(value: string) => {
+                            const userId = parseInt(value);
+                            const user = availableUsers.find((u) => u.id === userId);
+                            if (user && !formData.participantIds.includes(userId)) {
+                              setFormData({
+                                ...formData,
+                                participantIds: [...formData.participantIds, userId],
+                                participants: [...formData.participants, user.name],
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Add participant" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableUsers
+                              .filter(
+                                (user) =>
+                                  user.role === "tourist" &&
+                                  user.id !== formData.primaryLeaderId &&
+                                  !formData.participantIds.includes(user.id)
+                              )
+                              .map((user) => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Selected Participants List */}
+                      {formData.participants.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <Label>Selected Participants ({formData.participants.length})</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {formData.participants.map((name, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm"
+                              >
+                                <span>{name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newParticipantIds = formData.participantIds.filter(
+                                      (_, i) => i !== index
+                                    );
+                                    const newParticipants = formData.participants.filter(
+                                      (_, i) => i !== index
+                                    );
+                                    setFormData({
+                                      ...formData,
+                                      participantIds: newParticipantIds,
+                                      participants: newParticipants,
+                                    });
+                                  }}
+                                  className="ml-1 text-destructive hover:text-destructive/80"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Participant Actions */}
+                <div className="space-y-4">
+                  <Label>Additional Options</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => toast.info("Manual add coming soon")}
+                    >
                       Manual Add
                     </Button>
-                    <Button type="button" variant="outline">
-                      Search existing users
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => toast.info("Search users coming soon")}
+                    >
+                      Search Users
                     </Button>
-                    <Button type="button" variant="outline">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => toast.info("Bulk upload coming soon")}
+                    >
                       Bulk Upload CSV
                     </Button>
-                    <Button type="button" variant="outline">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => toast.info("Open registration coming soon")}
+                    >
                       Open Registration
                     </Button>
                   </div>
@@ -1520,31 +1662,179 @@ export default function NewTourPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+                {/* Tour Overview */}
+                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Tour Summary</h3>
-                    <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Tour Overview</h3>
+                    <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span>Tour: {formData.name || "Not set"}</span>
+                        <span className="font-medium">Name:</span>
+                        <span>{formData.name || "Not set"}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span>Duration: {formData.duration} days</span>
+                        <span className="font-medium">Code:</span>
+                        <span>{formData.tourCode || "Not set"}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span>Budget: ${formData.totalBudget || "0"}</span>
+                        <span className="font-medium">Type:</span>
+                        <span className="capitalize">{formData.tourType || "Not set"}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span>Leaders: {formData.primaryLeader ? 1 : 0} assigned</span>
+                        <span className="font-medium">Destination:</span>
+                        <span>{formData.destination || "Not set"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Duration:</span>
+                        <span>{formData.duration} days</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Dates:</span>
+                        <span>
+                          {formData.startDate && formData.endDate
+                            ? `${formData.startDate} to ${formData.endDate}`
+                            : "Not set"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Participants:</span>
+                        <span>
+                          {formData.minParticipants || "0"} - {formData.maxParticipants || "∞"}
+                        </span>
                       </div>
                     </div>
                   </div>
+
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Publish Options</h3>
+                    <h3 className="text-lg font-semibold">Budget & Fees</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Total Budget:</span>
+                        <span>${formData.totalBudget || "0"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Participant Fee:</span>
+                        <span>${formData.participantFee || "0"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Installment Plans:</span>
+                        <span>{formData.paymentOptions.installmentPlans ? "Yes" : "No"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Leaders & Participants */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Tour Leader</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">Leader:</span>
+                        <span>{formData.primaryLeader || "Not assigned"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">
+                      Participants ({formData.participants.length})
+                    </h3>
+                    {formData.participants.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {formData.participants.map((name, index) => (
+                          <span
+                            key={index}
+                            className="rounded-full bg-primary/10 px-2 py-1 text-xs"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">No participants added yet</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Itinerary Summary */}
+                {formData.itinerary.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">
+                      Itinerary ({formData.itinerary.length} days)
+                    </h3>
                     <div className="space-y-2">
+                      {formData.itinerary.map((day, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">Day {index + 1}:</span>
+                          <span>{day.date || "Date not set"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Accommodation & Transportation */}
+                {(formData.accommodation.name || formData.transportation.mode) && (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {formData.accommodation.name && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Accommodation</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="font-medium">Name:</span>
+                            <span>{formData.accommodation.name}</span>
+                          </div>
+                          {formData.accommodation.address && (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span className="font-medium">Address:</span>
+                              <span>{formData.accommodation.address}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {formData.transportation.mode && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Transportation</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="font-medium">Mode:</span>
+                            <span className="capitalize">{formData.transportation.mode}</span>
+                          </div>
+                          {formData.transportation.carrier && (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span className="font-medium">Carrier:</span>
+                              <span>{formData.transportation.carrier}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Publish Options */}
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="text-lg font-semibold">Publish Options</h3>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
                       <Select
                         value={formData.status}
                         onValueChange={(value: string) =>
@@ -1560,9 +1850,11 @@ export default function NewTourPage() {
                           <SelectItem value="private">Private</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Publish Date</Label>
                       <Input
                         type="datetime-local"
-                        placeholder="Publish date"
                         value={formData.publishDate}
                         onChange={(e) =>
                           setFormData({
@@ -1571,9 +1863,11 @@ export default function NewTourPage() {
                           })
                         }
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Registration Close Date</Label>
                       <Input
                         type="date"
-                        placeholder="Registration close date"
                         value={formData.registrationCloseDate}
                         onChange={(e) =>
                           setFormData({
@@ -1596,11 +1890,23 @@ export default function NewTourPage() {
               Previous
             </Button>
             <div className="flex gap-2">
-              <Button type="button" variant="outline">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={(e) => {
+                  e.preventDefault();
+                }}
+              >
                 Save as Draft
               </Button>
               {currentStep < steps.length - 1 ? (
-                <Button type="button" onClick={nextStep}>
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    nextStep();
+                  }}
+                >
                   Next
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>

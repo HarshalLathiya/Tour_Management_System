@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
 import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
 import { notificationService } from "../services/notification.service";
+import pool from "../db";
 
 /**
  * Tour Controller - Handles tour management business logic
@@ -188,6 +189,10 @@ export class TourController {
 
     // Get old tour data for audit
     const oldTour = await Tour.getTourById(id);
+
+    // Set the deletion context to allow cascade deletion of attendance records
+    // This is needed because the attendance table has a 24-hour deletion restriction
+    await pool.query("SELECT set_tour_deletion_context()");
 
     const deleted = await Tour.deleteTour(id);
 
