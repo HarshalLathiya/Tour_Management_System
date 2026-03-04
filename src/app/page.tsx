@@ -13,9 +13,8 @@ import {
   Award,
 } from "lucide-react";
 
-// ==============================================
 // Component: Header
-// ==============================================
+
 const Header = () => (
   <header className="sticky top-0 z-50 px-4 lg:px-8 h-16 flex items-center border-b border-blue-100/80 bg-white/95 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80">
     <div className="container mx-auto flex items-center justify-between">

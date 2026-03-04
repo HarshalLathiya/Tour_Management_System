@@ -14,13 +14,9 @@ if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
   throw new Error("JWT_SECRET and JWT_REFRESH_SECRET environment variables are required");
 }
 
-/**
- * Auth Controller - Handles authentication business logic
- */
 export class AuthController {
-  /**
-   * Register a new user
-   */
+  //Register a new user
+
   async register(req: Request, res: Response): Promise<void> {
     const {
       email,
