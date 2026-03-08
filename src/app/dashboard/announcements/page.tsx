@@ -16,6 +16,7 @@ import { BackButton } from "@/components/BackButton";
 import { tourApi, announcementApi, api, tokenManager } from "@/lib/api";
 import type { TourData, AnnouncementData } from "@/lib/api";
 import type { Tour } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface AnnouncementWithMeta extends AnnouncementData {
   profiles?: { full_name: string };
@@ -29,6 +30,10 @@ interface UserProfile {
 }
 
 export default function AnnouncementsPage() {
+  const { user } = useAuth();
+  const isTourLeader = user?.role === "guide";
+  const isParticipant = user?.role === "tourist";
+
   const [tours, setTours] = useState<TourData[]>([]);
   const [selectedTourId, setSelectedTourId] = useState<number>(0);
   const [announcements, setAnnouncements] = useState<AnnouncementWithMeta[]>([]);
@@ -46,7 +51,18 @@ export default function AnnouncementsPage() {
       }
 
       try {
-        const result = await tourApi.getAll();
+        let result;
+        if (isTourLeader) {
+          // Tour Leaders only see tours assigned to them
+          result = await tourApi.getMyAssigned();
+        } else if (isParticipant) {
+          // Participants only see tours they have joined
+          result = await tourApi.getUserTours(user.id);
+        } else {
+          // Admins see all tours
+          result = await tourApi.getAll();
+        }
+
         if (result.success && result.data) {
           setTours(result.data);
           if (result.data.length > 0) {
@@ -58,7 +74,7 @@ export default function AnnouncementsPage() {
       }
     };
     fetchInitial();
-  }, []);
+  }, [isTourLeader, isParticipant, user?.id]);
 
   useEffect(() => {
     if (!selectedTourId) return;
@@ -144,11 +160,21 @@ export default function AnnouncementsPage() {
           onChange={(e) => setSelectedTourId(parseInt(e.target.value))}
           className="input"
         >
-          {tours.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          {tours.length === 0 ? (
+            <option value={0}>
+              {isTourLeader
+                ? "No tours assigned to you"
+                : isParticipant
+                  ? "No tours you have joined"
+                  : "No tours available"}
             </option>
-          ))}
+          ) : (
+            tours.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))
+          )}
         </select>
       </div>
 

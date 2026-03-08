@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { tourApi, incidentApi, type TourData } from "@/lib/api";
 import { PageHeader, LoadingCard, ErrorMessage } from "@/components/features";
+import { useAuth } from "@/context/AuthContext";
 
 interface SafetyIncident {
   id: number;
@@ -44,6 +45,10 @@ interface SafetyParticipant {
 }
 
 export default function SafetyPage() {
+  const { user } = useAuth();
+  const isTourLeader = user?.role === "guide";
+  const isParticipant = user?.role === "tourist";
+
   const [tours, setTours] = useState<TourData[]>([]);
   const [selectedTourId, setSelectedTourId] = useState<number | null>(null);
   const [incidents, setIncidents] = useState<SafetyIncident[]>([]);
@@ -63,7 +68,18 @@ export default function SafetyPage() {
 
   useEffect(() => {
     const fetchTours = async () => {
-      const result = await tourApi.getAll();
+      let result;
+      if (isTourLeader) {
+        // Tour Leaders only see tours assigned to them
+        result = await tourApi.getMyAssigned();
+      } else if (isParticipant) {
+        // Participants only see tours they have joined
+        result = await tourApi.getUserTours(user.id);
+      } else {
+        // Admins see all tours
+        result = await tourApi.getAll();
+      }
+
       if (result.success && result.data) {
         setTours(result.data);
         if (result.data.length > 0) {
@@ -74,7 +90,7 @@ export default function SafetyPage() {
       }
     };
     fetchTours();
-  }, []);
+  }, [isTourLeader, isParticipant, user?.id]);
 
   useEffect(() => {
     if (!selectedTourId) return;
@@ -156,11 +172,21 @@ export default function SafetyPage() {
             onChange={(e) => setSelectedTourId(parseInt(e.target.value))}
             className="input px-3 py-2 text-sm shadow-sm"
           >
-            {tours.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            {tours.length === 0 ? (
+              <option value="">
+                {isTourLeader
+                  ? "No tours assigned to you"
+                  : isParticipant
+                    ? "No tours you have joined"
+                    : "No tours available"}
               </option>
-            ))}
+            ) : (
+              tours.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))
+            )}
           </select>
           <button
             onClick={triggerSOS}

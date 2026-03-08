@@ -17,6 +17,7 @@ import {
   Loader2,
   MapPin,
   Calendar,
+  Ban,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { useSearchParams } from "next/navigation";
@@ -25,6 +26,7 @@ import { tourApi, attendanceApi, api, itineraryApi } from "@/lib/api";
 import type { TourData, ItineraryData } from "@/lib/api";
 import type { Tour, ItineraryDay } from "@/types";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 interface Participant {
   id: number;
@@ -50,6 +52,7 @@ interface ItineraryLocation {
 function AttendanceContent() {
   const searchParams = useSearchParams();
   const initialTourId = searchParams.get("tourId");
+  const { user } = useAuth();
 
   const [tours, setTours] = useState<TourData[]>([]);
   const [selectedTourId, setSelectedTourId] = useState<number>(
@@ -67,11 +70,26 @@ function AttendanceContent() {
   const [isAutoChecking, setIsAutoChecking] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Fetch tours on mount
+  // Check if user is a Tour Leader (guide role) or Participant (tourist)
+  const isTourLeader = user?.role === "guide";
+  const isParticipant = user?.role === "tourist";
+
+  // Fetch tours on mount - based on user role
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const result = await tourApi.getAll();
+        let result;
+        if (isTourLeader) {
+          // Tour Leaders only see tours assigned to them
+          result = await tourApi.getMyAssigned();
+        } else if (isParticipant) {
+          // Participants only see tours they have joined
+          result = await tourApi.getUserTours(user.id);
+        } else {
+          // Admins see all tours
+          result = await tourApi.getAll();
+        }
+
         if (result.success && result.data) {
           setTours(result.data);
           if (!selectedTourId && result.data.length > 0) {
@@ -83,7 +101,7 @@ function AttendanceContent() {
       }
     };
     fetchInitialData();
-  }, []);
+  }, [isTourLeader, isParticipant, user?.id]);
 
   // Fetch itineraries when tour is selected
   useEffect(() => {
@@ -332,11 +350,21 @@ function AttendanceContent() {
             }}
             className="input"
           >
-            {tours.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            {tours.length === 0 ? (
+              <option value={0}>
+                {isTourLeader
+                  ? "No tours assigned to you"
+                  : isParticipant
+                    ? "No tours you have joined"
+                    : "No tours available"}
               </option>
-            ))}
+            ) : (
+              tours.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))
+            )}
           </select>
 
           {/* Date Picker */}
