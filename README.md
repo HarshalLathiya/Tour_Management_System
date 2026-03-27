@@ -413,4 +413,4 @@ MIT License
 
 ## 👨‍💻 Author
 
-Developed By Lathiya Harshal.
+Developed By "Lathiya Harshal"
