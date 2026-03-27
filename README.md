@@ -377,9 +377,9 @@ Emerald (RGB: 5,150,105)
 
 ### Semantic Colors
 
-* Success → Green
-* Warning → Amber
-* Destructive → Red
+* Success → Green.
+* Warning → Amber.
+* Destructive → Red.
 
 ---
 
