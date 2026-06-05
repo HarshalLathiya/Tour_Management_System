@@ -26,7 +26,7 @@ async function seed() {
 
     const usersResult = await client.query(
       `INSERT INTO users (email, password_hash, name, role) VALUES
-        ('admin@toursync.com',   $1, 'Admin One',    'admin'),
+        ('admin1@toursync.com',   $1, 'Admin One',    'admin'),
         ('admin2@toursync.com',  $1, 'Manager Two',    'admin'),
         ('guide1@toursync.com',  $1, 'Paras Thummar',   'guide'),
         ('guide2@toursync.com',  $1, 'Vipul Baldha',   'guide'),

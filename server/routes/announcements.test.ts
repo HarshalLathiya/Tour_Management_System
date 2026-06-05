@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
 import app from "../index";
 import pool from "../db";
+import bcrypt from "bcryptjs";
 
 describe("Announcements API Routes", () => {
   let authToken: string;
@@ -11,17 +12,29 @@ describe("Announcements API Routes", () => {
   beforeAll(async () => {
     // Create test user
     await pool.query("DELETE FROM users WHERE email = $1", ["announce-test@example.com"]);
+
+    const password = "Password123!";
+    const passwordHash = await bcrypt.hash(password, 10);
+
     const userResult = await pool.query(
       "INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
-      ["announce-test@example.com", "$2a$10$test", "Announce Test", "guide"]
+      ["announce-test@example.com", passwordHash, "Announce Test", "guide"]
     );
     const userId = userResult.rows[0].id;
 
-    // Login to get token
+    // Ensure bcrypt password matches the inserted hash
+    // Current test inserts password_hash directly as "$2a$10$test".
+    // Login uses "Password123!"; align by logging in with "test".
     const loginRes = await request(app).post("/api/auth/login").send({
       email: "announce-test@example.com",
-      password: "Password123!",
+      password,
     });
+
+    // Validate login response shape so authToken isn't undefined
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.body).toHaveProperty("token");
+    expect(typeof loginRes.body.token).toBe("string");
+
     authToken = loginRes.body.token;
 
     // Create test tour

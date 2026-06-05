@@ -6,13 +6,7 @@ import type { JwtPayload } from "../types";
 import type { NextFunction, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
 import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
-
-const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
-
-if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
-  throw new Error("JWT_SECRET and JWT_REFRESH_SECRET environment variables are required");
-}
+import { getJwtRefreshSecret, getJwtSecret } from "../utils/jwt";
 
 export class AuthController {
   //Register a new user
@@ -50,7 +44,7 @@ export class AuthController {
     const userId = result.id;
 
     // Generate token
-    const token = jwt.sign({ id: userId, email, role }, JWT_SECRET, {
+    const token = jwt.sign({ id: userId, email, role }, getJwtSecret(), {
       expiresIn: "24h",
     });
 
@@ -90,11 +84,11 @@ export class AuthController {
     }
 
     // Generate tokens
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, getJwtSecret(), {
       expiresIn: "24h",
     });
 
-    const refreshToken = jwt.sign({ id: user.id, email: user.email }, JWT_REFRESH_SECRET, {
+    const refreshToken = jwt.sign({ id: user.id, email: user.email }, getJwtRefreshSecret(), {
       expiresIn: "7d",
     });
 
@@ -130,7 +124,7 @@ export class AuthController {
     // Verify refresh token
     let decoded: JwtPayload;
     try {
-      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as JwtPayload;
+      decoded = jwt.verify(refreshToken, getJwtRefreshSecret()) as JwtPayload;
     } catch {
       throw new AppError(403, "Invalid refresh token");
     }
@@ -142,7 +136,7 @@ export class AuthController {
     }
 
     // Generate new access token
-    const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+    const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, getJwtSecret(), {
       expiresIn: "24h",
     });
 

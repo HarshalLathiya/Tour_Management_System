@@ -21,14 +21,16 @@ const sidebarLinks = [
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "guide", "tourist"],
+    roles: ["admin", "leader", "participant", "super_admin"],
   },
+
   {
     name: "My Tours",
     href: "/dashboard/tours",
     icon: Map,
-    roles: ["admin", "guide", "tourist"],
+    roles: ["admin", "leader", "participant", "super_admin"],
   },
+
   {
     name: "User Management",
     href: "/dashboard/users",

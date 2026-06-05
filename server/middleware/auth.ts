@@ -1,14 +1,7 @@
 import jwt from "jsonwebtoken";
 import type { Response, NextFunction } from "express";
 import type { AuthenticatedRequest, JwtPayload } from "../types";
-
-const getJwtSecret = (): string => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET environment variable is required");
-  }
-  return secret;
-};
+import { getJwtSecret } from "../utils/jwt";
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers["authorization"];
@@ -19,6 +12,16 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   }
 
   try {
+    // Temporary debug for vitest failures (remove after stabilization)
+    if (process.env.VITEST !== undefined) {
+      // eslint-disable-next-line no-console
+      console.log("[auth-debug] VITEST:", process.env.VITEST);
+      // eslint-disable-next-line no-console
+      console.log("[auth-debug] JWT_SECRET:", getJwtSecret());
+      // eslint-disable-next-line no-console
+      console.log("[auth-debug] token prefix:", String(token).slice(0, 10));
+    }
+
     const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
     req.user = decoded;
     next();

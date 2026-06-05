@@ -416,10 +416,10 @@ export class TourController {
       throw new AppError(400, "Cannot join a cancelled tour");
     }
 
-    // Check if already a participant (approved)
-    const isApprovedParticipant = await Tour.isParticipant(tourId, userId!);
-    if (isApprovedParticipant) {
-      throw new AppError(400, "You are already an approved participant of this tour");
+    // Check if already a participant
+    const isParticipant = await Tour.isParticipant(tourId, userId!);
+    if (isParticipant) {
+      throw new AppError(400, "Already participating in this tour");
     }
 
     // Check for date conflicts with other approved tours
@@ -694,7 +694,7 @@ export class TourController {
 
     res.json({
       success: true,
-      data: { isParticipant },
+      data: { isParticipating: isParticipant },
     });
   }
 

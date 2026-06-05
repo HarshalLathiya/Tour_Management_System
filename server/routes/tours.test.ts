@@ -22,6 +22,10 @@ import jwt from "jsonwebtoken";
 describe("Tours API Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Safe default: prevents undefined return values from causing crashes
+    // when the controller triggers more DB queries than the tests explicitly mock.
+    mockQuery.mockResolvedValue({ rows: [] });
   });
 
   afterAll(() => {
@@ -55,17 +59,35 @@ describe("Tours API Routes", () => {
       // Mock: JWT verify returns tourist user
       (jwt.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockTouristUser);
 
-      // Mock: Tour exists
+      // Mock: Tour exists (TourController checks tour.status and optionally checksDateConflict)
       mockQuery.mockResolvedValueOnce({
-        rows: [{ id: 1, name: "Test Tour", status: "planned" }],
+        rows: [
+          {
+            id: 1,
+            name: "Test Tour",
+            status: "planned",
+            start_date: null,
+            end_date: null,
+          },
+        ],
       });
 
-      // Mock: User not already participating
+      // Mock: User not already participating (TourModel.isParticipant -> SELECT ...; returns rows length)
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      // Mock: Insert participation
+      // Mock: User requests (no existing request)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      // Mock: Create join request (TourModel.requestJoinTour -> RETURNING ... status)
       mockQuery.mockResolvedValueOnce({
-        rows: [{ id: 1, tour_id: 1, user_id: 3 }],
+        rows: [
+          {
+            id: 1,
+            tour_id: 1,
+            user_id: 3,
+            status: "pending",
+          },
+        ],
       });
 
       const response = await request(app)
@@ -74,7 +96,10 @@ describe("Tours API Routes", () => {
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty("success", true);
-      expect(response.body).toHaveProperty("message", "Successfully joined the tour");
+      expect(response.body).toHaveProperty(
+        "message",
+        "Join request submitted successfully. Waiting for admin approval."
+      );
     });
 
     it("should return 404 if tour not found", async () => {
@@ -127,8 +152,8 @@ describe("Tours API Routes", () => {
         rows: [{ id: 1, tour_id: 1, user_id: 3 }],
       });
 
-      // Mock: Delete participation
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      // Mock: Delete participation (TourModel.leaveTour expects rowCount)
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }], rowCount: 1 });
 
       const response = await request(app)
         .delete("/api/tours/1/leave")
@@ -150,8 +175,8 @@ describe("Tours API Routes", () => {
         .delete("/api/tours/1/leave")
         .set("Authorization", "Bearer valid_token");
 
-      expect(response.status).toBe(404);
-      expect(response.body).toHaveProperty("error", "Not participating in this tour");
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error", "You are not a participant of this tour");
     });
   });
 
