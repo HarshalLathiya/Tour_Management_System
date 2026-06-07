@@ -6,15 +6,15 @@ A full-stack tour management platform for educational institutions and organizat
 
 ## Tech Stack
 
-| Layer         | Technology                                                           |
-| ------------- | -------------------------------------------------------------------- |
-| Frontend      | Next.js 14.2.4 (App Router), TypeScript, Tailwind CSS, Framer Motion |
-| Backend       | Express.js (TypeScript), running on port 3001                        |
-| Database      | PostgreSQL (latest) via Docker                                       |
-| Auth          | Custom JWT (access + refresh tokens)                                 |
-| UI Components | Radix UI, Lucide React, Sonner                                       |
-| Testing       | Vitest, React Testing Library                                        |
-| Linting       | ESLint 9 (flat config), Prettier, Husky + lint-staged                |
+| Layer         | Technology                                                              |
+| ------------- | ----------------------------------------------------------------------- |
+| Frontend      | Next.js 14.2.4 (App Router), TypeScript, Tailwind CSS                   |
+| Backend       | Express.js (TypeScript), running on port 3001                           |
+| Charts        | Recharts (Analytics)                                                    |
+| Auth          | Custom JWT (access + refresh tokens)                                    |
+| UI Components | Tailwind + custom UI components (Card/Button/Select/etc.), Lucide React |
+| Testing       | Vitest, React Testing Library                                           |
+| Linting       | ESLint 9 (flat config), Prettier, Husky + lint-staged                   |
 
 ---
 
@@ -172,6 +172,8 @@ npm run server:start
 ```
 
 The Express API starts on `http://localhost:3001`. Available routes:
+
+> Note: Super Admin Analytics is available at `GET /api/super-admin/analytics`.
 
 | Route                        | Description                                             |
 | ---------------------------- | ------------------------------------------------------- |

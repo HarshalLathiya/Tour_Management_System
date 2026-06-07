@@ -45,7 +45,7 @@ export default function BudgetPage() {
   });
 
   // Check if user can manage expenses (admin or guide only)
-  const canManageExpenses = user?.role === "admin" || user?.role === "guide";
+  const canManageExpenses = user?.role === "admin" || user?.role === "leader";
 
   useEffect(() => {
     const fetchTours = async () => {

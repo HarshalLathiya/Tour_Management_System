@@ -10,10 +10,16 @@ const getRoleLabel = (role?: string) => {
   switch (role) {
     case "admin":
       return "Administrator";
-    case "guide":
+
+    case "leader":
       return "Tour Leader";
-    case "tourist":
+
+    case "participant":
       return "Participant";
+
+    case "super_admin":
+      return "Super Admin";
+
     default:
       return "Dashboard";
   }

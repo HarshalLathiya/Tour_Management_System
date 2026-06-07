@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   UserPlus,
@@ -16,38 +16,63 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { userApi, tourApi, type UserData, type TourData } from "@/lib/api";
 import { toast } from "sonner";
 
+import { superAdminApi, userApi, tourApi, type UserData, type TourData } from "@/lib/api";
+
+type PlatformRole = UserData["role"];
+
 interface User extends UserData {
-  isEditing?: boolean;
   tours?: TourData[];
   showTours?: boolean;
 }
+
+const ROLE_FILTERS: Array<"all" | PlatformRole> = [
+  "all",
+  "super_admin",
+  "admin",
+  "leader",
+  "participant",
+];
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState<(typeof ROLE_FILTERS)[number]>("all");
+
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+
   const [loadingTours, setLoadingTours] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
+
+  const [formData, setFormData] = useState<{
+    email: string;
+    password: string;
+    name: string;
+    role: PlatformRole;
+  }>({
     email: "",
     password: "",
     name: "",
-    role: "tourist",
+    role: "participant",
   });
 
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await userApi.getAll();
+      // governance read
+      const result = await superAdminApi.getUsers({ limit: 200, offset: 0 });
+      // Debug aid: surface real server error messages if backend returns them
+      // (toast + page error already exists; this just improves console visibility)
+      if (!result.success) {
+        console.error("[UsersPage] getUsers failed:", result.error);
+      }
       if (result.success && result.data) {
-        setUsers(result.data);
+        setUsers(result.data as User[]);
       } else {
         setError(result.error || "Failed to load users");
       }
@@ -61,9 +86,12 @@ export default function UsersPage() {
   const fetchUserTours = async (userId: number) => {
     setLoadingTours(userId);
     try {
+      // tour membership mapping (phase-1)
       const result = await tourApi.getUserTours(userId);
       if (result.success && result.data) {
-        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, tours: result.data } : u)));
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, tours: result.data as TourData[] } : u))
+        );
       }
     } catch {
       console.error("Failed to fetch user tours");
@@ -78,9 +106,7 @@ export default function UsersPage() {
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, showTours: false } : u)));
     } else {
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, showTours: true } : u)));
-      if (!user?.tours) {
-        fetchUserTours(userId);
-      }
+      if (!user?.tours) fetchUserTours(userId);
     }
   };
 
@@ -92,18 +118,21 @@ export default function UsersPage() {
     const matchesSearch =
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
+      // user creation (phase-1 legacy endpoint)
       const result = await userApi.create(formData);
       if (result.success && result.data) {
-        setUsers([result.data, ...users]);
+        setUsers([result.data as User, ...users]);
         setIsAddingUser(false);
-        setFormData({ email: "", password: "", name: "", role: "tourist" });
+        setFormData({ email: "", password: "", name: "", role: "participant" });
         toast.success("User created successfully");
       } else {
         toast.error(result.error || "Failed to create user");
@@ -113,29 +142,27 @@ export default function UsersPage() {
     }
   };
 
-  const handleUpdateUser = async (e: React.FormEvent) => {
+  const handleUpdateUserRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
 
     try {
-      const result = await userApi.update(editingUser.id, {
-        name: editingUser.name,
-        email: editingUser.email,
-        role: editingUser.role,
-      });
-      if (result.success && result.data) {
-        setUsers(users.map((u) => (u.id === editingUser.id ? result.data! : u)));
+      const result = await superAdminApi.updateUserRole(editingUser.id, editingUser.role);
+      if (result.success) {
+        // refresh list after governance action
+        await fetchUsers();
         setEditingUser(null);
-        toast.success("User updated successfully");
+        toast.success("User role updated successfully");
       } else {
-        toast.error(result.error || "Failed to update user");
+        toast.error(result.error || "Failed to update user role");
       }
     } catch {
-      toast.error("Failed to update user");
+      toast.error("Failed to update user role");
     }
   };
 
   const handleDeleteUser = async (id: number) => {
+    // deletion is still using legacy endpoint (phase-1). Spec allows either keep or add.
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
@@ -151,23 +178,31 @@ export default function UsersPage() {
     }
   };
 
-  const getRoleIcon = (role: string) => {
+  const getRoleIcon = (role: PlatformRole) => {
     switch (role) {
       case "admin":
         return <Shield className="h-4 w-4 text-purple-600" />;
-      case "guide":
+      case "leader":
         return <UserCog className="h-4 w-4 text-blue-600" />;
+      case "participant":
+        return <Users className="h-4 w-4 text-green-600" />;
+      case "super_admin":
+        return <Shield className="h-4 w-4 text-indigo-700" />;
       default:
         return <Users className="h-4 w-4 text-green-600" />;
     }
   };
 
-  const getRoleBadgeClass = (role: string) => {
+  const getRoleBadgeClass = (role: PlatformRole) => {
     switch (role) {
       case "admin":
         return "bg-purple-100 text-purple-700";
-      case "guide":
+      case "leader":
         return "bg-blue-100 text-blue-700";
+      case "participant":
+        return "bg-green-100 text-green-700";
+      case "super_admin":
+        return "bg-indigo-100 text-indigo-700";
       default:
         return "bg-green-100 text-green-700";
     }
@@ -180,6 +215,7 @@ export default function UsersPage() {
           <h2 className="text-2xl font-bold text-slate-800">User Management</h2>
           <p className="text-slate-500">Manage users, roles, and permissions.</p>
         </div>
+
         <button
           onClick={() => setIsAddingUser(true)}
           className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-all"
@@ -201,8 +237,9 @@ export default function UsersPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
           <div className="flex gap-2">
-            {["all", "admin", "guide", "tourist"].map((role) => (
+            {ROLE_FILTERS.map((role) => (
               <button
                 key={role}
                 onClick={() => setRoleFilter(role)}
@@ -245,6 +282,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-slate-100">
                 {filteredUsers.length === 0 ? (
                   <tr>
@@ -270,6 +308,7 @@ export default function UsersPage() {
                             </div>
                           </div>
                         </td>
+
                         <td className="px-6 py-4">
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold capitalize ${getRoleBadgeClass(
@@ -280,6 +319,7 @@ export default function UsersPage() {
                             <span className="ml-1">{user.role}</span>
                           </span>
                         </td>
+
                         <td className="px-6 py-4">
                           <button
                             onClick={() => toggleUserTours(user.id)}
@@ -300,11 +340,13 @@ export default function UsersPage() {
                             </span>
                           </button>
                         </td>
+
                         <td className="px-6 py-4">
                           <p className="text-sm text-slate-600">
                             {new Date(user.created_at).toLocaleDateString()}
                           </p>
                         </td>
+
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
                             <button
@@ -324,8 +366,9 @@ export default function UsersPage() {
                           </div>
                         </td>
                       </tr>
+
                       {user.showTours && user.tours && (
-                        <tr key={`${user.id}-tours`}>
+                        <tr>
                           <td colSpan={5} className="px-6 py-4 bg-slate-50">
                             <div className="pl-4 border-l-2 border-slate-300">
                               <p className="text-xs font-bold text-slate-500 uppercase mb-2">
@@ -346,7 +389,9 @@ export default function UsersPage() {
                                         </p>
                                         <p className="text-xs text-slate-500">
                                           {tour.start_date && tour.end_date
-                                            ? `${new Date(tour.start_date).toLocaleDateString()} - ${new Date(tour.end_date).toLocaleDateString()}`
+                                            ? `${new Date(tour.start_date).toLocaleDateString()} - ${new Date(
+                                                tour.end_date
+                                              ).toLocaleDateString()}`
                                             : "Dates not set"}
                                         </p>
                                       </div>
@@ -395,6 +440,7 @@ export default function UsersPage() {
                 <X className="h-5 w-5 text-slate-500" />
               </button>
             </div>
+
             <form onSubmit={handleCreateUser} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Name</label>
@@ -403,10 +449,11 @@ export default function UsersPage() {
                   type="text"
                   className="input"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
                   placeholder="Full name"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
                 <input
@@ -414,10 +461,11 @@ export default function UsersPage() {
                   type="email"
                   className="input"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                   placeholder="email@example.com"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
                 <input
@@ -425,22 +473,27 @@ export default function UsersPage() {
                   type="password"
                   className="input"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
                   placeholder="Password"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Role</label>
                 <select
                   className="input"
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, role: e.target.value as PlatformRole }))
+                  }
                 >
-                  <option value="tourist">Tourist</option>
-                  <option value="guide">Guide</option>
+                  <option value="participant">Participant</option>
+                  <option value="leader">Leader</option>
                   <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
                 </select>
               </div>
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
@@ -460,7 +513,7 @@ export default function UsersPage() {
             <div className="p-6 border-b bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-bold text-slate-800">Edit User</h3>
-                <p className="text-sm text-slate-500">Update user information.</p>
+                <p className="text-sm text-slate-500">Update governance properties.</p>
               </div>
               <button
                 onClick={() => setEditingUser(null)}
@@ -469,7 +522,8 @@ export default function UsersPage() {
                 <X className="h-5 w-5 text-slate-500" />
               </button>
             </div>
-            <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+
+            <form onSubmit={handleUpdateUserRole} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Name</label>
                 <input
@@ -481,6 +535,7 @@ export default function UsersPage() {
                   placeholder="Full name"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
                 <input
@@ -492,6 +547,7 @@ export default function UsersPage() {
                   placeholder="email@example.com"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Role</label>
                 <select
@@ -500,15 +556,17 @@ export default function UsersPage() {
                   onChange={(e) =>
                     setEditingUser({
                       ...editingUser,
-                      role: e.target.value as "admin" | "guide" | "tourist",
+                      role: e.target.value as PlatformRole,
                     })
                   }
                 >
-                  <option value="tourist">Tourist</option>
-                  <option value="guide">Guide</option>
+                  <option value="participant">Participant</option>
+                  <option value="leader">Leader</option>
                   <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
                 </select>
               </div>
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"

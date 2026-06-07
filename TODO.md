@@ -1,65 +1,50 @@
-# TourSync - Super Admin Module (Phase 1)
+# TODO - Analytics Redesign (TourSync Super Admin)
 
-## Step 1 — Repo understanding (done)
+## Plan (to be approved)
 
-- Confirmed current role checks are string-based (`authorizeRoles`) and sidebar uses role strings.
-- Confirmed incidents/tours/audit logs endpoints exist and already log actions to `audit_logs`.
+1. Repo reconnaissance (completed/needed)
+   - Identify existing Analytics route/page and API shape.
+   - Identify how Super Admin sidebar routes map to pages.
 
-- Reviewed auth middleware, users/tour_users role modeling inconsistencies, audit log utilities and routes.
+2. UX/UI design & component architecture
+   - Create new `Analytics` page for Super Admin with:
+     - Header + Date Range filter + Export PDF/Excel
+     - KPI cards (users/tours/revenue/attendance)
+     - Recharts charts (line/pie/bar)
+     - Tables (Top Tours, Top Leaders, Recent Reports)
+     - Loading/empty/error states
 
-## Step 2 — Role normalization plan (to implement)
+3. Feature separation
+   - Keep Dashboard operational-only.
+   - Ensure Analytics is accessible from Sidebar with its own URL.
 
-- Standardize roles to: `super_admin`, `admin`, `leader`, `participant`.
-- Update DB constraints for `users.role` and `tour_users.role`.
+4. Data model + API requirements
+   - Extend backend analytics endpoint (`/api/super-admin/analytics`) to return:
+     - User analytics (growth, registrations monthly, role distribution, active vs inactive)
+     - Tour analytics (created per month, status distribution, most popular tours, occupancy)
+     - Attendance analytics (attendance trends, present vs absent, attendance by tour)
+     - SOS & Safety analytics (incidents per month, severity breakdown, avg resolution time, incident types)
+     - Financial analytics (revenue trends, budget utilization, expense breakdown, revenue vs expenses, top tours)
+     - System analytics (DAU/WAU, login activity, platform usage)
+   - Add optional `start_date/end_date` query params for date range filter.
 
-## Step 3 — Add Super Admin authorization
+5. Frontend implementation
+   - Create typed API client method for analytics.
+   - Build reusable chart/table components under `src/components/analytics/*`.
+   - Implement data normalization helpers (date buckets, percentages).
 
-- Add `super_admin` support in middleware authorization.
-- Implement `authorizeSuperAdmin` middleware.
+6. Exports
+   - Implement client-side export stubs (or server endpoints if preferred) for PDF/Excel.
 
-## Step 4 — REST API endpoints (`/api/super-admin/*`)
+7. Testing & verification
+   - Run Next.js build/lint.
+   - Validate API responses and chart rendering.
 
-- Create `server/routes/superAdmin.ts` and `server/controllers/superAdmin.controller.ts`.
-- Endpoints:
-  - GET `/overview`
-  - GET `/users`
-  - PUT `/users/:id/status`
-  - PUT `/users/:id/role`
-  - GET `/tours`
-  - GET `/incidents`
-  - GET `/audit-logs`
-  - GET `/analytics`
+## Completion tracking
 
-## Step 5 — Database support for user suspend/activate
-
-- Add `users.status` (active/suspended) or equivalent minimal field required by UI.
-- Update user controller/model accordingly.
-
-## Step 6 — React Next.js UI (`/dashboard/super-admin/*`)
-
-- Add route group: `src/app/dashboard/super-admin/`.
-- Add modules/widgets as requested:
-  - Platform Overview
-  - User Monitoring (search/filter/suspend+role)
-  - Tour Monitoring
-  - SOS Command Center
-  - Audit Logs viewer
-  - Analytics widgets
-
-## Step 7 — Navigation integration
-
-- Update `src/components/Sidebar.tsx` and any auth-based layout logic so Super Admin sees the new menu.
-
-## Step 8 — API client + types
-
-- Add typed API calls in `src/lib/api.ts`.
-- Add/adjust shared types in `src/types`.
-
-## Step 9 — Audit logging enforcement
-
-- Ensure every Super Admin write action generates audit logs.
-
-## Step 10 — Testing & validation
-
-- Run server tests/lint/build.
-- Smoke-test key endpoints and dashboard rendering.
+- [ ] Step 1: Confirm existing Analytics page/route + API limitations
+- [ ] Step 2: Approve UX/component plan
+- [ ] Step 3: Backend API expansion (analytics payload)
+- [ ] Step 4: Frontend Analytics page + components
+- [ ] Step 5: Sidebar route separation (Dashboard vs Analytics)
+- [ ] Step 6: Exports + polish

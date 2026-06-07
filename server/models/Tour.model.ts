@@ -277,9 +277,12 @@ export class TourModel extends BaseModel {
     userId: number
   ): Promise<{ id: number; tour_id: number; user_id: number } | null> {
     const result = await this.query<{ id: number; tour_id: number; user_id: number }>(
-      `INSERT INTO tour_users (tour_id, user_id, role, joined_at)
-       VALUES ($1, $2, 'participant', CURRENT_TIMESTAMP)
-       ON CONFLICT (tour_id, user_id) DO NOTHING
+      `INSERT INTO tour_users (tour_id, user_id, role, joined_at, status)
+       VALUES ($1, $2, 'participant', CURRENT_TIMESTAMP, 'pending')
+       ON CONFLICT (tour_id, user_id) DO UPDATE
+       SET role = EXCLUDED.role,
+           joined_at = CURRENT_TIMESTAMP,
+           status = 'pending'
        RETURNING id, tour_id, user_id`,
       [tourId, userId]
     );
@@ -340,7 +343,7 @@ export class TourModel extends BaseModel {
       FROM tours t
       LEFT JOIN users u ON t.assigned_leader_id = u.id
       INNER JOIN tour_users tu ON t.id = tu.tour_id
-      WHERE tu.user_id = $1 AND tu.status = 'approved'
+      WHERE tu.user_id = $1 AND tu.role = 'participant' AND tu.status = 'approved'
       ORDER BY t.start_date DESC
     `;
     const result = await this.query<TourRow>(query, [userId]);
@@ -400,7 +403,6 @@ export class TourModel extends BaseModel {
        ON CONFLICT (tour_id, user_id) DO UPDATE SET
          status = EXCLUDED.status,
          requested_at = CURRENT_TIMESTAMP
-       WHERE tour_users.status = 'rejected'
        RETURNING id, tour_id, user_id, status`,
       [tourId, userId]
     );

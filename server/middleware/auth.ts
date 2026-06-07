@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import type { Response, NextFunction } from "express";
-import type { AuthenticatedRequest, JwtPayload } from "../types";
+import type { AuthenticatedRequest, JwtPayload, UserRole } from "../types";
 import { getJwtSecret } from "../utils/jwt";
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -42,4 +42,20 @@ export const authorizeRoles = (...roles: string[]) => {
 
     next();
   };
+};
+
+export const authorizeSuperAdmin = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  if (req.user.role !== "super_admin") {
+    return res.status(403).json({ error: "Super Admin access required" });
+  }
+
+  return next();
 };

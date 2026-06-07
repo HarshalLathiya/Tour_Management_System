@@ -13,24 +13,60 @@ import {
   LogOut,
   MapPin,
   UserCog,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const sidebarLinks = [
+  // =============================
+  // Super Admin navigation
+  // =============================
   {
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "leader", "participant", "super_admin"],
+    roles: ["super_admin"],
+  },
+  {
+    name: "Users Management",
+    href: "/dashboard/users",
+    icon: UserCog,
+    roles: ["super_admin"],
+  },
+  {
+    name: "Tours",
+    href: "/dashboard/tours",
+    icon: Map,
+    roles: ["super_admin"],
+  },
+  {
+    name: "SOS Center",
+    href: "/dashboard/safety",
+    icon: ShieldAlert,
+    roles: ["super_admin"],
+  },
+  {
+    name: "Audit Logs",
+    href: "/dashboard/audit-logs",
+    icon: Settings,
+    roles: ["super_admin"],
+  },
+  {
+    name: "Analytics",
+    href: "/dashboard",
+    icon: TrendingUp,
+    roles: ["super_admin"],
   },
 
+  // =============================
+  // Existing role-based navigation
+  // =============================
   {
     name: "My Tours",
     href: "/dashboard/tours",
     icon: Map,
-    roles: ["admin", "leader", "participant", "super_admin"],
+    roles: ["admin", "leader", "participant"],
   },
-
   {
     name: "User Management",
     href: "/dashboard/users",
@@ -41,13 +77,13 @@ const sidebarLinks = [
     name: "Attendance",
     href: "/dashboard/attendance",
     icon: Users,
-    roles: ["admin", "guide"],
+    roles: ["admin", "leader"],
   },
   {
     name: "Safety & SOS",
     href: "/dashboard/safety",
     icon: ShieldAlert,
-    roles: ["admin", "guide", "tourist"],
+    roles: ["admin", "leader", "participant"],
   },
   {
     name: "Budget",
@@ -59,7 +95,7 @@ const sidebarLinks = [
     name: "Announcements",
     href: "/dashboard/announcements",
     icon: Bell,
-    roles: ["admin", "guide", "tourist"],
+    roles: ["admin", "leader", "participant"],
   },
   {
     name: "Audit Logs",

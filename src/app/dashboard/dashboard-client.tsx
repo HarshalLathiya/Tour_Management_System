@@ -61,7 +61,7 @@ const statusIcons: Record<string, React.ReactNode> = {
 };
 
 export function DashboardClient({ tours, userRole }: DashboardClientProps) {
-  const isAdmin = userRole === "admin";
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const [searchQuery, setSearchQuery] = useState("");
 
   const stats = isAdmin

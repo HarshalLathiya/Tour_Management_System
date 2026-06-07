@@ -607,7 +607,7 @@ export default function TourDetailsPage() {
                 </div>
                 {tour.leader_name && (
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Assigned Leader</dt>
+                    <dt className="text-slate-500">Created by</dt>
                     <dd className="font-medium">{tour.leader_name}</dd>
                   </div>
                 )}

@@ -40,8 +40,9 @@ export interface UserData {
   id: number;
   email: string;
   name: string;
-  role: "admin" | "guide" | "tourist";
+  role: "super_admin" | "admin" | "leader" | "participant";
   created_at: string;
+  is_active?: boolean;
 }
 
 export interface IncidentData {
@@ -500,6 +501,88 @@ export const userApi = {
   getLeaders: () => authApi.getLeaders(),
 
   getProfile: () => authApi.getProfile(),
+};
+
+/**
+ * Super Admin API
+ */
+export const superAdminApi = {
+  getOverview: () => apiClient.get(`/super-admin/overview`),
+
+  getUsers: (filters?: { q?: string; role?: string; limit?: number; offset?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.q) params.append("q", filters.q);
+    if (filters?.role) params.append("role", filters.role);
+    if (filters?.limit !== undefined) params.append("limit", String(filters.limit));
+    if (filters?.offset !== undefined) params.append("offset", String(filters.offset));
+    const qs = params.toString();
+    return apiClient.get<UserData[]>(`/super-admin/users${qs ? `?${qs}` : ""}`);
+  },
+
+  updateUserRole: (id: number, role: UserData["role"]) =>
+    apiClient.patch(`/super-admin/users/${id}/role`, { role }),
+
+  updateUserStatus: (id: number, is_active: boolean) =>
+    apiClient.patch(`/super-admin/users/${id}/status`, { is_active }),
+
+  getTours: () => apiClient.get<TourData[]>(`/super-admin/tours`),
+
+  getIncidents: (filters?: {
+    tour_id?: number;
+    severity?: string;
+    status?: string;
+    incident_type?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.tour_id !== undefined) params.append("tour_id", String(filters.tour_id));
+    if (filters?.severity) params.append("severity", filters.severity);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.incident_type) params.append("incident_type", filters.incident_type);
+    if (filters?.q) params.append("q", filters.q);
+    if (filters?.limit !== undefined) params.append("limit", String(filters.limit));
+    if (filters?.offset !== undefined) params.append("offset", String(filters.offset));
+    const qs = params.toString();
+    return apiClient.get<IncidentData[]>(`/super-admin/incidents${qs ? `?${qs}` : ""}`);
+  },
+
+  getAuditLogs: (filters?: {
+    user_id?: number;
+    action?: string;
+    entity_type?: string;
+    entity_id?: number;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.user_id !== undefined) params.append("user_id", String(filters.user_id));
+    if (filters?.action) params.append("action", filters.action);
+    if (filters?.entity_type) params.append("entity_type", filters.entity_type);
+    if (filters?.entity_id !== undefined) params.append("entity_id", String(filters.entity_id));
+    if (filters?.start_date) params.append("start_date", filters.start_date);
+    if (filters?.end_date) params.append("end_date", filters.end_date);
+    if (filters?.limit !== undefined) params.append("limit", String(filters.limit));
+    if (filters?.offset !== undefined) params.append("offset", String(filters.offset));
+    const qs = params.toString();
+    // Minimal Phase-1 typing: keep payload strict without using `any`.
+    return apiClient.get<Array<Record<string, unknown>>>(
+      `/super-admin/audit-logs${qs ? `?${qs}` : ""}`
+    );
+  },
+
+  getAnalytics: (filters?: { start_date?: string; end_date?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.start_date) params.append("start_date", filters.start_date);
+    if (filters?.end_date) params.append("end_date", filters.end_date);
+    const qs = params.toString();
+    return apiClient
+      .get(`/super-admin/analytics${qs ? `?${qs}` : ""}`)
+      .then((r) => r as ApiResponse<Record<string, unknown>>);
+  },
 };
 
 /**

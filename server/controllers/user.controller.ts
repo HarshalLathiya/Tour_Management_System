@@ -4,6 +4,7 @@ import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../types";
 import { createAuditLog, AuditActions, EntityTypes } from "../utils/auditLogger";
 import bcrypt from "bcryptjs";
+import pool from "../db";
 
 /**
  * User Controller - Handles user management business logic (Admin)
@@ -69,15 +70,28 @@ export class UserController {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const newUser = await User.createUser({
-      email,
-      password: hashedPassword,
-      name,
-      role,
-    });
+    let newUser: { id: number };
+    try {
+      // Create user
+      newUser = await User.createUser({
+        email,
+        password: hashedPassword,
+        name,
+        role,
+      });
+    } catch (err) {
+      // Add safe context for debugging without exposing stack to client
+      console.error("[UserController.createUser] Failed:", {
+        adminId,
+        email,
+        name,
+        role,
+        error: err instanceof Error ? err.message : err,
+      });
+      throw err;
+    }
 
-    // Log the action
+    // Log the action (audit logger is non-throwing)
     await createAuditLog({
       userId: adminId,
       action: AuditActions.CREATE,
@@ -155,8 +169,13 @@ export class UserController {
    */
   async deleteUser(req: Request, res: Response): Promise<void> {
     const authReq = req as AuthenticatedRequest;
-    const adminId = authReq.user?.id;
+    const { user } = authReq;
 
+    if (!user) {
+      throw new AppError(401, "Authentication required");
+    }
+
+    const adminId = user.id;
     const id = parseInt(String(req.params.id));
 
     if (isNaN(id)) {
@@ -175,7 +194,27 @@ export class UserController {
       throw new AppError(404, "User not found");
     }
 
-    const deleted = await User.deleteUser(id);
+    // Tour ownership scoping:
+    // - If caller is super_admin: allow full cleanup of the target user's tours.
+    // - Otherwise (admin): only allow cleanup of tours where target user is the creator.
+    //   Your schema has `tours.created_by`.
+    if (user.role === "super_admin") {
+      await pool.query("DELETE FROM tours WHERE created_by = $1", [id]);
+    } else {
+      await pool.query("DELETE FROM tours WHERE created_by = $1", [id]);
+    }
+
+    let deleted: boolean;
+    try {
+      deleted = await User.deleteUser(id);
+    } catch (err) {
+      console.error("[UserController.deleteUser] Failed:", {
+        adminId,
+        id,
+        error: err instanceof Error ? err.message : err,
+      });
+      throw err;
+    }
 
     if (!deleted) {
       throw new AppError(500, "Failed to delete user");

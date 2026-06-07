@@ -240,14 +240,14 @@ export class TourController {
       throw new AppError(404, "Tour not found");
     }
 
-    // Check if user exists and has 'guide' role
+    // Check if user exists and has 'leader' role
     const leader = await User.findByIdSafe(leader_id);
     if (!leader) {
       throw new AppError(404, "Leader not found");
     }
 
-    if (leader.role !== "guide") {
-      throw new AppError(400, "User must have 'guide' role to be assigned as leader");
+    if (leader.role !== "leader") {
+      throw new AppError(400, "User must have 'leader' role to be assigned as leader");
     }
 
     // Assign leader
@@ -319,7 +319,7 @@ export class TourController {
     const userRole = (req as AuthenticatedRequest).user!.role;
 
     // Only leaders can access this endpoint
-    if (userRole !== "guide") {
+    if (userRole !== "leader") {
       throw new AppError(403, "Only leaders can access their assigned tours");
     }
 

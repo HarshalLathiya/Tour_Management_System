@@ -10,11 +10,11 @@ const router = express.Router();
  * Following MVC pattern: Routes define endpoints, Controllers handle logic
  */
 
-// GET /api/users - Get all users (Admin only)
+// GET /api/users - Get all users (Super Admin only)
 router.get(
   "/",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin"),
   asyncHandler((req, res) => userController.getAllUsers(req, res))
 );
 
@@ -22,7 +22,7 @@ router.get(
 router.get(
   "/count",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin"),
   asyncHandler((req, res) => userController.getUserCountByRole(req, res))
 );
 
@@ -30,7 +30,7 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin"),
   asyncHandler((req, res) => userController.getUserById(req, res))
 );
 
@@ -38,7 +38,7 @@ router.get(
 router.post(
   "/",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin"),
   asyncHandler((req, res) => userController.createUser(req, res))
 );
 
@@ -46,7 +46,7 @@ router.post(
 router.put(
   "/:id",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin"),
   asyncHandler((req, res) => userController.updateUser(req, res))
 );
 
@@ -54,7 +54,7 @@ router.put(
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin"),
   asyncHandler((req, res) => userController.deleteUser(req, res))
 );
 

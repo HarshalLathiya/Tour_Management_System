@@ -1517,7 +1517,7 @@ export default function NewTourPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {availableUsers
-                          .filter((user) => user.role === "guide")
+                          .filter((user) => user.role === "leader")
                           .map((user) => (
                             <SelectItem key={user.id} value={user.id.toString()}>
                               {user.name}
@@ -1559,7 +1559,7 @@ export default function NewTourPage() {
                             {availableUsers
                               .filter(
                                 (user) =>
-                                  user.role === "tourist" &&
+                                  user.role === "participant" &&
                                   user.id !== formData.primaryLeaderId &&
                                   !formData.participantIds.includes(user.id)
                               )

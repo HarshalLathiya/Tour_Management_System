@@ -18,7 +18,7 @@ describe("Announcements API Routes", () => {
 
     const userResult = await pool.query(
       "INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
-      ["announce-test@example.com", passwordHash, "Announce Test", "guide"]
+      ["announce-test@example.com", passwordHash, "Announce Test", "leader"]
     );
     const userId = userResult.rows[0].id;
 

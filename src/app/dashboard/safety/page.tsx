@@ -46,8 +46,8 @@ interface SafetyParticipant {
 
 export default function SafetyPage() {
   const { user } = useAuth();
-  const isTourLeader = user?.role === "guide";
-  const isParticipant = user?.role === "tourist";
+  const isTourLeader = user?.role === "leader";
+  const isParticipant = user?.role === "participant";
 
   const [tours, setTours] = useState<TourData[]>([]);
   const [selectedTourId, setSelectedTourId] = useState<number | null>(null);

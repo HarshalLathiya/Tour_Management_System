@@ -1,7 +1,7 @@
 import type { Request } from "express";
 
 // ─── User Roles ──────────────────────────────────────────────────────────────
-export type UserRole = "admin" | "guide" | "tourist";
+export type UserRole = "super_admin" | "admin" | "leader" | "participant";
 
 // ─── Database Row Types ──────────────────────────────────────────────────────
 export interface UserRow {

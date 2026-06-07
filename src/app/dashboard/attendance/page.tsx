@@ -71,8 +71,8 @@ function AttendanceContent() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Check if user is a Tour Leader (guide role) or Participant (tourist)
-  const isTourLeader = user?.role === "guide";
-  const isParticipant = user?.role === "tourist";
+  const isTourLeader = user?.role === "leader";
+  const isParticipant = user?.role === "participant";
 
   // Fetch tours on mount - based on user role
   useEffect(() => {
