@@ -43,7 +43,7 @@ export class UserModel extends BaseModel {
     name: string;
     role?: string;
   }): Promise<{ id: number }> {
-    const { email, password, name, role = "tourist" } = data;
+    const { email, password, name, role = "participant" } = data;
 
     const result = await this.query<{ id: number }>(
       "INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -130,10 +130,10 @@ export class UserModel extends BaseModel {
   }
 
   /**
-   * Get all leaders (users with 'guide' role)
+   * Get all leaders (users with 'leader' role)
    */
   async getAllLeaders(): Promise<Omit<UserRow, "password_hash">[]> {
-    return this.findByRole("guide");
+    return this.findByRole("leader");
   }
 
   /**

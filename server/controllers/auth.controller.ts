@@ -16,7 +16,7 @@ export class AuthController {
       email,
       password,
       name,
-      role = "tourist",
+      role = "participant",
     } = req.body as {
       email: string;
       password: string;
@@ -266,7 +266,7 @@ export class AuthController {
   }
 
   /**
-   * Get all leaders (users with 'guide' role)
+   * Get all leaders (users with 'leader' role)
    */
   async getLeaders(_req: Request, res: Response): Promise<void> {
     const leaders = await User.getAllLeaders();

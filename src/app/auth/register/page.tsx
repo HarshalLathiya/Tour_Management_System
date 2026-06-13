@@ -15,7 +15,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     name: "",
-    role: "tourist",
+    role: "participant",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function RegisterPage() {
 
   const getRoleDescription = (roleValue: string) => {
     switch (roleValue) {
-      case "guide":
+      case "leader":
         return "Manage tours, coordinate participants, and oversee logistics";
       case "admin":
         return "Administer organization, manage multiple tours and guides";
@@ -185,12 +185,12 @@ export default function RegisterPage() {
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         {
-                          value: "tourist",
+                          value: "participant",
                           label: "Participant",
                           icon: <User className="h-5 w-5" />,
                         },
                         {
-                          value: "guide",
+                          value: "leader",
                           label: "Tour Leader",
                           icon: <Users className="h-5 w-5" />,
                         },

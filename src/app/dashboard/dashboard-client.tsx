@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -64,11 +64,35 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
   const isAdmin = userRole === "admin" || userRole === "super_admin";
   const [searchQuery, setSearchQuery] = useState("");
 
-  const stats = isAdmin
-    ? [
+  const filteredTours = React.useMemo(() => {
+    if (!searchQuery) return tours;
+    const query = searchQuery.toLowerCase();
+    return tours.filter((tour) => {
+      return (
+        tour.name?.toLowerCase().includes(query) ||
+        tour.destination?.toLowerCase().includes(query) ||
+        tour.leader_name?.toLowerCase().includes(query) ||
+        tour.status?.toLowerCase().includes(query)
+      );
+    });
+  }, [tours, searchQuery]);
+
+  const activeTours = React.useMemo(() => {
+    return filteredTours.filter((t) => t.status === "active" || t.status === "ongoing").slice(0, 3);
+  }, [filteredTours]);
+
+  const upcomingTours = React.useMemo(() => {
+    return filteredTours.filter((t) => t.status === "planned").slice(0, 3);
+  }, [filteredTours]);
+
+  const stats = React.useMemo(() => {
+    if (isAdmin) {
+      return [
         {
           label: "Total Revenue",
-          value: `$${(tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0) * 150).toLocaleString()}`,
+          value: `$${(
+            tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0) * 150
+          ).toLocaleString()}`,
           icon: DollarSign,
           color: "from-emerald-500 to-teal-500",
           change: null,
@@ -98,58 +122,44 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
           change: "Healthy",
           trend: "neutral",
         },
-      ]
-    : [
-        {
-          label: "Active Tours",
-          value: tours.filter((t) => t.status === "active" || t.status === "ongoing").length,
-          icon: MapPin,
-          color: "from-primary-500 to-primary-600",
-          change: null,
-          trend: "neutral",
-        },
-        {
-          label: "Total Tours",
-          value: tours.length,
-          icon: Calendar,
-          color: "from-emerald-500 to-teal-500",
-          change: null,
-          trend: "neutral",
-        },
-        {
-          label: "Upcoming Tours",
-          value: tours.filter((t) => t.status === "planned").length,
-          icon: Calendar,
-          color: "from-emerald-500 to-teal-600",
-          change: null,
-          trend: "neutral",
-        },
-        {
-          label: "Total Participants",
-          value: tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0),
-          icon: Users,
-          color: "from-warning to-warning/90",
-          change: null,
-          trend: "neutral",
-        },
       ];
+    }
 
-  // Filter tours based on search query
-  const filteredTours = tours.filter((tour) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      tour.name?.toLowerCase().includes(query) ||
-      tour.destination?.toLowerCase().includes(query) ||
-      tour.leader_name?.toLowerCase().includes(query) ||
-      tour.status?.toLowerCase().includes(query)
-    );
-  });
-
-  const activeTours = filteredTours
-    .filter((t) => t.status === "active" || t.status === "ongoing")
-    .slice(0, 3);
-  const upcomingTours = filteredTours.filter((t) => t.status === "planned").slice(0, 3);
+    return [
+      {
+        label: "Active Tours",
+        value: tours.filter((t) => t.status === "active" || t.status === "ongoing").length,
+        icon: MapPin,
+        color: "from-primary-500 to-primary-600",
+        change: null,
+        trend: "neutral",
+      },
+      {
+        label: "Total Tours",
+        value: tours.length,
+        icon: Calendar,
+        color: "from-emerald-500 to-teal-500",
+        change: null,
+        trend: "neutral",
+      },
+      {
+        label: "Upcoming Tours",
+        value: tours.filter((t) => t.status === "planned").length,
+        icon: Calendar,
+        color: "from-emerald-500 to-teal-600",
+        change: null,
+        trend: "neutral",
+      },
+      {
+        label: "Total Participants",
+        value: tours.reduce((sum, tour) => sum + (tour.participant_count || 0), 0),
+        icon: Users,
+        color: "from-warning to-warning/90",
+        change: null,
+        trend: "neutral",
+      },
+    ];
+  }, [isAdmin, tours]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-50/20 to-background p-4 md:p-6 lg:p-8">
@@ -514,7 +524,7 @@ export function DashboardClient({ tours, userRole }: DashboardClientProps) {
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            Starts in {Math.floor(Math.random() * 14) + 1} days
+                            Starts in {Math.floor((Number(tour.id) || 0) % 14) + 1} days
                           </span>
                           <Link
                             href={`/dashboard/tours/${tour.id}`}

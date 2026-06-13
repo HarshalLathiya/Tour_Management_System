@@ -28,20 +28,32 @@ async function seed() {
       `INSERT INTO users (email, password_hash, name, role) VALUES
         ('admin1@toursync.com',   $1, 'Admin One',    'admin'),
         ('admin2@toursync.com',  $1, 'Manager Two',    'admin'),
-        ('guide1@toursync.com',  $1, 'Paras Thummar',   'guide'),
-        ('guide2@toursync.com',  $1, 'Vipul Baldha',   'guide'),
-        ('guide3@toursync.com',  $1, 'Dhruvil Padsala',    'guide'),
-        ('tourist1@toursync.com',$1, 'Harshal Lathiya',       'tourist'),
-        ('tourist2@toursync.com',$1, 'Dharmik Saraviya',     'tourist'),
-        ('tourist3@toursync.com',$1, 'Navdeep Bhalu',  'tourist'),
-        ('tourist4@toursync.com',$1, 'Deep Kanjariya',       'tourist'),
-        ('tourist5@toursync.com',$1, 'Vishal Makawana',   'tourist')
+        ('leader1@toursync.com',  $1, 'Paras Thummar',   'leader'),
+        ('leader2@toursync.com',  $1, 'Vipul Baldha',   'leader'),
+        ('leader3@toursync.com',  $1, 'Dhruvil Padsala',    'leader'),
+        ('participant1@toursync.com',$1, 'Harshal Lathiya',       'participant'),
+        ('participant2@toursync.com',$1, 'Dharmik Saraviya',     'participant'),
+        ('participant3@toursync.com',$1, 'Navdeep Bhalu',  'participant'),
+        ('participant4@toursync.com',$1, 'Deep Kanjariya',       'participant'),
+        ('participant5@toursync.com',$1, 'Vishal Makawana',   'participant')
+
       RETURNING id, email, role`,
       [passwordHash]
     );
     const users = usersResult.rows;
-    const [admin1, , guide1, guide2, guide3, tourist1, tourist2, tourist3, tourist4, tourist5] =
-      users;
+    const [
+      admin1,
+      ,
+      leader1,
+      leader2,
+      leader3,
+      participant1,
+      participant2,
+      participant3,
+      participant4,
+      participant5,
+    ] = users;
+
     console.log(`✓ Created ${users.length} users`);
 
     // ─── States ───────────────────────────────────────────────────────────────
@@ -105,6 +117,7 @@ async function seed() {
     // ─── Tours ────────────────────────────────────────────────────────────────
     const toursResult = await client.query(
       `INSERT INTO tours (name, description, start_date, end_date, destination, price, status, created_by, assigned_leader_id, participant_count) VALUES
+
         ('Golden Triangle Tour',     'Explore Delhi, Agra and Jaipur — India''s most iconic triangle', '2026-03-01', '2026-03-10', 'Jaipur',     1200.00, 'planned',   $1, $2, 12),
         ('Gujarat Heritage Tour',    'Discover the rich culture and heritage of Gujarat',               '2026-03-15', '2026-03-22', 'Ahmedabad',   950.00, 'planned',   $1, $3, 8),
         ('Kerala Backwaters',        'Serene houseboat journey through Kerala''s backwaters',           '2026-04-01', '2026-04-08', 'Kochi',      1100.00, 'planned',   $1, $2, 15),
@@ -116,8 +129,9 @@ async function seed() {
         ('Udaipur Lake Festival',    'Special tour coinciding with the Lake Festival of Udaipur',      '2026-06-01', '2026-06-07', 'Udaipur',    1050.00, 'planned',   $1, $2, 0),
         ('South India Circuit',      'Comprehensive tour covering Chennai, Mysore and Ooty',           '2026-06-15', '2026-06-25', 'Chennai',    1600.00, 'cancelled', $1, $3, 0)
       RETURNING id, name`,
-      [admin1.id, guide1.id, guide2.id, guide3.id]
+      [admin1.id, leader1.id, leader2.id, leader3.id]
     );
+
     const tours = toursResult.rows;
     console.log(`✓ Created ${tours.length} tours`);
 
@@ -197,22 +211,23 @@ async function seed() {
 
     // ─── Attendance ───────────────────────────────────────────────────────────
     const attendanceData = [
-      [tourist1.id, tours[5].id, "2026-02-20", "present"],
-      [tourist2.id, tours[5].id, "2026-02-20", "present"],
-      [tourist3.id, tours[5].id, "2026-02-20", "present"],
-      [tourist4.id, tours[5].id, "2026-02-20", "late"],
-      [tourist5.id, tours[5].id, "2026-02-20", "absent"],
-      [tourist1.id, tours[5].id, "2026-02-21", "present"],
-      [tourist2.id, tours[5].id, "2026-02-21", "present"],
-      [tourist3.id, tours[5].id, "2026-02-21", "present"],
-      [tourist4.id, tours[5].id, "2026-02-21", "present"],
-      [tourist5.id, tours[5].id, "2026-02-21", "late"],
-      [tourist1.id, tours[6].id, "2026-01-10", "present"],
-      [tourist2.id, tours[6].id, "2026-01-10", "present"],
-      [tourist3.id, tours[6].id, "2026-01-10", "present"],
-      [tourist4.id, tours[6].id, "2026-01-10", "absent"],
-      [tourist1.id, tours[7].id, "2026-01-20", "present"],
-      [tourist2.id, tours[7].id, "2026-01-20", "present"],
+      [participant1.id, tours[5].id, "2026-02-20", "present"],
+      [participant2.id, tours[5].id, "2026-02-20", "present"],
+      [participant3.id, tours[5].id, "2026-02-20", "present"],
+      [participant4.id, tours[5].id, "2026-02-20", "late"],
+      [participant5.id, tours[5].id, "2026-02-20", "absent"],
+      [participant1.id, tours[5].id, "2026-02-21", "present"],
+      [participant2.id, tours[5].id, "2026-02-21", "present"],
+      [participant3.id, tours[5].id, "2026-02-21", "present"],
+      [participant4.id, tours[5].id, "2026-02-21", "present"],
+      [participant5.id, tours[5].id, "2026-02-21", "late"],
+      [participant1.id, tours[6].id, "2026-01-10", "present"],
+      [participant2.id, tours[6].id, "2026-01-10", "present"],
+      [participant3.id, tours[6].id, "2026-01-10", "present"],
+      [participant4.id, tours[6].id, "2026-01-10", "absent"],
+      [participant1.id, tours[7].id, "2026-01-20", "present"],
+
+      [participant2.id, tours[7].id, "2026-01-20", "present"],
     ];
     for (const [uid, tid, date, status] of attendanceData) {
       await client.query(
@@ -223,34 +238,35 @@ async function seed() {
     console.log(`✓ Created ${attendanceData.length} attendance records`);
 
     // ─── Tour Users (Participants) ─────────────────────────────────────────────
-    // Assign tourists to tours
+    // Assign participants to tours
     const tourUsersData = [
       // Mumbai City Tour (ongoing) - tours[5]
-      [tours[5].id, tourist1.id, "participant"],
-      [tours[5].id, tourist2.id, "participant"],
-      [tours[5].id, tourist3.id, "participant"],
-      [tours[5].id, tourist4.id, "participant"],
-      [tours[5].id, tourist5.id, "participant"],
+      [tours[5].id, participant1.id, "participant"],
+      [tours[5].id, participant2.id, "participant"],
+      [tours[5].id, participant3.id, "participant"],
+      [tours[5].id, participant4.id, "participant"],
+      [tours[5].id, participant5.id, "participant"],
+
       // Golden Triangle Tour (planned) - tours[0]
-      [tours[0].id, tourist1.id, "participant"],
-      [tours[0].id, tourist2.id, "participant"],
-      [tours[0].id, tourist3.id, "participant"],
+      [tours[0].id, participant1.id, "participant"],
+      [tours[0].id, participant2.id, "participant"],
+      [tours[0].id, participant3.id, "participant"],
       // Gujarat Heritage Tour (planned) - tours[1]
-      [tours[1].id, tourist4.id, "participant"],
-      [tours[1].id, tourist5.id, "participant"],
+      [tours[1].id, participant4.id, "participant"],
+      [tours[1].id, participant5.id, "participant"],
       // Kerala Backwaters (planned) - tours[2]
-      [tours[2].id, tourist1.id, "participant"],
-      [tours[2].id, tourist3.id, "participant"],
-      [tours[2].id, tourist5.id, "participant"],
+      [tours[2].id, participant1.id, "participant"],
+      [tours[2].id, participant3.id, "participant"],
+      [tours[2].id, participant5.id, "participant"],
       // Rajasthan Royal Tour (planned) - tours[3]
-      [tours[3].id, tourist2.id, "participant"],
-      [tours[3].id, tourist4.id, "participant"],
+      [tours[3].id, participant2.id, "participant"],
+      [tours[3].id, participant4.id, "participant"],
       // Himachal Adventure (planned) - tours[4]
-      [tours[4].id, tourist1.id, "participant"],
-      [tours[4].id, tourist2.id, "participant"],
-      [tours[4].id, tourist3.id, "participant"],
-      [tours[4].id, tourist4.id, "participant"],
-      [tours[4].id, tourist5.id, "participant"],
+      [tours[4].id, participant1.id, "participant"],
+      [tours[4].id, participant2.id, "participant"],
+      [tours[4].id, participant3.id, "participant"],
+      [tours[4].id, participant4.id, "participant"],
+      [tours[4].id, participant5.id, "participant"],
     ];
     for (const [tid, uid, role] of tourUsersData) {
       await client.query(
@@ -264,7 +280,8 @@ async function seed() {
     const incidentData = [
       [
         tours[0].id,
-        guide1.id,
+        leader1.id,
+
         "Participant felt unwell",
         "Tourist reported dizziness during Hawa Mahal visit. First aid administered.",
         "Hawa Mahal, Jaipur",
@@ -273,7 +290,8 @@ async function seed() {
       ],
       [
         tours[1].id,
-        guide2.id,
+        leader2.id,
+
         "Bus breakdown",
         "Bus broke down on highway. Replacement arranged within 2 hours.",
         "NH48, Gujarat",
@@ -282,7 +300,8 @@ async function seed() {
       ],
       [
         tours[5].id,
-        guide3.id,
+        leader3.id,
+
         "Minor injury on houseboat",
         "Tourist slipped on wet deck. Minor bruise, no serious injury.",
         "Alleppey Backwaters, Kerala",
@@ -309,9 +328,10 @@ async function seed() {
       [
         tours[0].id,
         "Medical Kit",
-        "First aid kit available with tour guide at all times.",
+        "First aid kit available with tour leader at all times.",
         "medium",
       ],
+
       [
         tours[2].id,
         "Houseboat Safety",
@@ -358,9 +378,9 @@ async function seed() {
     await client.query("COMMIT");
     console.log("\n✅ Database seeded successfully!");
     console.log("\n📋 Test credentials (all use password: password123):");
-    console.log("   Admin:   admin@toursync.com");
-    console.log("   Guide:   guide1@toursync.com");
-    console.log("   Tourist: tourist1@toursync.com");
+    console.log("   Admin:   admin1@toursync.com");
+    console.log("   Leader:  leader1@toursync.com");
+    console.log("   Participant: participant1@toursync.com");
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("❌ Seeding failed, rolling back:", error);
